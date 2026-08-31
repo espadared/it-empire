@@ -225,6 +225,24 @@
     } finally { working.delete(tuid); }
   }
 
+  Game.on('quotaspent', () => {
+    UI.beep('alarm');
+    UI.sheet(`
+      <span class="big-emoji">🎫</span>
+      <h3>THAT IS YOUR THIRTY</h3>
+      <p class="sub">You have worked your allowance for this hour</p>
+      <p class="tiny muted" style="text-align:center">The queue is frozen until it refills — nothing breaches while you are off the floor. Your team keeps working the automated queue the whole time, so there will be a pile of credits waiting when you get back.</p>
+      <p class="tiny" style="text-align:center;color:var(--lamp);font-family:var(--disp);font-size:15px">BACK IN ${Game.fmtTime(Game.quotaResetIn())}</p>
+      <button class="btn gold cta" data-close="1">SEE YOU IN AN HOUR</button>`);
+    UI.refresh();
+  });
+
+  Game.on('quotarefresh', ({ allowance }) => {
+    UI.beep('level');
+    toast('🎫', 'ALLOWANCE REFILLED', `${allowance} tickets are yours again. The queue is live.`);
+    UI.refresh();
+  });
+
   Game.on('breach', ({ ticket, rep }) => {
     UI.beep('alarm'); UI.shake();
     toast('⏰', 'SLA BREACHED', `${ticket.name} — ${ticket.user} gave up waiting. −${rep} reputation, morale down.`);
@@ -239,7 +257,7 @@
       <span class="big-emoji">🎉</span>
       <h3>LEVEL ${d.level}</h3>
       <p class="sub">${esc(d.title.toUpperCase())}</p>
-      <p class="tiny muted" style="text-align:center">Energy fully restored. Harder tickets are now hitting your queue — and they pay a great deal more.</p>
+      <p class="tiny muted" style="text-align:center">Your hands-on allowance is topped back up. Harder tickets are now hitting your queue — and they pay a great deal more.</p>
       <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
     setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
   });

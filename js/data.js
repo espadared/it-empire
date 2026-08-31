@@ -200,10 +200,24 @@ const DATA = (() => {
   const SLA_URGENT = 30;
 
   /* How often a ticket turns out to be a real puzzle rather than a known fix.
-     Roughly one in twenty: rare enough that a diagnosis is an event, not a
-     tax on every other ticket. Difficulty no longer decides this — a printer
-     can be baffling and a server outage can be routine. */
-  const DIAGNOSE_CHANCE = 0.05;
+     Difficulty does not decide this — a printer can be baffling and a server
+     outage can be routine. The rate flexes with how hard you are working:
+     roughly one in ten at a steady pace, rarer when you are dipping in and
+     out, more often when you are flying. See Game.diagnoseChance(). */
+  const DIAGNOSE_CHANCE = 0.10;      // the steady-pace baseline
+  const DIAGNOSE_MIN = 0.07;         // 1 in 14, when barely playing
+  const DIAGNOSE_MAX = 0.17;         // 1 in 6, when in full flow
+  const DIAGNOSE_PITY = 22;          // never go longer than this without one
+
+  /* Your hands-on allowance. You can personally work this many tickets an
+     hour; the hour starts when you work your first one, and when it is up the
+     allowance comes back in full. Your team keeps the automated queue running
+     the whole time, so there is something waiting when you return. */
+  const QUOTA = {
+    perHour: 30,
+    windowMs: 60 * 60 * 1000,
+    perBreakRoom: 2,                 // the Break Room buys you a few more
+  };
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -506,7 +520,7 @@ const DATA = (() => {
     {
       id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', icon:'🚒',
       strength:'+50% critical incident rewards',
-      weakness:'Burns energy fast — high energy consumption',
+      weakness:'Runs hot — no use to you on the quiet days',
       personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
       quotes:['"Everyone breathe. I have got this."','"Sev-1? Finally."','"Stop typing. Tell me what changed."'],
       base:{TECHNICAL:14,SPEED:18,COMMUNICATION:10,INVESTIGATION:15,PATIENCE:5,AUTOMATION:6,MANAGEMENT:11},
@@ -635,7 +649,7 @@ const DATA = (() => {
     { id:'hardware',   name:'Hardware Room',           icon:'🧰', base:900,   growth:1.60, max:15, repReq:100,
       effect:'+10% hardware ticket rewards per level', key:'cat_hardware', per:0.10 },
     { id:'break',      name:'Break Room',              icon:'☕', base:1400,  growth:1.62, max:15, repReq:150,
-      effect:'+15% energy recovery per level',         key:'energyRegen', per:0.15 },
+      effect:'+2 tickets an hour per level',           key:'quota', per:2 },
     { id:'training',   name:'Training Room',           icon:'🎓', base:2600,  growth:1.64, max:15, repReq:300,
       effect:'+10% employee XP per level',             key:'staffXp', per:0.10 },
     { id:'meeting',    name:'Meeting Room',            icon:'📽️', base:5000,  growth:1.66, max:12, repReq:500,
@@ -674,7 +688,7 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
-    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:2,  icon:'🔍' },
+    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:3,  icon:'🔍' },
     { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
 
@@ -717,7 +731,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();

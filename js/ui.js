@@ -93,8 +93,10 @@ const UI = (() => {
     $('#resRep').textContent = f(S.reputation);
     $('#xpFill').style.width = Math.min(100, S.xp / need * 100) + '%';
     $('#xpLbl').textContent = f(S.xp) + '/' + f(need);
-    $('#enFill').style.width = Math.min(100, S.energy / S.energyMax * 100) + '%';
-    $('#enLbl').textContent = Math.floor(S.energy) + '/' + S.energyMax;
+    const left = Game.quotaLeft(), max = Game.quotaMax();
+    $('#enFill').style.width = Math.min(100, left / max * 100) + '%';
+    $('#enLbl').textContent = left ? left + '/' + max : Game.fmtTime(Game.quotaResetIn());
+    $('#resAllow').classList.toggle('spent', !left);
     const alerts = (S.missions || []).filter(m => m.done && !m.claimed).length + (Game.incidentReady() ? 1 : 0);
     $('#bellDot').style.display = alerts ? 'block' : 'none';
     const nb = $('#navBadge');
@@ -171,6 +173,22 @@ const UI = (() => {
   function renderQueue() {
     const S = Game.state, box = $('#queue'); if (!box) return;
     Game.fillQueue();
+    if (!Game.hasQuota()) {
+      const per = Game.idlePerSec();
+      box.innerHTML = `<div class="spent-card">
+        <div class="spent-ico">🎫</div>
+        <h3>THAT IS YOUR THIRTY</h3>
+        <p>You have worked your allowance for this hour. The queue is frozen —
+           nothing will breach while you are off the floor.</p>
+        <div class="spent-clock">BACK IN <b>${Game.fmtTime(Game.quotaResetIn())}</b></div>
+        ${Game.staff().length ? `<p class="spent-idle">Your team is still on it —
+           about <b>${f(per.c * 3600)}</b> credits and <b>${f(per.x * 3600)}</b> XP
+           banking up every hour while you are away.</p>`
+        : `<p class="spent-idle">Hire a colleague on the <b>STAFF</b> tab and the
+           queue keeps earning while your allowance refills.</p>`}
+      </div>`;
+      return;
+    }
     if (nudged.size > 24) nudged.clear();
     box.innerHTML = S.queue.map((t, i) => {
       const T = Game.TIER[t.tier], r = ticketRewards(t);
@@ -473,7 +491,7 @@ const UI = (() => {
         </div>
         <div class="rewrow">
           <span class="rw-c">+${f(m.reward.credits)} CR</span><span class="rw-x">+${f(m.reward.xp)} XP</span>
-          <span class="rw-r">+${m.reward.rep} REP</span><span style="color:var(--lamp)">+${m.reward.energy} ⚡</span>
+          <span class="rw-r">+${m.reward.rep} REP</span><span style="color:var(--lamp)">+${m.reward.energy} 🎫</span>
         </div>
       </div>`;
     }).join('');

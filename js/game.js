@@ -81,10 +81,12 @@ const Game = (() => {
       dept: {},
       queue: [], streak: 0,
       momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
       recentEvents: [], recentIncidents: [],
+      solveTimes: [], sinceDiag: 0, lastWasDiag: false,
       missions: null, missionsAt: 0,
       md: {},                                  // daily mission counters
       lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {},
@@ -203,6 +205,84 @@ const Game = (() => {
     return 'EASY';
   }
 
+  /* ---------------- YOUR HOURLY ALLOWANCE ----------------
+     You work thirty tickets an hour by hand. The hour starts the moment you
+     work your first one; when it runs out the allowance comes back in full.
+     The automated queue never stops, so the reason to come back is that your
+     team has been earning the whole time. */
+  const quotaMax = () => DATA.QUOTA.perHour + (S.buildings.break || 0) * DATA.QUOTA.perBreakRoom;
+  const quotaLeft = () => Math.max(0, Math.min(S.quotaLeft == null ? quotaMax() : S.quotaLeft, quotaMax()));
+  const quotaResetIn = () => Math.max(0, ((S.quotaEnds || 0) - Date.now()) / 1000);
+  const hasQuota = () => quotaLeft() > 0;
+
+  /* Called every tick: when the hour is up, everything comes back. */
+  function refreshQuota() {
+    if (!S.quotaEnds) return false;
+    if (Date.now() < S.quotaEnds) return false;
+    S.quotaLeft = quotaMax();
+    S.quotaEnds = 0;
+    emit('quotarefresh', { allowance: S.quotaLeft });
+    emit('change');
+    return true;
+  }
+
+  function spendQuota(n) {
+    if (S.quotaLeft == null) S.quotaLeft = quotaMax();
+    if (!S.quotaEnds) S.quotaEnds = Date.now() + DATA.QUOTA.windowMs;   // the hour starts now
+    S.quotaLeft = Math.max(0, S.quotaLeft - (n || 1));
+    if (S.quotaLeft === 0) emit('quotaspent', { back: quotaResetIn() });
+    return S.quotaLeft;
+  }
+
+  function grantQuota(n) {
+    S.quotaLeft = Math.min(quotaMax(), (S.quotaLeft == null ? quotaMax() : S.quotaLeft) + n);
+    emit('change');
+    return S.quotaLeft;
+  }
+
+  /* What falls out of a ticket. Better tickets can drop better gear. */
+  function dropItem(tier) {
+    const pool = DATA.EQUIPMENT.filter(e => {
+      const o = DATA.RARITY[e.rarity].order;
+      if (tier === 'EASY') return o <= 1;
+      if (tier === 'MEDIUM') return o <= 2 || (o === 3 && Math.random() < 0.25);
+      return o >= 1 || Math.random() < 0.3;
+    });
+    const e = pick(pool.length ? pool : DATA.EQUIPMENT);
+    const it = mkItem(e.id);
+    S.inventory.push(it);
+    return it;
+  }
+
+  /* Resolutions in the last minute — a plain read on how hard you are working
+     right now, used to decide how often a real puzzle should turn up. */
+  function playTempo() {
+    const now = Date.now();
+    S.solveTimes = (S.solveTimes || []).filter(t => now - t < 60000);
+    return S.solveTimes.length;
+  }
+
+  /* Someone hammering through the queue is in the mood for a puzzle; someone
+     dipping in for a minute is not. The rate follows the player. A pity
+     counter guarantees one eventually, so a bad run of luck cannot hide them
+     completely. */
+  function diagnoseChance() {
+    const lean = 0.72 + Math.min(1, playTempo() / 14) * 0.9;
+    return clamp(DATA.DIAGNOSE_CHANCE * lean, DATA.DIAGNOSE_MIN, DATA.DIAGNOSE_MAX);
+  }
+
+  function rollDiagnosis(hasCauses) {
+    if (!hasCauses) return false;
+    S.sinceDiag = (S.sinceDiag || 0) + 1;
+    const due = S.sinceDiag >= DATA.DIAGNOSE_PITY;
+    // two in a row reads as a glitch rather than a run of bad luck
+    const damp = S.lastWasDiag ? 0.35 : 1;
+    const hit = due || Math.random() < diagnoseChance() * damp;
+    S.lastWasDiag = hit;
+    if (hit) S.sinceDiag = 0;
+    return hit;
+  }
+
   function makeTicket() {
     const tier = tierRoll();
     // Don't put the same problem in the queue twice — it reads as a bug.
@@ -214,8 +294,8 @@ const Game = (() => {
       uid: uid(), id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
       tier, ...t,
       // Most tickets are a known fix. Occasionally one genuinely needs working
-      // out — and that is decided per ticket, not by how hard it looks.
-      diagnose: !!(t.causes && t.causes.length) && Math.random() < DATA.DIAGNOSE_CHANCE,
+      // out — decided per ticket, and more often the harder you are working.
+      diagnose: rollDiagnosis(!!(t.causes && t.causes.length)),
       flavour: pick(DATA.TICKET_FLAVOUR),
       sla, left: sla, born: Date.now(),
     };
@@ -232,6 +312,9 @@ const Game = (() => {
      breach behind your back while the tab is closed. */
   function tickQueue(dt) {
     if (!S.queue) fillQueue();
+    // Nothing breaches while your allowance is spent — you are not allowed to
+    // work them, so it would be unfair to punish you for not working them.
+    if (!hasQuota()) { fillQueue(); return []; }
     if (Date.now() - (S.lastAction || 0) > 3000)
       S.momentum = Math.max(0, S.momentum - 5.5 * dt);
     const breached = [];
@@ -283,12 +366,10 @@ const Game = (() => {
     if (!worker) return null;
     const diag = opts.diag === 1 ? 1 : opts.diag === 0 ? 0 : null;
 
-    let tired = false;
-    if (!delegated) {
-      const cost = Math.round(T.energy * bonus('energy'));
-      tired = S.energy < cost;
-      S.energy = Math.max(0, S.energy - cost);
-    } else {
+    if (!hasQuota()) return null;        // out of hours — nothing happens
+    spendQuota(1);
+    const tired = false;
+    if (delegated) {
       const busyFor = (t.tier === 'HARD' ? 42 : t.tier === 'MEDIUM' ? 28 : 18) * 1000;
       S.busy[worker.uid] = Date.now() + busyFor;
     }
@@ -333,6 +414,8 @@ const Game = (() => {
     if (delegated) { S.lifetime.delegated = (S.lifetime.delegated || 0) + 1; bump('delegated', 1); }
     S.streak = techOk ? S.streak + 1 : 0;
     S.lifetime.streak = Math.max(S.lifetime.streak, S.streak);
+    S.solveTimes = (S.solveTimes || []).slice(-40);
+    S.solveTimes.push(Date.now());
     bump('tickets', 1); bump('cat_' + t.cat, 1); bump('credits', credits); bump('xp', xpv);
     if (satOk) bump('happy', 1);
     if (diag === 1) bump('diagnosed', 1);
@@ -349,12 +432,15 @@ const Game = (() => {
       satPct: techOk ? (satOk ? 60 + Math.floor(Math.random() * 40) : 15 + Math.floor(Math.random() * 40)) : 5,
     };
 
-    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03))
-      result.drop = dropItem(t.tier);
-
     const i = S.queue.indexOf(t);
     if (i >= 0) S.queue.splice(i, 1);
     fillQueue();
+
+    // Loot last: the ticket is already closed and paid, so nothing here can
+    // leave the queue in a half-resolved state.
+    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03))
+      result.drop = dropItem(t.tier);
+
     checkAchievements();
     emit('resolved', result);
     emit('change');
@@ -397,8 +483,8 @@ const Game = (() => {
     let ups = 0;
     while (S.xp >= xpNeed(S.level)) {
       S.xp -= xpNeed(S.level); S.level++; ups++;
-      S.energyMax = 100 + (S.buildings.break || 0) * 10 + Math.floor(S.level / 5) * 5;
-      S.energy = S.energyMax;
+      // Deliberately no allowance here: thirty an hour has to mean thirty an
+      // hour, or levelling quietly switches the limit off for new players.
     }
     if (ups) emit('levelup', { level: S.level, title: title(S.level) });
   }
@@ -536,7 +622,7 @@ const Game = (() => {
     const b = bDef(id); if (!canBuild(b)) return false;
     S.credits -= buildCost(b);
     S.buildings[id] = (S.buildings[id] || 0) + 1;
-    if (id === 'break') S.energyMax = 100 + S.buildings.break * 10 + Math.floor(S.level / 5) * 5;
+    if (id === 'break') S.quotaLeft = Math.min(quotaMax(), (S.quotaLeft || 0) + DATA.QUOTA.perBreakRoom);
     S.lifetime.builds++; bump('builds', 1);
     checkAchievements(); emit('change'); emit('built', b);
     return true;
@@ -557,7 +643,7 @@ const Game = (() => {
         credits: Math.round(400 * scale * (1 + Math.random() * 0.6)),
         xp: Math.round(280 * scale),
         rep: Math.round(12 * scale),
-        energy: 25,
+        energy: 5,             // extra tickets on your allowance
       }
     }));
     S.md = {};
@@ -577,7 +663,7 @@ const Game = (() => {
     if (!m || !m.done || m.claimed) return null;
     m.claimed = true;
     S.credits += m.reward.credits; S.reputation += m.reward.rep;
-    S.energy = Math.min(S.energyMax, S.energy + m.reward.energy);
+    grantQuota(m.reward.energy);         // claimed missions buy back some hands-on time
     addXp(m.reward.xp);
     checkAchievements(); emit('change');
     return m.reward;
@@ -695,9 +781,7 @@ const Game = (() => {
     const now = Date.now();
     const dt = Math.min(5, (now - S.lastTick) / 1000);
     S.lastTick = now;
-    // energy
-    S.energyAcc += dt * (1 / 7) * bonus('energyRegen');
-    if (S.energyAcc >= 1) { const g = Math.floor(S.energyAcc); S.energyAcc -= g; S.energy = Math.min(S.energyMax, S.energy + g); }
+    refreshQuota();
     // Morale drifts slowly back toward workable, so one bad session does not
     // sour the department forever — but it never drifts up into "great".
     const rest = 60;
@@ -737,10 +821,12 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], buildings: {}, dept: {},
       queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
       recentEvents: [], recentIncidents: [],
+      solveTimes: [], sinceDiag: 0, lastWasDiag: false,
       missions: null, missionsAt: 0, md: {},
       lifetime: {
         tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0,
@@ -768,6 +854,7 @@ const Game = (() => {
       uidSeq = Date.now() % 100000;
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
+      refreshQuota();          // an hour away means a full allowance on arrival
       // a queue that sat through a break starts fresh rather than pre-breached,
       // and picks up the current SLA budget rather than the one it was born with
       S.queue.forEach(t => { t.sla = DATA.SLA[t.tier] || 300; t.left = t.sla; });
@@ -792,7 +879,9 @@ const Game = (() => {
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
     resolveTicket, delegate, escalateTicket, escalateCost, TIER, requirement,
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
+    playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
+    quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
     equip, unequip, upgradeItem, upgradeCost, scrapItem,

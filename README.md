@@ -84,13 +84,21 @@ The one thing that must be set in the dashboard is `DATABASE_URL`.
 Three tickets sit in the queue at once, each with its own SLA clock. You cannot
 work them all, so every few seconds you are choosing who waits:
 
-- **Fix it yourself** — costs energy. Medium and hard tickets open a
-  **diagnosis**: the symptom is shown with three candidate causes, and naming
+- **Fix it yourself** — spends one of your hourly allowance. Roughly one ticket
+  in ten turns out to be **tricky** and opens a **diagnosis**: the symptom is shown with three candidate causes, and naming
   the right one is worth ~1.6× and a big momentum boost. Guessing costs you.
 - **Delegate** — free of energy and worth 70%, but that colleague is then busy
   for 18–42 seconds, and their stats decide the odds. A hardware specialist is
   a poor choice for an MFA ticket, and the picker shows you that.
 - **Escalate** — drop it for a small reputation cost. Sometimes the right call.
+
+**Your allowance is thirty tickets an hour.** The hour starts when you work
+your first one; when it is up you get all thirty back. Delegating spends it too
+(it is still your department's hands-on time), escalating does not (you did not
+work it). Crucially the **queue freezes while your allowance is spent** — you
+cannot work the tickets, so it would be unfair to breach them. The automated
+queue keeps earning the whole time, which is the reason to come back. Claimed
+missions give a few tickets back, and each Break Room level adds two an hour.
 
 Two meters run underneath:
 
