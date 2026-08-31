@@ -710,6 +710,72 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   text-align:center;line-height:1.45;
 }
 
+/* ---- staff: sorting, postings, department board ---- */
+.idle-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px;
+}
+.idle-summary>div{
+  background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:8px 6px;text-align:center;
+}
+.idle-summary b{display:block;font-family:var(--mono);font-size:14px;color:var(--lamp);font-variant-numeric:tabular-nums}
+.idle-summary span{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+
+.sortbar{display:flex;align-items:center;gap:6px;padding:12px 12px 8px;overflow-x:auto;scrollbar-width:none}
+.sortbar::-webkit-scrollbar{display:none}
+.sortbar-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);flex:0 0 auto}
+.sortchip{
+  flex:0 0 auto;border-radius:999px;padding:6px 12px;background:var(--panel);border:1px solid var(--line);
+  font-family:var(--disp);font-weight:700;font-size:11.5px;color:var(--muted);transition:all .15s;
+}
+.sortchip.on{border-color:var(--lamp);color:var(--lamp);background:rgba(255,179,71,.1)}
+
+.dchip-row{width:100%;text-align:left;margin-top:8px}
+.dchip{
+  display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;
+  padding:4px 10px;font-size:11px;font-weight:700;background:var(--ink-2);color:var(--text);
+}
+.dchip.empty{color:var(--muted);border-style:dashed;font-weight:600}
+
+.dept-list{display:flex;flex-direction:column;gap:9px;padding:0 12px}
+.dept{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px}
+.dept.locked{opacity:.5}
+.dept-head{display:flex;align-items:center;gap:10px}
+.dept-ico{
+  width:40px;height:40px;flex:0 0 auto;border-radius:12px;background:var(--ink-2);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:20px;
+}
+.dept-head h3{font-family:var(--disp);font-weight:800;font-size:14.5px;margin:0;line-height:1.15}
+.dept-bonus{font-size:11px;color:var(--crt)}
+.dept-out{font-family:var(--mono);font-size:13px;color:var(--lamp);text-align:right;flex:0 0 auto}
+.dept-out small{display:block;font-size:8.5px;color:var(--muted);letter-spacing:.04em}
+.dept-blurb{margin:8px 0 0;font-size:11.5px;color:var(--muted);font-style:italic;line-height:1.35}
+.dept-crew{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;min-height:44px;align-items:center}
+.crew{position:relative;transition:transform .08s}
+.crew:active{transform:scale(.94)}
+.crew-fit{
+  position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:8.5px;background:var(--ink-2);border:1px solid var(--line);
+  border-radius:999px;padding:0 4px;color:var(--muted);
+}
+.crew-fit.good{color:var(--good);border-color:#2F6B41}
+.crew-fit.poor{color:var(--alarm);border-color:#7A2F33}
+.dept-empty{font-size:11.5px;color:var(--faint);font-style:italic}
+
+.postopt{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-top:8px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;
+  transition:transform .08s,border-color .15s;
+}
+.postopt:active{transform:scale(.98)}
+.postopt.on{border-color:var(--lamp);background:rgba(255,179,71,.08)}
+.postopt.off{opacity:.45}
+.postopt h4{margin:0;font-family:var(--disp);font-weight:700;font-size:13.5px}
+.fitbadge{
+  flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;
+}
+.fitbadge small{display:block;font-size:8px;letter-spacing:.06em}
+.fitbadge.good{color:var(--good)} .fitbadge.poor{color:var(--alarm)}
+
 </style>
 <div id="app">
 
@@ -1438,12 +1504,28 @@ const DATA = (() => {
       effect:'+25% to everything per level',           key:'all', per:0.25 },
   ];
 
-  /* ---------- DEPARTMENTS (assignment targets) ---------- */
+  /* ---------- DEPARTMENTS ----------
+     Where you post people decides what the automated queue produces. Each
+     department leans on one stat, so posting the right person matters as much
+     as posting anybody: a People Person on the front line is worth far more
+     than an Automation Expert there, and the other way round.               */
   const DEPARTMENTS = [
-    { id:'support',  name:'IT Support',     icon:'🛎️', cats:['hardware','display','access'], repReq:0,    bonus:'Front line. Steady credits.' },
-    { id:'infra',    name:'Infrastructure', icon:'🖴', cats:['network'],                     repReq:400,  bonus:'+20% idle credits for assigned staff.' },
-    { id:'security', name:'Cybersecurity',  icon:'🛡️', cats:['security'],                    repReq:1200, bonus:'+25% incident contribution.' },
-    { id:'auto',     name:'Automation',     icon:'🤖', cats:['software'],                    repReq:2500, bonus:'+35% idle ticket throughput.' },
+    { id:'support',  name:'IT Support',     icon:'🛎️', stat:'COMMUNICATION', repReq:0,
+      effect:'credits', per:0.35,
+      bonus:'+35% idle credits',
+      blurb:'The front line. Steady money from a queue that never stops.' },
+    { id:'infra',    name:'Infrastructure', icon:'🖴',  stat:'TECHNICAL',     repReq:400,
+      effect:'rate', per:0.30,
+      bonus:'+30% tickets an hour',
+      blurb:'Keeps the lights on. More gets closed per hour.' },
+    { id:'security', name:'Cybersecurity',  icon:'🛡️', stat:'INVESTIGATION', repReq:1200,
+      effect:'reputation', per:0.60,
+      bonus:'+60% idle reputation',
+      blurb:'Quietly making you look good upstairs.' },
+    { id:'auto',     name:'Automation',     icon:'🤖', stat:'AUTOMATION',    repReq:2500,
+      effect:'rate', per:0.50,
+      bonus:'+50% tickets an hour',
+      blurb:'Scripts that work the queue while everyone sleeps.' },
   ];
 
   /* ---------- MISSIONS ---------- */
@@ -2481,17 +2563,62 @@ const Game = (() => {
   }
 
   /* ---------------- IDLE ENGINE ---------------- */
+  /* ---------------- DEPARTMENTS ----------------
+     A posting is only worth what the person brings to it. Fit compares their
+     department stat against their own average, so a specialist posted to their
+     speciality is worth roughly double one who is merely present.          */
+  const deptDef = id => DATA.DEPARTMENTS.find(d => d.id === id) || null;
+
+  function deptFit(c, dept) {
+    if (!dept) return 1;
+    const st = charStats(c);
+    const avg = DATA.STATS.reduce((a, k) => a + st[k], 0) / DATA.STATS.length;
+    if (avg <= 0) return 1;
+    return clamp(st[dept.stat] / avg, 0.45, 2.1);
+  }
+
+  /* How much a posting adds to one of the three things idle work produces. */
+  function deptBoost(c, what) {
+    const d = deptDef(c.dept);
+    if (!d || d.effect !== what) return 1;
+    if (S.reputation < d.repReq) return 1;        // posting lapses if unqualified
+    return 1 + d.per * deptFit(c, d);
+  }
+
+  function assignDept(charUid, deptId) {
+    const c = S.roster.find(x => x.uid === charUid); if (!c) return false;
+    if (deptId) {
+      const d = deptDef(deptId); if (!d || S.reputation < d.repReq) return false;
+    }
+    c.dept = c.dept === deptId ? null : (deptId || null);
+    emit('change');
+    return true;
+  }
+
+  const deptStaff = id => S.roster.filter(c => c.dept === id);
+
   function staffRate(c) {
     const st = charStats(c), d = def(c.defId);
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
-    if (c.dept === 'auto') r *= 1.35;
+    r *= deptBoost(c, 'rate');
     return r;
   }
   function idleRate() {                                   // tickets per minute
     const base = staff().reduce((a, c) => a + staffRate(c), 0);
     return base * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+  }
+
+  /* What one person actually contributes per minute, posting included. */
+  function staffOutput(c) {
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+    return {
+      rate,
+      credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
+      xp: rate * idleXpPerTicket(),
+      rep: rate * 0.035 * bonus('rep') * deptBoost(c, 'reputation'),
+    };
   }
   function idleCreditsPerTicket() {
     return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
@@ -2499,8 +2626,12 @@ const Game = (() => {
   }
   function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
   function idlePerSec() {
-    const tpm = idleRate();
-    return { t: tpm / 60, c: (tpm / 60) * idleCreditsPerTicket(), x: (tpm / 60) * idleXpPerTicket(), r: (tpm / 60) * 0.035 * bonus('rep') };
+    let t = 0, c = 0, x = 0, r = 0;
+    staff().forEach(m => {
+      const o = staffOutput(m);
+      t += o.rate / 60; c += o.credits / 60; x += o.xp / 60; r += o.rep / 60;
+    });
+    return { t, c, x, r };
   }
   const offlineCapHours = () => 8 + (S.buildings.autolab || 0) + (S.buildings.noc || 0) * 0.5;
 
@@ -2895,7 +3026,8 @@ const Game = (() => {
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
-    idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
+    idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
+    deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, scrapItem,
@@ -3225,32 +3357,118 @@ const UI = (() => {
   const renderHQ = () => { updateMeters(); renderQueue(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
 
   /* ================= STAFF ================= */
-  function renderStaff() {
+  /* Two ways to look at the same people: a sortable roster, or the department
+     board showing who is posted where. View and sort are per-device taste, so
+     they live in localStorage rather than the save. */
+  let staffView = 'list', staffSort = 'power';
+  try {
+    staffView = localStorage.getItem('ie-staff-view') || 'list';
+    staffSort = localStorage.getItem('ie-staff-sort') || 'power';
+  } catch (e) { }
+  function setStaffView(v) { staffView = v; try { localStorage.setItem('ie-staff-view', v); } catch (e) { } renderStaff(); }
+  function setStaffSort(v) { staffSort = v; try { localStorage.setItem('ie-staff-sort', v); } catch (e) { } renderStaff(); }
+
+  const SORTS = [
+    { k: 'power', label: 'Power' },
+    { k: 'output', label: 'Output' },
+    { k: 'level', label: 'Level' },
+    { k: 'dept', label: 'Dept' },
+    { k: 'name', label: 'Name' },
+  ];
+
+  function sortedRoster() {
     const S = Game.state;
-    const cards = S.roster.map(c => {
-      const d = Game.def(c.defId), isActive = c.uid === S.activeId;
-      const need = Game.charXpNeed(c.level), can = Game.canLevel(c);
-      return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
-        <div class="row">
-          <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv">L${c.level}</span></div>
-          <div class="who">
-            <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
-            <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : c.dept ? ' · ' + esc(DATA.DEPARTMENTS.find(x => x.id === c.dept).name) : ''}</div>
-            <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
-          </div>
-          <div style="text-align:right">
-            <div class="pw">⚡ ${f(Game.charPower(c))}</div>
-            <div class="tiny muted mono">${isActive ? 'ACTIVE' : Game.staffRate(c).toFixed(1) + '/min'}</div>
-          </div>
+    const nameOf = c => c.defId === 'hero' ? S.name : Game.def(c.defId).name;
+    const out = c => c.uid === S.activeId ? -1 : Game.staffOutput(c).credits;
+    const list = [...S.roster];
+    const cmp = {
+      power: (a, b) => Game.charPower(b) - Game.charPower(a),
+      level: (a, b) => b.level - a.level,
+      output: (a, b) => out(b) - out(a),
+      name: (a, b) => nameOf(a).localeCompare(nameOf(b)),
+      dept: (a, b) => (a.dept || 'zz').localeCompare(b.dept || 'zz') || Game.charPower(b) - Game.charPower(a),
+    }[staffSort] || (() => 0);
+    // whoever is on duty always leads: they are the one you are playing
+    return list.sort((a, b) =>
+      (b.uid === S.activeId) - (a.uid === S.activeId) || cmp(a, b));
+  }
+
+  const deptChip = c => {
+    const d = c.dept && Game.deptDef(c.dept);
+    return d
+      ? `<span class="dchip" style="border-color:${d.id === 'auto' ? 'var(--crt)' : 'var(--line)'}">${d.icon} ${esc(d.name)}</span>`
+      : `<span class="dchip empty">＋ post to a department</span>`;
+  };
+
+  function staffCard(c) {
+    const S = Game.state, d = Game.def(c.defId), isActive = c.uid === S.activeId;
+    const need = Game.charXpNeed(c.level), can = Game.canLevel(c);
+    const o = Game.staffOutput(c);
+    return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
+      <div class="row">
+        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv">L${c.level}</span></div>
+        <div class="who">
+          <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
+          <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
         </div>
-        <div class="row" style="margin-top:9px">
-          <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
-          <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
-          <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
+        <div style="text-align:right">
+          <div class="pw">⚡ ${f(Game.charPower(c))}</div>
+          <div class="tiny muted mono">${isActive ? 'your tickets' : f(o.credits * 3600) + ' cr/hr'}</div>
         </div>
-        ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
+      </div>
+      <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
+      <div class="row" style="margin-top:8px">
+        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
+        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
+      </div>
+      ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
+    </div>`;
+  }
+
+  function deptBoard() {
+    const S = Game.state;
+    const unposted = S.roster.filter(c => !c.dept && c.uid !== S.activeId);
+    return DATA.DEPARTMENTS.map(d => {
+      const locked = S.reputation < d.repReq;
+      const crew = Game.deptStaff(d.id);
+      const contribution = crew.filter(c => c.uid !== S.activeId)
+        .reduce((a, c) => a + (d.effect === 'credits' ? Game.staffOutput(c).credits * 3600
+          : d.effect === 'reputation' ? Game.staffOutput(c).rep * 3600
+            : Game.staffOutput(c).rate * 60), 0);
+      const unit = d.effect === 'credits' ? 'cr/hr' : d.effect === 'reputation' ? 'rep/hr' : 'tickets/hr';
+      return `<div class="dept ${locked ? 'locked' : ''}">
+        <div class="dept-head">
+          <span class="dept-ico">${d.icon}</span>
+          <div style="flex:1;min-width:0">
+            <h3>${esc(d.name)}</h3>
+            <div class="dept-bonus">${esc(d.bonus)} · leans on ${DATA.STAT_ICON[d.stat]} ${d.stat}</div>
+          </div>
+          ${locked ? `<span class="tiny mono" style="color:var(--alarm)">🔒 ${f(d.repReq)}</span>`
+          : `<span class="dept-out">${f(contribution)}<small>${unit}</small></span>`}
+        </div>
+        <p class="dept-blurb">${esc(d.blurb)}</p>
+        <div class="dept-crew">
+          ${crew.length ? crew.map(c => {
+        const cd = Game.def(c.defId);
+        const fit = Game.deptFit(c, d);
+        return `<button class="crew" data-post="${c.uid}" title="${esc(cd.name)}">
+              <div class="avatar" style="width:40px;height:40px">${Art.portrait(cd.art, 'd' + d.id + c.uid)}</div>
+              <div class="crew-fit ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×</div>
+            </button>`;
+      }).join('') : `<div class="dept-empty">Nobody posted here</div>`}
+        </div>
+        ${locked ? '' : `<button class="btn sm ${unposted.length ? 'teal' : 'ghost'}" data-deptfill="${d.id}" style="width:100%;margin-top:8px">POST SOMEONE HERE</button>`}
       </div>`;
     }).join('');
+  }
+
+  function renderStaff() {
+    const S = Game.state;
+    const idle = Game.idlePerSec();
+    const posted = S.roster.filter(c => c.dept && c.uid !== S.activeId).length;
+    const workers = Game.staff().length;
 
     const hireable = DATA.CHARACTERS.filter(d => d.hireable).map(d => {
       const cost = Game.hireCost(d), locked = S.reputation < d.repReq, owned = S.roster.filter(c => c.defId === d.id).length;
@@ -3271,12 +3489,85 @@ const UI = (() => {
     }).join('');
 
     $('#screen-staff').innerHTML = `
-      <div class="sec-head"><h2>YOUR TEAM</h2><span>${S.roster.length} EMPLOYEES · ⚡${f(Game.teamPower())}</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Tap anyone to open their file, fit them out and assign a department. Whoever is <b style="color:var(--lamp)">ON DUTY</b> resolves your tapped tickets — everyone else works the automated queue.</p>
-      <div class="list">${cards}</div>
+      <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
+      <div class="seg" style="margin:0 12px 10px">
+        <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
+        <button class="seg-btn ${staffView === 'dept' ? 'on' : ''}" data-sview="dept">BY DEPARTMENT</button>
+      </div>
+
+      <div class="idle-summary">
+        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
+        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
+        <div><b>${f(idle.r * 3600)}</b><span>rep/hr</span></div>
+      </div>
+
+      ${staffView === 'dept' ? `
+        <p class="tiny muted" style="padding:8px 14px 8px;margin:0">Post people where their strengths land. The number under a portrait is their fit — a specialist in the right department is worth roughly double one who is merely present.</p>
+        <div class="dept-list">${deptBoard()}</div>
+        ${S.roster.filter(c => !c.dept && c.uid !== S.activeId).length
+        ? `<div class="sec-head"><h2>UNPOSTED</h2><span>EARNING LESS THAN THEY COULD</span></div>
+             <div class="list">${S.roster.filter(c => !c.dept && c.uid !== S.activeId).map(staffCard).join('')}</div>` : ''}
+      ` : `
+        <div class="sortbar">
+          <span class="sortbar-lbl">SORT</span>
+          ${SORTS.map(o => `<button class="sortchip ${staffSort === o.k ? 'on' : ''}" data-ssort="${o.k}">${o.label}</button>`).join('')}
+        </div>
+        <div class="list">${sortedRoster().map(staffCard).join('')}</div>
+      `}
+
       <div class="sec-head"><h2>RECRUITMENT</h2><span>REP ${f(S.reputation)}</span></div>
       <div class="list">${hireable}</div>
       <div style="height:14px"></div>`;
+  }
+
+  /* Choosing who goes where — from either direction. */
+  function postSheet(charUid) {
+    const S = Game.state, c = S.roster.find(x => x.uid === charUid); if (!c) return;
+    const d = Game.def(c.defId);
+    sheet(`
+      <div class="row" style="align-items:center;gap:10px">
+        <div class="avatar">${Art.portrait(d.art, 'ps' + c.uid)}<span class="lv">L${c.level}</span></div>
+        <div class="who"><h3 style="text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <div class="role">${esc(d.role)}</div></div>
+      </div>
+      <p class="sub" style="margin-top:12px">Where should they be posted?</p>
+      ${c.uid === S.activeId ? '<p class="tiny muted" style="text-align:center;margin:-6px 0 8px">They are on duty, so they work your tapped tickets. A posting applies the moment somebody else takes over.</p>' : ''}
+      ${DATA.DEPARTMENTS.map(dp => {
+      const locked = S.reputation < dp.repReq, fit = Game.deptFit(c, dp), on = c.dept === dp.id;
+      return `<button class="postopt ${on ? 'on' : ''} ${locked ? 'off' : ''}" ${locked ? '' : `data-assign="${dp.id}" data-who="${c.uid}"`}>
+          <span class="dept-ico">${dp.icon}</span>
+          <div style="flex:1;min-width:0">
+            <h4>${esc(dp.name)}${on ? ' · POSTED' : ''}</h4>
+            <div class="tiny muted">${esc(dp.bonus)}</div>
+          </div>
+          ${locked ? `<span class="tiny mono" style="color:var(--alarm)">🔒 ${f(dp.repReq)}</span>`
+          : `<span class="fitbadge ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×<small>fit</small></span>`}
+        </button>`;
+    }).join('')}
+      ${c.dept ? `<button class="btn ghost cta" data-assign="" data-who="${c.uid}">UNPOST THEM</button>` : ''}
+      <button class="btn ghost cta" data-close="1">CLOSE</button>`);
+  }
+
+  function fillDeptSheet(deptId) {
+    const S = Game.state, dp = Game.deptDef(deptId); if (!dp) return;
+    const pool = S.roster.filter(c => c.dept !== deptId)
+      .sort((a, b) => Game.deptFit(b, dp) - Game.deptFit(a, dp));
+    sheet(`
+      <span class="big-emoji">${dp.icon}</span>
+      <h3>${esc(dp.name)}</h3>
+      <p class="sub">${esc(dp.bonus)} · best suited first</p>
+      ${pool.length ? pool.map(c => {
+      const d = Game.def(c.defId), fit = Game.deptFit(c, dp);
+      return `<button class="postopt" data-assign="${deptId}" data-who="${c.uid}">
+          <div class="avatar" style="width:42px;height:42px">${Art.portrait(d.art, 'fd' + c.uid)}</div>
+          <div style="flex:1;min-width:0">
+            <h4>${esc(c.defId === 'hero' ? S.name : d.name)}</h4>
+            <div class="tiny muted">${esc(d.role)}${c.dept ? ' · now in ' + esc(Game.deptDef(c.dept).name) : ''}</div>
+          </div>
+          <span class="fitbadge ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×<small>fit</small></span>
+        </button>`;
+    }).join('') : '<div class="empty">Everyone is already posted here.</div>'}
+      <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
 
   function charSheet(uid) {
@@ -3602,6 +3893,7 @@ const UI = (() => {
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
+           postSheet, fillDeptSheet, setStaffView, setStaffSort, renderStaff,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();
 
@@ -4197,7 +4489,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -4297,7 +4589,24 @@ const Onboard = (() => {
       return;
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
-    if (d.char && !e.target.closest('[data-levelup]')) return UI.charSheet(d.char);
+    if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
+    if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.post) return UI.postSheet(d.post);
+    if (d.deptfill) return UI.fillDeptSheet(d.deptfill);
+    if (d.assign !== undefined) {
+      const ok = Game.assignDept(d.who, d.assign || null);
+      if (ok) {
+        UI.beep('ok');
+        const c = Game.state.roster.find(x => x.uid === d.who);
+        const dp = c && c.dept && Game.deptDef(c.dept);
+        const name = c && (c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name);
+        toast(dp ? dp.icon : '👤', dp ? 'POSTED TO ' + dp.name.toUpperCase() : 'UNPOSTED',
+          dp ? `${name} · ${Game.deptFit(c, dp).toFixed(1)}× fit · ${dp.bonus}` : `${name} is off the department roster.`);
+      } else UI.beep('fail');
+      UI.closeSheet();
+      return UI.show('staff');
+    }
+    if (d.char && !e.target.closest('[data-levelup],[data-post]')) return UI.charSheet(d.char);
     if (d.slot) return UI.pickItemSheet(d.slot);
     if (d.issue) {
       const it = Game.state.inventory.find(i => i.uid === d.issue);

@@ -519,17 +519,62 @@ const Game = (() => {
   }
 
   /* ---------------- IDLE ENGINE ---------------- */
+  /* ---------------- DEPARTMENTS ----------------
+     A posting is only worth what the person brings to it. Fit compares their
+     department stat against their own average, so a specialist posted to their
+     speciality is worth roughly double one who is merely present.          */
+  const deptDef = id => DATA.DEPARTMENTS.find(d => d.id === id) || null;
+
+  function deptFit(c, dept) {
+    if (!dept) return 1;
+    const st = charStats(c);
+    const avg = DATA.STATS.reduce((a, k) => a + st[k], 0) / DATA.STATS.length;
+    if (avg <= 0) return 1;
+    return clamp(st[dept.stat] / avg, 0.45, 2.1);
+  }
+
+  /* How much a posting adds to one of the three things idle work produces. */
+  function deptBoost(c, what) {
+    const d = deptDef(c.dept);
+    if (!d || d.effect !== what) return 1;
+    if (S.reputation < d.repReq) return 1;        // posting lapses if unqualified
+    return 1 + d.per * deptFit(c, d);
+  }
+
+  function assignDept(charUid, deptId) {
+    const c = S.roster.find(x => x.uid === charUid); if (!c) return false;
+    if (deptId) {
+      const d = deptDef(deptId); if (!d || S.reputation < d.repReq) return false;
+    }
+    c.dept = c.dept === deptId ? null : (deptId || null);
+    emit('change');
+    return true;
+  }
+
+  const deptStaff = id => S.roster.filter(c => c.dept === id);
+
   function staffRate(c) {
     const st = charStats(c), d = def(c.defId);
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
-    if (c.dept === 'auto') r *= 1.35;
+    r *= deptBoost(c, 'rate');
     return r;
   }
   function idleRate() {                                   // tickets per minute
     const base = staff().reduce((a, c) => a + staffRate(c), 0);
     return base * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+  }
+
+  /* What one person actually contributes per minute, posting included. */
+  function staffOutput(c) {
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+    return {
+      rate,
+      credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
+      xp: rate * idleXpPerTicket(),
+      rep: rate * 0.035 * bonus('rep') * deptBoost(c, 'reputation'),
+    };
   }
   function idleCreditsPerTicket() {
     return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
@@ -537,8 +582,12 @@ const Game = (() => {
   }
   function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
   function idlePerSec() {
-    const tpm = idleRate();
-    return { t: tpm / 60, c: (tpm / 60) * idleCreditsPerTicket(), x: (tpm / 60) * idleXpPerTicket(), r: (tpm / 60) * 0.035 * bonus('rep') };
+    let t = 0, c = 0, x = 0, r = 0;
+    staff().forEach(m => {
+      const o = staffOutput(m);
+      t += o.rate / 60; c += o.credits / 60; x += o.xp / 60; r += o.rep / 60;
+    });
+    return { t, c, x, r };
   }
   const offlineCapHours = () => 8 + (S.buildings.autolab || 0) + (S.buildings.noc || 0) * 0.5;
 
@@ -933,7 +982,8 @@ const Game = (() => {
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
-    idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
+    idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
+    deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, scrapItem,

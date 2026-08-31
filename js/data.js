@@ -668,12 +668,28 @@ const DATA = (() => {
       effect:'+25% to everything per level',           key:'all', per:0.25 },
   ];
 
-  /* ---------- DEPARTMENTS (assignment targets) ---------- */
+  /* ---------- DEPARTMENTS ----------
+     Where you post people decides what the automated queue produces. Each
+     department leans on one stat, so posting the right person matters as much
+     as posting anybody: a People Person on the front line is worth far more
+     than an Automation Expert there, and the other way round.               */
   const DEPARTMENTS = [
-    { id:'support',  name:'IT Support',     icon:'🛎️', cats:['hardware','display','access'], repReq:0,    bonus:'Front line. Steady credits.' },
-    { id:'infra',    name:'Infrastructure', icon:'🖴', cats:['network'],                     repReq:400,  bonus:'+20% idle credits for assigned staff.' },
-    { id:'security', name:'Cybersecurity',  icon:'🛡️', cats:['security'],                    repReq:1200, bonus:'+25% incident contribution.' },
-    { id:'auto',     name:'Automation',     icon:'🤖', cats:['software'],                    repReq:2500, bonus:'+35% idle ticket throughput.' },
+    { id:'support',  name:'IT Support',     icon:'🛎️', stat:'COMMUNICATION', repReq:0,
+      effect:'credits', per:0.35,
+      bonus:'+35% idle credits',
+      blurb:'The front line. Steady money from a queue that never stops.' },
+    { id:'infra',    name:'Infrastructure', icon:'🖴',  stat:'TECHNICAL',     repReq:400,
+      effect:'rate', per:0.30,
+      bonus:'+30% tickets an hour',
+      blurb:'Keeps the lights on. More gets closed per hour.' },
+    { id:'security', name:'Cybersecurity',  icon:'🛡️', stat:'INVESTIGATION', repReq:1200,
+      effect:'reputation', per:0.60,
+      bonus:'+60% idle reputation',
+      blurb:'Quietly making you look good upstairs.' },
+    { id:'auto',     name:'Automation',     icon:'🤖', stat:'AUTOMATION',    repReq:2500,
+      effect:'rate', per:0.50,
+      bonus:'+50% tickets an hour',
+      blurb:'Scripts that work the queue while everyone sleeps.' },
   ];
 
   /* ---------- MISSIONS ---------- */

@@ -121,8 +121,28 @@ and how many tickets they are losing to the clock. Time played is derived from
 the gaps between autosaves (gaps over 90s are not counted), so it measures
 attention rather than tabs left open. Locally the key is `localtest`.
 
+## Departments
+
+Where you post people decides what the automated queue produces. Each
+department leans on one stat, and a posting is worth what the person brings to
+it: `deptFit()` compares their department stat against their own average, so a
+specialist in the right place is worth roughly double someone merely present.
+
+| Department | Leans on | Gives |
+|---|---|---|
+| IT Support | Communication | +35% idle credits |
+| Infrastructure | Technical | +30% tickets an hour |
+| Cybersecurity | Investigation | +60% idle reputation |
+| Automation | Automation | +50% tickets an hour |
+
+Posting well roughly doubles idle output against leaving everyone unassigned,
+and posting badly gives back most of that. The STAFF tab has two views — a
+sortable roster (power / output / level / department / name) and a department
+board showing who is posted where with their fit — and you can post from
+either direction.
+
 ## Not built yet
 
-The world map, departments and the skill tree are present as UI and data but
-are not yet wired to gameplay effects — they unlock by reputation and are the
-natural next systems.
+The world map and the skill tree are present as UI and data but are not yet
+wired to gameplay effects — they unlock by reputation and are the natural next
+systems.

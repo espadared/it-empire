@@ -411,7 +411,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -511,7 +511,24 @@
       return;
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
-    if (d.char && !e.target.closest('[data-levelup]')) return UI.charSheet(d.char);
+    if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
+    if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.post) return UI.postSheet(d.post);
+    if (d.deptfill) return UI.fillDeptSheet(d.deptfill);
+    if (d.assign !== undefined) {
+      const ok = Game.assignDept(d.who, d.assign || null);
+      if (ok) {
+        UI.beep('ok');
+        const c = Game.state.roster.find(x => x.uid === d.who);
+        const dp = c && c.dept && Game.deptDef(c.dept);
+        const name = c && (c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name);
+        toast(dp ? dp.icon : '👤', dp ? 'POSTED TO ' + dp.name.toUpperCase() : 'UNPOSTED',
+          dp ? `${name} · ${Game.deptFit(c, dp).toFixed(1)}× fit · ${dp.bonus}` : `${name} is off the department roster.`);
+      } else UI.beep('fail');
+      UI.closeSheet();
+      return UI.show('staff');
+    }
+    if (d.char && !e.target.closest('[data-levelup],[data-post]')) return UI.charSheet(d.char);
     if (d.slot) return UI.pickItemSheet(d.slot);
     if (d.issue) {
       const it = Game.state.inventory.find(i => i.uid === d.issue);

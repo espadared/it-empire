@@ -145,7 +145,24 @@ def q(sql, params=(), fetch=None):
     """Run one statement. `fetch` is None, 'one' or 'all'.
 
     Written with %s placeholders (Postgres style) and translated for SQLite,
-    so there is only ever one copy of each query."""
+    so there is only ever one copy of each query.
+
+    If the statement fails because the tables are not there — a fresh database,
+    or one that went away underneath us — rebuild the schema once and retry,
+    rather than staying wedged until someone restarts the process."""
+    try:
+        return _run(sql, params, fetch)
+    except Exception as exc:
+        if "does not exist" not in str(exc) and "no such table" not in str(exc):
+            raise
+        global _ready
+        with _ready_lock:
+            _ready = False
+        _ensure_schema()
+        return _run(sql, params, fetch)
+
+
+def _run(sql, params=(), fetch=None):
     _ensure_schema()
     if _pg:
         with _pg.connection() as c:
