@@ -238,7 +238,9 @@
         <div><div class="tiny muted">SIGNED IN AS</div><b>${esc(S.name)}</b>
           <div class="tiny muted">Progress saves to the server automatically.</div></div>
         <button class="btn sm ghost" data-act="signout">SIGN OUT</button>
-      </div>` : `<p class="tiny muted" style="text-align:center;margin-top:12px">Playing solo — this save lives in this browser only.</p>`}
+      </div>
+      <button class="btn ghost cta tiny" data-act="delete-account"
+        style="color:var(--muted);font-size:11px;padding:6px">Delete my account and all my progress</button>` : `<p class="tiny muted" style="text-align:center;margin-top:12px">Playing solo — this save lives in this browser only.</p>`}
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
 
@@ -268,6 +270,14 @@
           <button class="btn gold cta" data-act="signout-yes">SIGN OUT</button>
           <button class="btn ghost cta" data-close="1">STAY</button>`);
         case 'signout-yes': window.IE_signOut(); return;
+        case 'delete-account': return UI.sheet(`<span class="big-emoji">🗑️</span><h3>DELETE YOUR ACCOUNT?</h3>
+          <p class="sub">${esc(Game.state.name)} disappears from the leaderboard and every level, employee and credit goes with it. This cannot be undone.</p>
+          <button class="btn cta" style="background:var(--alarm);color:#fff" data-act="delete-yes">DELETE EVERYTHING</button>
+          <button class="btn ghost cta" data-close="1">KEEP MY ACCOUNT</button>`);
+        case 'delete-yes': {
+          Net.deleteAccount().then(() => { Net.logout(); Game.wipe(); location.reload(); });
+          return;
+        }
         case 'reset': return UI.sheet(`<span class="big-emoji">⚠️</span><h3>START OVER?</h3>
           <p class="sub">Every level, employee and credit goes. You will build a new technician from scratch${Net.online ? ' under the same account' : ''}. There is no undo.</p>
           <button class="btn cta" style="background:var(--alarm);color:#fff" data-act="reset-yes">YES, WIPE IT</button>

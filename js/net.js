@@ -91,9 +91,10 @@ const Net = (() => {
   }
 
   const leaderboard = () => api('leaderboard');
+  const deleteAccount = () => api('account', { method: 'DELETE' });
 
   return {
-    probe, signup, login, logout, resume, store, flush, flushBeacon, leaderboard,
+    probe, signup, login, logout, resume, store, flush, flushBeacon, leaderboard, deleteAccount,
     get online() { return online; },
     get token() { return token; },
     get player() { return player; },

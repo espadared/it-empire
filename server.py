@@ -318,6 +318,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.fail(404, "Not found")
         return self.guard(self.api_post, path[5:])
 
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        if path == "/api/account":
+            return self.guard(self.delete_account)
+        return self.fail(404, "Not found")
+
     def do_PUT(self):
         path = urlparse(self.path).path
         if path == "/api/state":
@@ -345,7 +351,8 @@ class Handler(BaseHTTPRequestHandler):
     # -- api --
     def api_get(self, route):
         if route == "ping":
-            return self.json(200, {"ok": True, "game": "IT Empire"})
+            return self.json(200, {"ok": True, "game": "IT Empire",
+                                   "store": "postgres" if _pg else "sqlite"})
         if route == "state":
             row = session_player(self.token())
             if not row:
@@ -412,6 +419,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.save_state(str(data.get("token") or ""), data, quiet=True)
 
         return self.fail(404, "Not found")
+
+    def delete_account(self):
+        row = session_player(self.token())
+        if not row:
+            return self.fail(401, "Your session expired. Sign in again.")
+        q(f"delete from {S_TABLE} where player_id = %s", (row[0],))
+        q(f"delete from {P_TABLE} where id = %s", (row[0],))
+        return self.json(200, {"ok": True})
 
     def save_state(self, token, data, quiet=False):
         row = session_player(token)
