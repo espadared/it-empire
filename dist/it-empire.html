@@ -704,6 +704,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 }
 .is-lv{font-family:var(--mono);font-size:8.5px;color:var(--muted);margin-top:2px}
 
+/* why a level-up is not available yet */
+.blocked{
+  margin-top:6px;font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--muted);
+  text-align:center;line-height:1.45;
+}
+
 </style>
 <div id="app">
 
@@ -2362,7 +2368,7 @@ const Game = (() => {
 
     S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
     addXp(xpv);
-    grantStaffXp(Math.round(xpv * 0.35 * bonus('staffXp')));
+    grantStaffXp(Math.round(xpv * STAFF_XP_SHARE * bonus('staffXp')));
 
     S.lifetime.tickets++; S.lifetime.credits += credits; S.lifetime.xp += xpv;
     S.lifetime.cat[t.cat] = (S.lifetime.cat[t.cat] || 0) + 1;
@@ -2447,12 +2453,19 @@ const Game = (() => {
     if (ups) emit('levelup', { level: S.level, title: title(S.level) });
   }
 
+  /* Your people learn from the work. Shares are deliberately generous: with a
+     thirty-ticket hour there are far fewer tickets to learn from than when the
+     queue was uncapped, and a team that never levels reads as a broken button
+     rather than a long grind. */
+  const STAFF_XP_SHARE = 1.0;        // of the XP a ticket paid you
+  const BENCH_XP_SHARE = 0.75;       // for whoever is not on duty
+
   function grantStaffXp(n) {
     if (n <= 0) return;
     S.roster.forEach(c => {
       const d = def(c.defId);
       let g = n * (1 + (d.perks.xp || 0));
-      if (c.uid !== S.activeId) g *= 0.6;
+      if (c.uid !== S.activeId) g *= BENCH_XP_SHARE;
       c.xp += g;
     });
   }
@@ -2516,7 +2529,7 @@ const Game = (() => {
     S.lifetime.tickets += t; S.lifetime.credits += c; S.lifetime.xp += x;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
     bump('tickets', t); bump('credits', c); bump('xp', x);
-    grantStaffXp(Math.round(x * 0.5 * bonus('staffXp')));
+    grantStaffXp(Math.round(x * 0.75 * bonus('staffXp')));
     S.idleAcc = { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
     checkAchievements(); emit('change');
     return { t, c: c + incBonus, x, r, gear, inc: a.inc };
@@ -2714,7 +2727,7 @@ const Game = (() => {
     const xpv = Math.round(430 * (1 + S.level * 0.2) * mul * bonus('xp'));
     const rep = Math.round(65 * mul * bonus('rep'));
     S.credits += credits; S.reputation += rep; addXp(xpv);
-    grantStaffXp(Math.round(xpv * 0.4 * bonus('staffXp')));
+    grantStaffXp(Math.round(xpv * STAFF_XP_SHARE * bonus('staffXp')));
     if (win) { S.lifetime.incidents++; bump('incidents', 1); }
     S.lifetime.credits += credits;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
@@ -2916,6 +2929,14 @@ const UI = (() => {
   }
 
   const rarColor = r => DATA.RARITY[r].color;
+  /* Why the level-up button is not lit. An unexplained dead button reads as
+     a bug; naming the missing piece turns it into a goal. */
+  function levelBlocker(c) {
+    const need = Game.charXpNeed(c.level), cost = Game.levelCost(c);
+    if (c.xp < need) return { what: 'xp', text: `${f(need - c.xp)} more XP` };
+    if (Game.state.credits < cost) return { what: 'credits', text: `💰${f(cost - Game.state.credits)} short` };
+    return null;
+  }
   const statLine = (e, i) => Object.entries(e.stats || {}).map(([k, v]) =>
     `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ');
   /* A ticket clock reads as m:ss once there are minutes on it. */
@@ -3227,6 +3248,7 @@ const UI = (() => {
           <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
           <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
         </div>
+        ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
       </div>`;
     }).join('');
 
@@ -3302,6 +3324,7 @@ const UI = (() => {
       </div>
       <button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
         LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
+      ${Game.canLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>
@@ -4261,7 +4284,14 @@ const Onboard = (() => {
     if (d.levelup) {
       const ok = Game.levelUpChar(d.levelup);
       if (ok) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 14); }
-      else { UI.beep('fail'); toast('📈', 'NOT READY', 'Needs more character XP or more credits.'); }
+      else {
+        UI.beep('fail');
+        const c = Game.state.roster.find(x => x.uid === d.levelup);
+        const short = c && (c.xp < Game.charXpNeed(c.level)
+          ? `${f(Game.charXpNeed(c.level) - c.xp)} more XP — they earn it from every ticket you work`
+          : `${f(Game.levelCost(c) - Game.state.credits)} more credits`);
+        toast('📈', 'NOT READY YET', short || 'Needs more XP or credits.');
+      }
       UI.refresh();
       if (document.querySelector('.sheet') && ok) UI.charSheet(d.levelup);
       return;

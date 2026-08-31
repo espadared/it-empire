@@ -21,6 +21,14 @@ const UI = (() => {
   }
 
   const rarColor = r => DATA.RARITY[r].color;
+  /* Why the level-up button is not lit. An unexplained dead button reads as
+     a bug; naming the missing piece turns it into a goal. */
+  function levelBlocker(c) {
+    const need = Game.charXpNeed(c.level), cost = Game.levelCost(c);
+    if (c.xp < need) return { what: 'xp', text: `${f(need - c.xp)} more XP` };
+    if (Game.state.credits < cost) return { what: 'credits', text: `💰${f(cost - Game.state.credits)} short` };
+    return null;
+  }
   const statLine = (e, i) => Object.entries(e.stats || {}).map(([k, v]) =>
     `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ');
   /* A ticket clock reads as m:ss once there are minutes on it. */
@@ -332,6 +340,7 @@ const UI = (() => {
           <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
           <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
         </div>
+        ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
       </div>`;
     }).join('');
 
@@ -407,6 +416,7 @@ const UI = (() => {
       </div>
       <button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
         LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
+      ${Game.canLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>

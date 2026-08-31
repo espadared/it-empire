@@ -406,7 +406,7 @@ const Game = (() => {
 
     S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
     addXp(xpv);
-    grantStaffXp(Math.round(xpv * 0.35 * bonus('staffXp')));
+    grantStaffXp(Math.round(xpv * STAFF_XP_SHARE * bonus('staffXp')));
 
     S.lifetime.tickets++; S.lifetime.credits += credits; S.lifetime.xp += xpv;
     S.lifetime.cat[t.cat] = (S.lifetime.cat[t.cat] || 0) + 1;
@@ -491,12 +491,19 @@ const Game = (() => {
     if (ups) emit('levelup', { level: S.level, title: title(S.level) });
   }
 
+  /* Your people learn from the work. Shares are deliberately generous: with a
+     thirty-ticket hour there are far fewer tickets to learn from than when the
+     queue was uncapped, and a team that never levels reads as a broken button
+     rather than a long grind. */
+  const STAFF_XP_SHARE = 1.0;        // of the XP a ticket paid you
+  const BENCH_XP_SHARE = 0.75;       // for whoever is not on duty
+
   function grantStaffXp(n) {
     if (n <= 0) return;
     S.roster.forEach(c => {
       const d = def(c.defId);
       let g = n * (1 + (d.perks.xp || 0));
-      if (c.uid !== S.activeId) g *= 0.6;
+      if (c.uid !== S.activeId) g *= BENCH_XP_SHARE;
       c.xp += g;
     });
   }
@@ -560,7 +567,7 @@ const Game = (() => {
     S.lifetime.tickets += t; S.lifetime.credits += c; S.lifetime.xp += x;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
     bump('tickets', t); bump('credits', c); bump('xp', x);
-    grantStaffXp(Math.round(x * 0.5 * bonus('staffXp')));
+    grantStaffXp(Math.round(x * 0.75 * bonus('staffXp')));
     S.idleAcc = { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
     checkAchievements(); emit('change');
     return { t, c: c + incBonus, x, r, gear, inc: a.inc };
@@ -758,7 +765,7 @@ const Game = (() => {
     const xpv = Math.round(430 * (1 + S.level * 0.2) * mul * bonus('xp'));
     const rep = Math.round(65 * mul * bonus('rep'));
     S.credits += credits; S.reputation += rep; addXp(xpv);
-    grantStaffXp(Math.round(xpv * 0.4 * bonus('staffXp')));
+    grantStaffXp(Math.round(xpv * STAFF_XP_SHARE * bonus('staffXp')));
     if (win) { S.lifetime.incidents++; bump('incidents', 1); }
     S.lifetime.credits += credits;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);

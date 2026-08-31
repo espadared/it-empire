@@ -498,7 +498,14 @@
     if (d.levelup) {
       const ok = Game.levelUpChar(d.levelup);
       if (ok) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 14); }
-      else { UI.beep('fail'); toast('📈', 'NOT READY', 'Needs more character XP or more credits.'); }
+      else {
+        UI.beep('fail');
+        const c = Game.state.roster.find(x => x.uid === d.levelup);
+        const short = c && (c.xp < Game.charXpNeed(c.level)
+          ? `${f(Game.charXpNeed(c.level) - c.xp)} more XP — they earn it from every ticket you work`
+          : `${f(Game.levelCost(c) - Game.state.credits)} more credits`);
+        toast('📈', 'NOT READY YET', short || 'Needs more XP or credits.');
+      }
       UI.refresh();
       if (document.querySelector('.sheet') && ok) UI.charSheet(d.levelup);
       return;
