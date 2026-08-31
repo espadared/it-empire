@@ -177,7 +177,10 @@ const UI = (() => {
       const urgent = frac < 0.34;
       const puzzle = puz;
       const free = Game.freeStaff().length;
-      return `<article class="tk ${urgent ? 'urgent' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
+      // only a genuinely new ticket slides in; a re-render must not replay
+      // the entrance animation on cards the player is already looking at
+      const isNew = !shown.has(t.uid);
+      return `<article class="tk ${isNew ? 'fresh' : ''} ${urgent ? 'urgent' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
         <div class="tk-head">
           <span class="tier t-${t.tier}">${t.tier}</span>
           <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
@@ -202,12 +205,14 @@ const UI = (() => {
         </div>
       </article>`;
     }).join('');
+    shown = new Set(S.queue.map(t => t.uid));
   }
 
   /* Only the numbers that move every frame — redrawing the whole queue at
      10fps would fight the player's thumb. A ticket that goes critical pulls
      itself into view, so nothing ever breaches somewhere you cannot see. */
   const nudged = new Set();
+  let shown = new Set();          // which tickets have already animated in
   function tickQueueUI() {
     const S = Game.state;
     (S.queue || []).forEach(t => {

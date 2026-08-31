@@ -194,7 +194,10 @@ const Game = (() => {
 
   function makeTicket() {
     const tier = tierRoll();
-    const t = pick(DATA.TICKETS[tier]);
+    // Don't put the same problem in the queue twice — it reads as a bug.
+    const taken = new Set((S.queue || []).map(x => x.name));
+    const pool = DATA.TICKETS[tier].filter(x => !taken.has(x.name));
+    const t = pick(pool.length ? pool : DATA.TICKETS[tier]);
     const sla = DATA.SLA[tier] * bonus('sla');
     return {
       uid: uid(), id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
@@ -703,21 +706,45 @@ const Game = (() => {
     return loadFrom(saved);
   }
 
+  /* A save arriving from the server may be older than this build, or may be
+     a partial write from a connection that died mid-beacon. Merge it over a
+     complete skeleton so a missing field can never brick somebody's game. */
+  function skeleton() {
+    return {
+      v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
+      energy: 100, energyMax: 100, energyAcc: 0,
+      roster: [], activeId: null, inventory: [], buildings: {}, dept: {},
+      queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
+      event: null, eventAt: Date.now() + 150000,
+      incident: null, incidentAt: Date.now() + 180000,
+      missions: null, missionsAt: 0, md: {},
+      lifetime: {
+        tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0,
+        builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {},
+        breaches: 0, escalated: 0, delegated: 0, diagnosed: 0, maxMomentum: 0,
+      },
+      achievements: {}, legacy: 0, legacySpent: {}, unlocked: { hero: true },
+      reorgs: 0, lastTick: Date.now(), started: Date.now(),
+    };
+  }
+
   function loadFrom(saved, serverNow) {
-    if (!saved) { return { needsCharacter: true }; }
+    if (!saved || typeof saved !== 'object') { return { needsCharacter: true }; }
     try {
-      const s = saved;
+      const base = skeleton();
+      const s = { ...base, ...saved };
+      s.lifetime = { ...base.lifetime, ...(saved.lifetime || {}) };
+      s.lifetime.cat = { ...(saved.lifetime && saved.lifetime.cat) };
+      s.idleAcc = { ...base.idleAcc, ...(saved.idleAcc || {}) };
+      // Without a roster there is no game to resume — send them to the creator.
+      if (!Array.isArray(s.roster) || !s.roster.length) return { needsCharacter: true };
+      if (!s.roster.some(c => c.uid === s.activeId)) s.activeId = s.roster[0].uid;
       S = s;
-      S.md = S.md || {}; S.idleAcc = S.idleAcc || { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
-      S.lifetime.cat = S.lifetime.cat || {};
       S.incident = null;
       uidSeq = Date.now() % 100000;
-      if (S.momentum == null) S.momentum = 0;
-      if (S.morale == null) S.morale = 75;
-      if (!S.busy) S.busy = {};
-      if (!S.lastAction) S.lastAction = 0;
       delete S.ticket;
-      S.queue = Array.isArray(S.queue) ? S.queue : [];
+      if (!Array.isArray(S.queue)) S.queue = [];
       // a queue that sat through a break starts fresh rather than pre-breached
       S.queue.forEach(t => { t.left = t.sla || DATA.SLA[t.tier] || 40; });
       fillQueue();

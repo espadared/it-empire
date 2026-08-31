@@ -565,8 +565,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .tk{
   background:linear-gradient(180deg,var(--panel-2),var(--panel));
   border:1px solid var(--line);border-radius:16px;padding:9px 10px;position:relative;overflow:hidden;
-  animation:tkIn .28s cubic-bezier(.2,1.2,.4,1) both;
 }
+.tk.fresh{animation:tkIn .28s cubic-bezier(.2,1.2,.4,1) both}
 @keyframes tkIn{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
 .tk.hard{border-color:#5A3550}
 .tk.urgent{border-color:var(--alarm);animation:tkPulse 1s ease-in-out infinite}
