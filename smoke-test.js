@@ -1,0 +1,75 @@
+/* Runtime smoke test: node smoke-test.js
+   Exercises every game path, because `node --check` only catches syntax and a
+   helper lost in a refactor will only show up on a rare code path. */
+const fs = require('fs');
+global.window = {}; global.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+const dir = require('path').join(__dirname, 'js') + '/';
+const DATA = eval(fs.readFileSync(dir + 'data.js', 'utf8') + '; DATA'); global.DATA = DATA;
+const Game = eval(fs.readFileSync(dir + 'game.js', 'utf8') + '; Game');
+
+let fails = 0;
+const check = (name, fn) => { try { fn(); console.log('  ok   ' + name); } catch (e) { fails++; console.log('  FAIL ' + name + ' -> ' + e.message); } };
+
+Game.newGame(null, { name: 'SMOKE', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+const S = Game.state; S.level = 20; S.credits = 5e6; S.reputation = 30000;
+
+const topUp = () => { S.quotaLeft = 999; S.quotaEnds = 0; };   // the allowance has its own test
+check('resolve 400 tickets (drops included)', () => {
+  for (let i = 0; i < 400; i++) { topUp(); Game.resolveTicket(S.queue[0].uid); }
+  if (S.inventory.length < 3) throw new Error('no gear ever dropped');
+});
+check('gear actually dropped', () => { if (S.inventory.length <= 3) throw new Error('inventory never grew: ' + S.inventory.length); });
+check('diagnosis path', () => {
+  let done = 0;
+  for (let i = 0; i < 300 && done < 5; i++) {
+    const p = S.queue.find(t => Game.needsDiagnosis(t));
+    topUp();
+    if (p) { Game.resolveTicket(p.uid, { diag: 1 }); done++; }
+    else Game.resolveTicket(S.queue[0].uid);
+  }
+  if (!done) throw new Error('never saw a puzzle in 300 tickets');
+});
+check('hire + delegate', () => {
+  topUp();
+  const c = Game.hire('veteran'); if (!c) throw new Error('hire failed');
+  const r = Game.delegate(S.queue[0].uid, c.uid); if (!r) throw new Error('delegate failed');
+});
+check('escalate', () => { if (!Game.escalateTicket(S.queue[0].uid)) throw new Error('escalate failed'); });
+check('breach', () => { S.queue[0].left = 0.01; if (!Game.tickQueue(1).length) throw new Error('no breach'); });
+check('idle collect with gear', () => {
+  S.idleAcc = { t: 500, c: 9000, x: 4000, r: 60, gear: 3, inc: 2 };
+  const r = Game.collectIdle();
+  if (!r.gear.length) throw new Error('no gear from collection');
+});
+check('incident full cycle', () => {
+  const inc = Game.startIncident();
+  for (let i = 0; i < inc.steps.length; i++) Game.incidentAnswer(0);
+  if (!Game.incidentFinish(false)) throw new Error('incident finish failed');
+});
+check('incident win with drop', () => {
+  for (let i = 0; i < 30; i++) {
+    Game.startIncident(); Game.state.incident.chance = 1;
+    const r = Game.incidentFinish(false);
+    if (r.win && r.drop) return;
+  }
+  throw new Error('never got a win-with-drop in 30 tries');
+});
+check('buildings', () => { if (!Game.build('knowledge')) throw new Error('build failed'); });
+check('character level up', () => { const c = S.roster[1]; c.xp = 1e9; if (!Game.levelUpChar(c.uid)) throw new Error('levelup failed'); });
+check('equip + upgrade + scrap', () => {
+  const it = S.inventory[0];
+  Game.equip(it.uid, S.activeId); Game.upgradeItem(it.uid); Game.scrapItem(it.uid);
+});
+check('missions claim', () => { Game.rollMissions(); S.missions.forEach(m => { m.done = true; Game.claimMission(m.id); }); });
+check('save + reload round trip', () => {
+  const blob = JSON.parse(JSON.stringify(Game.serialize()));
+  const r = Game.loadFrom(blob, Date.now());
+  if (r.needsCharacter) throw new Error('round trip lost the save');
+  Game.fillQueue();
+  Game.state.quotaLeft = 999;
+  if (!Game.resolveTicket(Game.state.queue[0].uid)) throw new Error('cannot work after reload');
+});
+check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
+
+console.log(fails ? '\n' + fails + ' FAILURES' : '\nall paths clean');
+process.exit(fails ? 1 : 0);
