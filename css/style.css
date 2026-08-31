@@ -408,6 +408,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .hero-wrap.working .head-bob{animation:bob .5s ease-in-out infinite}
 .dock{padding:9px 12px 4px}
 .toast{
+  /* Purely informational, and it floats right over the bottom ticket's
+     buttons — it must never swallow a tap meant for the queue. */
+  pointer-events:none;
   position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:65;
   background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--lamp);
   border-radius:14px;padding:9px 14px;box-shadow:var(--shadow);display:flex;gap:9px;align-items:center;
