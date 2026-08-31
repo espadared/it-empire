@@ -31,7 +31,8 @@ that browser. Character creation happens either way.
 | `js/main.js` | Boot, delegated input handling, the tick loop, synthesised sound. |
 | `js/net.js` | Accounts, cloud saves and the leaderboard. Detects whether there is a backend and picks solo or signed-in mode. |
 | `js/onboard.js` | The sign-in gate and the character creator. |
-| `server.py` | Accounts, cloud saves, leaderboard. Stores the save blob and nothing else — every game rule lives in the browser. |
+| `server.py` | Accounts, cloud saves, leaderboard, time-played tracking. Stores the save blob and nothing else — every game rule lives in the browser. |
+| `owner.py` | The private owner dashboard at `/owner?key=…`. |
 | `css/style.css` | One committed visual world: the office at dusk. |
 
 ## Adding content
@@ -77,6 +78,40 @@ throttled to 12 attempts per IP per 5 minutes. The server serves only
 
 `render.yaml` describes the Render service. Push to `main` and Render deploys.
 The one thing that must be set in the dashboard is `DATABASE_URL`.
+
+## The core loop
+
+Three tickets sit in the queue at once, each with its own SLA clock. You cannot
+work them all, so every few seconds you are choosing who waits:
+
+- **Fix it yourself** — costs energy. Medium and hard tickets open a
+  **diagnosis**: the symptom is shown with three candidate causes, and naming
+  the right one is worth ~1.6× and a big momentum boost. Guessing costs you.
+- **Delegate** — free of energy and worth 70%, but that colleague is then busy
+  for 18–42 seconds, and their stats decide the odds. A hardware specialist is
+  a poor choice for an MFA ticket, and the picker shows you that.
+- **Escalate** — drop it for a small reputation cost. Sometimes the right call.
+
+Two meters run underneath:
+
+- **Momentum** builds with every good call (more for a correct diagnosis) and
+  bleeds away when you stop. It multiplies credits and XP up to ×2.5.
+- **Morale** is what the office thinks of you. Breaches and botched fixes cost
+  it; it scales *everything* you earn, idle income included, from ×0.55 to
+  ×1.45. It drifts slowly back toward 60 so one bad session is not permanent.
+
+The queue only ticks while the HQ screen is open and the tab is visible, so
+nothing ever breaches behind your back. A ticket that goes critical scrolls
+itself into view.
+
+## Owner dashboard
+
+`/owner?key=…`, gated on the `OWNER_KEY` env var. Any wrong key — or no key
+configured — returns a bare 404, so the page never announces itself. It shows
+who is playing, how long they actually played, how many days they came back,
+and how many tickets they are losing to the clock. Time played is derived from
+the gaps between autosaves (gaps over 90s are not counted), so it measures
+attention rather than tabs left open. Locally the key is `localtest`.
 
 ## Not built yet
 

@@ -69,13 +69,15 @@ const Game = (() => {
       inventory: [mkItem('lap_basic'), mkItem('kb_sticky'), mkItem(DATA.spec(p.spec).kit)],
       buildings: { helpdesk: 1 },
       dept: {},
-      ticket: null, streak: 0,
+      queue: [], streak: 0,
+      momentum: 0, morale: 75, busy: {}, lastAction: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
       missions: null, missionsAt: 0,
       md: {},                                  // daily mission counters
-      lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {} },
+      lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {},
+                   breaches: 0, escalated: 0, delegated: 0, diagnosed: 0 },
       achievements: {},
       legacy: keep ? keep.legacy : 0,
       legacySpent: keep ? keep.legacySpent : {},
@@ -85,7 +87,7 @@ const Game = (() => {
     };
     if (keep) { S.lifetime.reorgs = keep.reorgs; S.achievements = keep.achievements; S.lifetime.tickets = keep.tickets; }
     rollMissions();
-    newTicket();
+    fillQueue();
     return S;
   }
 
@@ -159,114 +161,211 @@ const Game = (() => {
     return Math.max(0.05, b);
   }
 
-  /* ---------------- TICKETS ---------------- */
+  /* ---------------- TICKETS ----------------
+     Three tickets sit in the queue at once, each with its own clock. You
+     cannot work them all: you choose who waits, and anyone who waits too
+     long breaches. The valuable tickets are the impatient ones.        */
   const TIER = {
-    EASY:   { n: 1, stars: 1, credits: 14,  xp: 22,  rep: 1,  energy: 2, time: 45 },
-    MEDIUM: { n: 2, stars: 3, credits: 48,  xp: 62,  rep: 3,  energy: 4, time: 90 },
-    HARD:   { n: 3, stars: 5, credits: 170, xp: 190, rep: 9,  energy: 7, time: 180 },
+    EASY:   { n: 1, stars: 1, credits: 14,  xp: 22,  rep: 1, energy: 2 },
+    MEDIUM: { n: 2, stars: 3, credits: 48,  xp: 62,  rep: 3, energy: 4 },
+    HARD:   { n: 3, stars: 5, credits: 170, xp: 190, rep: 9, energy: 7 },
   };
+  const QUEUE_SIZE = 3;
+
+  /* Momentum: a run of good calls is worth more than the calls themselves.
+     It bleeds away the moment you stop, so it rewards being present rather
+     than being fast. */
+  const MOMENTUM_MAX = 100;
+  const momentumMult = () => 1 + (S.momentum / MOMENTUM_MAX) * 1.5;   // 1.0 → 2.5
+
+  /* Morale: what your users think of the department. Breaches and botched
+     fixes cost it, and everything you earn is scaled by it. */
+  const moraleMult = () => 0.55 + (S.morale / 100) * 0.9;             // 0.55 → 1.45
 
   function tierRoll() {
     const l = S.level;
-    const wHard = l < 6 ? 0 : Math.min(0.30, (l - 5) * 0.022);
-    const wMed = l < 3 ? 0 : Math.min(0.45, (l - 2) * 0.05);
+    const wHard = l < 5 ? 0 : Math.min(0.32, (l - 4) * 0.025);
+    const wMed = l < 2 ? 0 : Math.min(0.48, (l - 1) * 0.07);
     const r = Math.random();
     if (r < wHard) return 'HARD';
     if (r < wHard + wMed) return 'MEDIUM';
     return 'EASY';
   }
 
-  function newTicket() {
+  function makeTicket() {
     const tier = tierRoll();
     const t = pick(DATA.TICKETS[tier]);
-    S.ticket = {
-      id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
+    const sla = DATA.SLA[tier] * bonus('sla');
+    return {
+      uid: uid(), id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
       tier, ...t,
       flavour: pick(DATA.TICKET_FLAVOUR),
-      born: Date.now(),
+      sla, left: sla, born: Date.now(),
     };
-    return S.ticket;
+  }
+
+  function fillQueue() {
+    S.queue = S.queue || [];
+    while (S.queue.length < QUEUE_SIZE) S.queue.push(makeTicket());
+    return S.queue;
+  }
+  const ticketBy = tuid => (S.queue || []).find(t => t.uid === tuid);
+
+  /* Only runs while you are actually at the desk — the queue does not
+     breach behind your back while the tab is closed. */
+  function tickQueue(dt) {
+    if (!S.queue) fillQueue();
+    if (Date.now() - (S.lastAction || 0) > 3000)
+      S.momentum = Math.max(0, S.momentum - 5.5 * dt);
+    const breached = [];
+    for (let i = S.queue.length - 1; i >= 0; i--) {
+      const t = S.queue[i];
+      t.left -= dt;
+      if (t.left <= 0) { breached.push(t); S.queue.splice(i, 1); }
+    }
+    breached.forEach(breach);
+    fillQueue();
+    return breached;
+  }
+
+  function breach(t) {
+    const T = TIER[t.tier];
+    const lost = Math.max(1, Math.round(T.rep * 0.8));
+    S.reputation = Math.max(0, S.reputation - lost);
+    S.morale = clamp(S.morale - (t.tier === 'HARD' ? 7 : t.tier === 'MEDIUM' ? 5 : 3), 0, 100);
+    S.momentum = Math.max(0, S.momentum - 40);
+    S.streak = 0;
+    S.lifetime.breaches = (S.lifetime.breaches || 0) + 1;
+    emit('breach', { ticket: t, rep: lost });
+    emit('change');
   }
 
   function requirement(tier) { return TIER[tier].n * (7 + S.level * 1.25); }
 
-  function odds() {
-    const t = S.ticket; if (!t) return { tech: 0, sat: 0 };
-    const c = active(), st = charStats(c);
+  /* diag: 1 you named the cause, 0 you guessed wrong, null not asked */
+  function oddsFor(t, who, diag) {
+    if (!t) return { tech: 0, sat: 0 };
+    const c = who || active(), st = charStats(c);
     const req = requirement(t.tier);
     const catB = bonus('cat_' + t.cat) - 1;
-    const tech = clamp(0.57 + ((st[t.stat] - req) / req) * 0.42 + catB * 0.25, 0.12, 0.985);
+    let tech = 0.57 + ((st[t.stat] - req) / req) * 0.42 + catB * 0.25;
+    if (diag === 1) tech += 0.30;
+    if (diag === 0) tech -= 0.24;
     const sat = clamp(0.40 + (st.COMMUNICATION / (req * 1.2)) * 0.35 + (bonus('sat') - 1) * 0.9, 0.05, 0.97);
-    return { tech, sat, req };
+    return { tech: clamp(tech, 0.05, 0.985), sat, req };
   }
+  const needsDiagnosis = t => !!(t && t.causes && t.causes.length);
 
-  function resolveTicket() {
-    if (!S.ticket) newTicket();
-    const t = S.ticket, T = TIER[t.tier], c = active();
-    const cost = Math.round(T.energy * bonus('energy'));
-    const tired = S.energy < cost;
-    S.energy = Math.max(0, S.energy - cost);
+  function resolveTicket(tuid, opts = {}) {
+    if (!S.queue) fillQueue();
+    const t = tuid ? ticketBy(tuid) : S.queue[0];
+    if (!t) return null;
+    const T = TIER[t.tier];
+    const delegated = !!opts.by;
+    const worker = delegated ? S.roster.find(c => c.uid === opts.by) : active();
+    if (!worker) return null;
+    const diag = opts.diag === 1 ? 1 : opts.diag === 0 ? 0 : null;
 
-    const o = odds();
+    let tired = false;
+    if (!delegated) {
+      const cost = Math.round(T.energy * bonus('energy'));
+      tired = S.energy < cost;
+      S.energy = Math.max(0, S.energy - cost);
+    } else {
+      const busyFor = (t.tier === 'HARD' ? 42 : t.tier === 'MEDIUM' ? 28 : 18) * 1000;
+      S.busy[worker.uid] = Date.now() + busyFor;
+    }
+
+    const o = oddsFor(t, worker, diag);
     let techOk = Math.random() < o.tech;
     let auto = false;
     if (!techOk && t.cat === 'display' && Math.random() < (bonus('autoDisplay') - 1)) { techOk = true; auto = true; }
-    const satOk = techOk && Math.random() < o.sat;
+    const satOk = techOk && Math.random() < o.sat * (delegated ? 0.85 : 1);
 
     const tiredMul = tired ? 0.35 : 1;
-    const failMul = techOk ? 1 : 0.25;
+    const failMul = techOk ? 1 : 0.2;
     const satMul = satOk ? 1.25 : 1;
+    const diagMul = diag === 1 ? 1.6 : diag === 0 ? 0.6 : 1;
+    const delMul = delegated ? 0.7 : 1;
+    const mo = momentumMult(), mr = moraleMult();
 
-    let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit') * bonus('cat_' + t.cat) * tiredMul * failMul * satMul;
-    let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul;
-    let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) : -1;
+    let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit')
+      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr;
+    let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul * diagMul * mo;
+    let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) * (delegated ? 0.7 : 1) : -1;
 
     credits = Math.round(credits); xpv = Math.round(xpv); rep = Math.round(rep);
+
+    // momentum and morale move on what you did, not on luck alone
+    let momGain = techOk ? (delegated ? 5 : 12) : -8;
+    if (diag === 1) momGain += 12;
+    if (diag === 0) momGain -= 22;
+    S.momentum = clamp(S.momentum + momGain, 0, MOMENTUM_MAX);
+    S.morale = clamp(S.morale + (satOk ? 1.6 : techOk ? 0.4 : -2.6), 0, 100);
+    S.lastAction = Date.now();
 
     S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
     addXp(xpv);
     grantStaffXp(Math.round(xpv * 0.35 * bonus('staffXp')));
 
-    // counters
     S.lifetime.tickets++; S.lifetime.credits += credits; S.lifetime.xp += xpv;
     S.lifetime.cat[t.cat] = (S.lifetime.cat[t.cat] || 0) + 1;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
     if (satOk) S.lifetime.happy++;
+    if (diag === 1) S.lifetime.diagnosed = (S.lifetime.diagnosed || 0) + 1;
+    if (delegated) { S.lifetime.delegated = (S.lifetime.delegated || 0) + 1; bump('delegated', 1); }
     S.streak = techOk ? S.streak + 1 : 0;
     S.lifetime.streak = Math.max(S.lifetime.streak, S.streak);
     bump('tickets', 1); bump('cat_' + t.cat, 1); bump('credits', credits); bump('xp', xpv);
     if (satOk) bump('happy', 1);
+    if (diag === 1) bump('diagnosed', 1);
     bumpSet('streak', S.streak);
+    bumpSet('momentum', Math.round(S.momentum));
+    S.lifetime.maxMomentum = Math.max(S.lifetime.maxMomentum || 0, S.momentum);
 
     const result = {
       ticket: t, techOk, satOk, auto, tired, credits, xp: xpv, rep,
-      satReason: techOk ? (satOk ? pick(DATA.SAT_WINS) : pick(DATA.SAT_FAILS)) : 'Ticket escalated. User is now on first-name terms with your manager.',
-      tech: techOk ? 100 : 0,
+      diag, delegated, worker,
+      momentum: S.momentum, momentumMult: mo, morale: S.morale,
+      satReason: techOk ? (satOk ? pick(DATA.SAT_WINS) : pick(DATA.SAT_FAILS))
+        : 'Ticket escalated. The user is now on first-name terms with your manager.',
       satPct: techOk ? (satOk ? 60 + Math.floor(Math.random() * 40) : 15 + Math.floor(Math.random() * 40)) : 5,
     };
 
-    // equipment drop
-    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03)) {
+    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03))
       result.drop = dropItem(t.tier);
-    }
+
+    const i = S.queue.indexOf(t);
+    if (i >= 0) S.queue.splice(i, 1);
+    fillQueue();
     checkAchievements();
-    newTicket();
     emit('resolved', result);
     emit('change');
     return result;
   }
 
-  function dropItem(tier) {
-    const pool = DATA.EQUIPMENT.filter(e => {
-      const o = DATA.RARITY[e.rarity].order;
-      if (tier === 'EASY') return o <= 1;
-      if (tier === 'MEDIUM') return o <= 2 || (o === 3 && Math.random() < 0.25);
-      return o >= 1 || Math.random() < 0.3;
-    });
-    const e = pick(pool.length ? pool : DATA.EQUIPMENT);
-    const it = mkItem(e.id);
-    S.inventory.push(it);
-    return it;
+  /* Pass it to somebody else. Free of energy, worth less, and it puts that
+     colleague out of action for a while. */
+  const isBusy = c => (S.busy[c.uid] || 0) > Date.now();
+  const freeStaff = () => staff().filter(c => !isBusy(c));
+  function delegate(tuid, charUid) {
+    const c = S.roster.find(x => x.uid === charUid);
+    if (!c || isBusy(c) || c.uid === S.activeId) return null;
+    return resolveTicket(tuid, { by: charUid });
+  }
+
+  /* Sometimes the right call is to admit it is not yours. Costs a little
+     standing, but far less than failing it loudly. */
+  function escalateTicket(tuid) {
+    const t = ticketBy(tuid); if (!t) return null;
+    S.reputation = Math.max(0, S.reputation - 2);
+    S.morale = clamp(S.morale - 1.5, 0, 100);
+    S.momentum = Math.max(0, S.momentum - 10);
+    S.lifetime.escalated = (S.lifetime.escalated || 0) + 1;
+    const i = S.queue.indexOf(t); if (i >= 0) S.queue.splice(i, 1);
+    fillQueue();
+    emit('change');
+    return { ticket: t };
   }
 
   /* ---------------- XP / LEVELS ---------------- */
@@ -315,7 +414,8 @@ const Game = (() => {
     return base * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
   }
   function idleCreditsPerTicket() {
-    return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit') * bonus('reward');
+    return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
+      * bonus('reward') * moraleMult();
   }
   function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
   function idlePerSec() {
@@ -469,6 +569,9 @@ const Game = (() => {
     if (m === 'staff') return staff().length;
     if (m === 'peak') return L.peak;
     if (m === 'gear') return S.inventory.length;
+    if (m === 'diagnosed') return L.diagnosed || 0;
+    if (m === 'delegated') return L.delegated || 0;
+    if (m === 'maxmomentum') return Math.round(L.maxMomentum || 0);
     if (m === 'monday') return L.monday;
     if (m === 'reorgs') return L.reorgs;
     if (m.startsWith('cat_')) return L.cat[m.slice(4)] || 0;
@@ -570,6 +673,11 @@ const Game = (() => {
     // energy
     S.energyAcc += dt * (1 / 7) * bonus('energyRegen');
     if (S.energyAcc >= 1) { const g = Math.floor(S.energyAcc); S.energyAcc -= g; S.energy = Math.min(S.energyMax, S.energy + g); }
+    // Morale drifts slowly back toward workable, so one bad session does not
+    // sour the department forever — but it never drifts up into "great".
+    const rest = 60;
+    if (S.morale < rest) S.morale = Math.min(rest, S.morale + 0.045 * dt);
+    else if (S.morale > 92) S.morale = Math.max(92, S.morale - 0.02 * dt);
     accrue(dt, false);
     maybeEvent(now);
     if (S.incident && now > S.incident.endsAt) emit('incidenttimeout');
@@ -604,7 +712,15 @@ const Game = (() => {
       S.lifetime.cat = S.lifetime.cat || {};
       S.incident = null;
       uidSeq = Date.now() % 100000;
-      if (!S.ticket) newTicket();
+      if (S.momentum == null) S.momentum = 0;
+      if (S.morale == null) S.morale = 75;
+      if (!S.busy) S.busy = {};
+      if (!S.lastAction) S.lastAction = 0;
+      delete S.ticket;
+      S.queue = Array.isArray(S.queue) ? S.queue : [];
+      // a queue that sat through a break starts fresh rather than pre-breached
+      S.queue.forEach(t => { t.left = t.sla || DATA.SLA[t.tier] || 40; });
+      fillQueue();
       if (!S.missions || Date.now() > S.missionsAt) rollMissions();
       if (!S.hero) S.hero = { spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };
       // The server's clock is the honest one when we are signed in.
@@ -623,7 +739,9 @@ const Game = (() => {
     newGame, load, loadFrom, save, wipe, tick, serialize, setStore, localStore,
     fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
-    newTicket, resolveTicket, odds, TIER, requirement,
+    resolveTicket, delegate, escalateTicket, TIER, requirement,
+    fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
+    momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
     equip, unequip, upgradeItem, upgradeCost, scrapItem,

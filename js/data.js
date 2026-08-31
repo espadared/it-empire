@@ -45,43 +45,96 @@ const DATA = (() => {
 
   /* ---------- TICKETS ----------
      cat: hardware | display | network | software | access | security | vip
-     stat: the stat that decides technical success                       */
+     stat: the stat that decides technical success
+     clue: what you can actually see — the diagnosis is played off this
+     causes: three candidates, exactly one right. Reading the clue beats
+             guessing, which is the whole point.                           */
   const TICKETS = {
     EASY: [
-      { name:'Printer Offline',            cat:'hardware', stat:'PATIENCE',      icon:'🖨️', user:'Reception' },
-      { name:'Wi-Fi Not Connected',        cat:'network',  stat:'TECHNICAL',     icon:'📶', user:'Sales' },
-      { name:'No Audio In Headset',        cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support' },
-      { name:'Monitor Not Detected',       cat:'display',  stat:'TECHNICAL',     icon:'🖥️', user:'Finance' },
-      { name:'Keyboard Not Working',       cat:'hardware', stat:'PATIENCE',      icon:'⌨️', user:'HR' },
-      { name:'Password Expired',           cat:'access',   stat:'COMMUNICATION', icon:'🔑', user:'Marketing' },
-      { name:'Screen Is Upside Down',      cat:'display',  stat:'COMMUNICATION', icon:'🙃', user:'Legal' },
-      { name:'Laptop "Very Slow"',         cat:'software', stat:'PATIENCE',      icon:'🐌', user:'Ops' },
-      { name:'Mouse Battery Mystery',      cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design' },
-      { name:'Cannot Find The Desktop',    cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception' },
+      { name:'Printer Offline', cat:'hardware', stat:'PATIENCE', icon:'🖨️', user:'Reception',
+        clue:'Queue has 31 jobs. The printer is showing a green light.' },
+      { name:'Wi-Fi Not Connected', cat:'network', stat:'TECHNICAL', icon:'📶', user:'Sales',
+        clue:'Connects on their phone. Not on the laptop.' },
+      { name:'No Audio In Headset', cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support',
+        clue:'Green light on the headset. Silence in the app.' },
+      { name:'Monitor Not Detected', cat:'display', stat:'TECHNICAL', icon:'🖥️', user:'Finance',
+        clue:'Second screen black since they moved desks.' },
+      { name:'Keyboard Not Working', cat:'hardware', stat:'PATIENCE', icon:'⌨️', user:'HR',
+        clue:'Every key works except the ones they need.' },
+      { name:'Password Expired', cat:'access', stat:'COMMUNICATION', icon:'🔑', user:'Marketing',
+        clue:'They have tried the old one eleven times.' },
+      { name:'Screen Is Upside Down', cat:'display', stat:'COMMUNICATION', icon:'🙃', user:'Legal',
+        clue:'They leaned on the keyboard. They deny leaning on the keyboard.' },
+      { name:'Laptop "Very Slow"', cat:'software', stat:'PATIENCE', icon:'🐌', user:'Ops',
+        clue:'Ninety-four browser tabs. Uptime: 61 days.' },
+      { name:'Mouse Battery Mystery', cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design',
+        clue:'Works when held at a very specific angle.' },
+      { name:'Cannot Find The Desktop', cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception',
+        clue:'They saved it "to the desktop". They were in a remote session.' },
     ],
     MEDIUM: [
-      { name:'VPN Failure',                cat:'network',  stat:'TECHNICAL',     icon:'🔐', user:'Remote Team' },
-      { name:'Outlook Sync Problem',       cat:'software', stat:'INVESTIGATION', icon:'📧', user:'Sales' },
-      { name:'Certificate Error',          cat:'security', stat:'TECHNICAL',     icon:'📜', user:'Finance' },
-      { name:'BitLocker Recovery',         cat:'security', stat:'PATIENCE',      icon:'🔒', user:'Field Staff' },
-      { name:'External Display Failure',   cat:'display',  stat:'TECHNICAL',     icon:'📺', user:'Meeting Rm 3' },
-      { name:'Software Install Failure',   cat:'software', stat:'INVESTIGATION', icon:'💿', user:'Engineering' },
-      { name:'Shared Drive Vanished',      cat:'network',  stat:'INVESTIGATION', icon:'📁', user:'Accounts' },
-      { name:'MFA Device Lost',            cat:'access',   stat:'COMMUNICATION', icon:'📱', user:'New Joiner' },
-      { name:'Ghost Audio In Meetings',    cat:'software', stat:'SPEED',         icon:'👻', user:'Product' },
-      { name:'Docking Station Rebellion',  cat:'hardware', stat:'TECHNICAL',     icon:'🔌', user:'Consulting' },
+      { name:'VPN Failure', cat:'network', stat:'TECHNICAL', icon:'🔐', user:'Remote Team',
+        clue:'Connects, holds for four seconds, drops. Only from home.',
+        causes:[{t:'MTU mismatch on the tunnel',ok:1},{t:'Their password expired',ok:0},{t:'The laptop needs more RAM',ok:0}] },
+      { name:'Outlook Sync Problem', cat:'software', stat:'INVESTIGATION', icon:'📧', user:'Sales',
+        clue:'Sent items still sync. The inbox stopped three days ago.',
+        causes:[{t:'The mailbox is over quota',ok:1},{t:'The keyboard is faulty',ok:0},{t:'DNS is down company-wide',ok:0}] },
+      { name:'Certificate Error', cat:'security', stat:'TECHNICAL', icon:'📜', user:'Finance',
+        clue:'One machine only. Everyone else on the floor is fine.',
+        causes:[{t:'Their clock is fourteen minutes fast',ok:1},{t:'The website has expired',ok:0},{t:'Their account is locked',ok:0}] },
+      { name:'BitLocker Recovery', cat:'security', stat:'PATIENCE', icon:'🔒', user:'Field Staff',
+        clue:'Asking for a 48-digit key right after a firmware update.',
+        causes:[{t:'The TPM lost its seal in the BIOS update',ok:1},{t:'They typed the password wrong',ok:0},{t:'The disk has failed',ok:0}] },
+      { name:'External Display Failure', cat:'display', stat:'TECHNICAL', icon:'📺', user:'Meeting Rm 3',
+        clue:'Works at their desk. Dead in the meeting room.',
+        causes:[{t:'Room cable is HDMI, the dock outputs DisplayPort',ok:1},{t:'The monitor is broken',ok:0},{t:'The graphics driver is old',ok:0}] },
+      { name:'Software Install Failure', cat:'software', stat:'INVESTIGATION', icon:'💿', user:'Engineering',
+        clue:'Installer reaches 94%, rolls back, reports nothing.',
+        causes:[{t:'An older version is still half-uninstalled',ok:1},{t:'They are offline',ok:0},{t:'They need a bigger monitor',ok:0}] },
+      { name:'Shared Drive Vanished', cat:'network', stat:'INVESTIGATION', icon:'📁', user:'Accounts',
+        clue:'Gone for one person. Fine for the other six on the team.',
+        causes:[{t:'They were dropped from the security group',ok:1},{t:'The whole file server is down',ok:0},{t:'Their laptop needs a restart',ok:0}] },
+      { name:'MFA Device Lost', cat:'access', stat:'COMMUNICATION', icon:'📱', user:'New Joiner',
+        clue:'New phone. Old phone wiped and traded in on Saturday.',
+        causes:[{t:'The authenticator seed went with the old phone',ok:1},{t:'Their password expired',ok:0},{t:'The wifi is blocking them',ok:0}] },
+      { name:'Ghost Audio In Meetings', cat:'software', stat:'SPEED', icon:'👻', user:'Product',
+        clue:'Everyone hears an echo, but only when this one person talks.',
+        causes:[{t:'Laptop speakers and headset are both live',ok:1},{t:'A failing microphone',ok:0},{t:'Their internet is slow',ok:0}] },
+      { name:'Docking Station Rebellion', cat:'hardware', stat:'TECHNICAL', icon:'🔌', user:'Consulting',
+        clue:'Both monitors and the keyboard drop out, then return. Every ten minutes.',
+        causes:[{t:'Dock firmware is three versions behind',ok:1},{t:'Both monitors are failing',ok:0},{t:'The user keeps unplugging it',ok:0}] },
     ],
     HARD: [
-      { name:'Network Outage — Floor 4',   cat:'network',  stat:'INVESTIGATION', icon:'🌐', user:'Floor 4' },
-      { name:'Server Failure',             cat:'network',  stat:'TECHNICAL',     icon:'🖴', user:'Infrastructure' },
-      { name:'Cloud Service Failure',      cat:'network',  stat:'AUTOMATION',    icon:'☁️', user:'Everyone' },
-      { name:'Security Incident',          cat:'security', stat:'INVESTIGATION', icon:'🛡️', user:'SecOps' },
-      { name:'Executive Laptop Failure',   cat:'vip',      stat:'SPEED',         icon:'💼', user:'The CFO' },
-      { name:'Meeting Room AV Meltdown',   cat:'vip',      stat:'SPEED',         icon:'📽️', user:'Board Room' },
-      { name:'Domain Controller Down',     cat:'network',  stat:'TECHNICAL',     icon:'🏛️', user:'All Sites' },
-      { name:'Suspicious Email Campaign',  cat:'security', stat:'MANAGEMENT',    icon:'🎣', user:'Whole Company' },
+      { name:'Network Outage — Floor 4', cat:'network', stat:'INVESTIGATION', icon:'🌐', user:'Floor 4',
+        clue:'Floor 4 only. Started 09:02. Wired and wireless both dead.',
+        causes:[{t:'A loop from the desk switch someone brought in',ok:1},{t:'The internet is down nationally',ok:0},{t:'Everyone expired at once',ok:0}] },
+      { name:'Server Failure', cat:'network', stat:'TECHNICAL', icon:'🖴', user:'Infrastructure',
+        clue:'Service is running, the port answers, every request times out.',
+        causes:[{t:'The disk is full and it cannot write its log',ok:1},{t:'Someone unplugged it',ok:0},{t:'The licence expired',ok:0}] },
+      { name:'Cloud Service Failure', cat:'network', stat:'AUTOMATION', icon:'☁️', user:'Everyone',
+        clue:'Vendor status page is green. Nobody here can sign in.',
+        causes:[{t:'Our federation certificate rolled over last night',ok:1},{t:'The vendor is lying',ok:0},{t:'Everyone forgot their password',ok:0}] },
+      { name:'Security Incident', cat:'security', stat:'INVESTIGATION', icon:'🛡️', user:'SecOps',
+        clue:'One account sent 4,000 emails at 03:14, from two countries.',
+        causes:[{t:'The account is compromised — kill the sessions',ok:1},{t:'The mail server is misconfigured',ok:0},{t:'Somebody is working very late',ok:0}] },
+      { name:'Executive Laptop Failure', cat:'vip', stat:'SPEED', icon:'💼', user:'The CFO',
+        clue:'Black screen, fan spinning, power light on. Boarding in 40 minutes.',
+        causes:[{t:'Drain the residual power and reseat',ok:1},{t:'Order a replacement now',ok:0},{t:'Reinstall Windows',ok:0}] },
+      { name:'Meeting Room AV Meltdown', cat:'vip', stat:'SPEED', icon:'📽️', user:'Board Room',
+        clue:'Fifteen people, a client dialled in, and no picture.',
+        causes:[{t:'The room PC woke on the wrong display profile',ok:1},{t:'The projector bulb has gone',ok:0},{t:'The internet is slow',ok:0}] },
+      { name:'Domain Controller Down', cat:'network', stat:'TECHNICAL', icon:'🏛️', user:'All Sites',
+        clue:'Nobody can log in anywhere. Replication stopped on Sunday.',
+        causes:[{t:'A stale DC passed its tombstone lifetime',ok:1},{t:'The building lost power',ok:0},{t:'A cable is loose',ok:0}] },
+      { name:'Suspicious Email Campaign', cat:'security', stat:'MANAGEMENT', icon:'🎣', user:'Whole Company',
+        clue:'Forty staff got the same invoice PDF — from a real supplier address.',
+        causes:[{t:"The supplier's mailbox is compromised — warn and block",ok:1},{t:'Our spam filter is switched off',ok:0},{t:'It is a marketing campaign',ok:0}] },
     ],
   };
+
+  /* How long a ticket sits in the queue before it breaches. The valuable ones
+     are the impatient ones — that is the whole tension of the queue. */
+  const SLA = { EASY: 42, MEDIUM: 34, HARD: 26 };
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -422,6 +475,8 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
+    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:6,  icon:'🔍' },
+    { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
 
   /* ---------- ACHIEVEMENTS ---------- */
@@ -438,6 +493,9 @@ const DATA = (() => {
     { id:'a_rich',     name:'BUDGET APPROVED',    desc:'Hold 1,000,000 IT Credits at once.',    metric:'peak',      target:1000000,rep:400 },
     { id:'a_reorg',    name:'REORGANISED',        desc:'Complete your first IT Reorganisation.',metric:'reorgs',    target:1,      rep:1000 },
     { id:'a_gear',     name:'FULLY EQUIPPED',     desc:'Own 12 pieces of equipment.',           metric:'gear',      target:12,     rep:120 },
+    { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 100 times.',       metric:'diagnosed', target:100,    rep:300 },
+    { id:'a_deleg',    name:'THAT IS WHAT A TEAM IS FOR', desc:'Hand 100 tickets to colleagues.', metric:'delegated', target:100,   rep:200 },
+    { id:'a_flow',     name:'IN THE ZONE',        desc:'Reach full momentum.',                  metric:'maxmomentum', target:100,  rep:150 },
   ];
 
   /* ---------- LEGACY (PRESTIGE) UPGRADES ---------- */
@@ -460,7 +518,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();

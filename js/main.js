@@ -35,55 +35,142 @@
     setTimeout(() => { n.style.transition = 'opacity .4s'; n.style.opacity = '0'; setTimeout(() => n.remove(), 400); }, 2600);
   }
 
-  /* ---------- RESOLVE ---------- */
+  /* ---------- WORKING THE QUEUE ---------- */
   let busy = false;
-  function doResolve() {
-    if (busy) return; busy = true;
-    const btn = $('#btnResolve'), hero = $('#heroWrap');
-    const r = btn.getBoundingClientRect();
+
+  function cardOf(tuid) { return document.querySelector(`[data-tk="${tuid}"]`); }
+
+  function showResult(res, anchor) {
+    const r = (anchor || document.body).getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + 10;
+    const lines = [];
+    if (res.xp) lines.push({ t: `+${f(res.xp)} XP`, c: 'var(--crt)' });
+    if (res.credits) lines.push({ t: `+${f(res.credits)} CR`, c: 'var(--lamp)', s: 19 });
+    if (res.rep) lines.push({ t: `${res.rep > 0 ? '+' : ''}${res.rep} REP`, c: res.rep > 0 ? 'var(--rep)' : 'var(--alarm)' });
+    UI.burstFloats(x, y, lines);
+    UI.coins(anchor || document.body, Math.min(10, 3 + Math.floor(res.credits / 60)));
+
+    if (res.diag === 1) UI.floatText(x, y - 40, 'CORRECT DIAGNOSIS', 'var(--good)', 15);
+    else if (res.diag === 0) UI.floatText(x, y - 40, 'WRONG CALL', 'var(--alarm)', 15);
+    if (res.momentumMult >= 1.6) UI.floatText(x, y - 62, `🔥 ×${res.momentumMult.toFixed(1)}`, 'var(--lamp)', 16);
+
+    if (!res.techOk) { UI.beep('fail'); UI.floatText(x, y - 22, 'ESCALATED', 'var(--alarm)', 15); }
+    else if (res.ticket.tier === 'HARD' || res.diag === 1) {
+      UI.beep('great'); UI.sparks(x, y, res.diag === 1 ? '#5FD37A' : '#FFB347', 16);
+      if (res.ticket.tier === 'HARD') UI.shake();
+    } else UI.beep('ok');
+
+    UI.say(res.delegated
+      ? `"${res.worker.defId === 'hero' ? 'I' : Game.def(res.worker.defId).name} took that one."`
+      : res.auto ? '"The Dongle of Destiny strikes again."' : res.satReason);
+    if (res.drop) setTimeout(() => showDrop(res.drop), 480);
+    UI.refresh();
+  }
+
+  function doFix(tuid) {
+    if (busy) return;
+    const t = Game.ticketBy(tuid); if (!t) return;
+    if (Game.needsDiagnosis(t)) return openDiagnosis(tuid);
+    busy = true;
+    const card = cardOf(tuid), hero = $('#heroWrap');
     hero && hero.classList.add('working');
+    card && card.classList.add('going');
     UI.beep('tap');
     setTimeout(() => {
       hero && hero.classList.remove('working');
-      const res = Game.resolveTicket();
-      const lines = [];
-      if (res.xp) lines.push({ t: `+${f(res.xp)} XP`, c: 'var(--crt)' });
-      if (res.credits) lines.push({ t: `+${f(res.credits)} CR`, c: 'var(--lamp)', s: 19 });
-      if (res.rep) lines.push({ t: `${res.rep > 0 ? '+' : ''}${res.rep} REP`, c: res.rep > 0 ? 'var(--rep)' : 'var(--alarm)' });
-      UI.burstFloats(r.left + r.width / 2, r.top - 6, lines);
-      UI.coins(btn, Math.min(10, 3 + Math.floor(res.credits / 60)));
-
-      if (!res.techOk) {
-        UI.beep('fail');
-        UI.floatText(r.left + r.width / 2, r.top - 34, 'ESCALATED', 'var(--alarm)', 15);
-      } else if (res.ticket.tier === 'HARD') {
-        UI.beep('great'); UI.shake();
-        UI.sparks(r.left + r.width / 2, r.top, '#FFB347', 16);
-      } else UI.beep('ok');
-
-      UI.say(res.auto ? '"The Dongle of Destiny strikes again."' : res.satReason);
-      if (res.drop) setTimeout(() => showDrop(res.drop), 480);
-      UI.refresh();
+      const res = Game.resolveTicket(tuid);
       busy = false;
-    }, 340);
+      if (res) showResult(res, card);
+    }, 260);
   }
 
-  function showDrop(it) {
-    const e = Game.eqDef(it.eid), col = UI.rarColor(e.rarity);
-    UI.beep('great');
+  /* The diagnosis. The ticket's clock keeps running while you think — that
+     is the point of it. */
+  function openDiagnosis(tuid) {
+    const t = Game.ticketBy(tuid); if (!t) return;
+    const opts = t.causes.map((c, i) => ({ ...c, i })).sort(() => Math.random() - 0.5);
+    UI.beep('tap');
     UI.sheet(`
-      <span class="big-emoji">🎁</span>
-      <h3 style="color:${col}">${esc(e.name)}</h3>
-      <p class="sub">${e.rarity} ${DATA.SLOTS.find(s => s.key === e.slot).label.toUpperCase()} — pulled out of a ticket</p>
-      <div class="reward-line">${Object.entries(e.stats || {}).map(([k, v]) =>
-      `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${v} ${k}</span>`).join('')}</div>
-      <p class="tiny muted" style="text-align:center">${esc(e.effect)}</p>
-      <button class="btn gold cta" data-close="1">NICE</button>`);
-    setTimeout(() => {
-      const s = document.querySelector('.sheet');
-      if (s) { const b = s.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 60, col, 22); }
-    }, 120);
+      <div class="row" style="gap:10px;align-items:flex-start">
+        <div class="tk-ico" style="width:46px;height:46px;font-size:23px">${t.icon}</div>
+        <div style="flex:1;min-width:0">
+          <h3 style="text-align:left;font-size:16px;margin:0">${esc(t.name)}</h3>
+          <div class="tiny muted">${esc(t.user)} · #${t.id}</div>
+        </div>
+        <span class="tier t-${t.tier}">${t.tier}</span>
+      </div>
+      <div class="diag-clue"><span>WHAT YOU CAN SEE</span>${esc(t.clue)}</div>
+      <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
+      ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
+      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
+    `, { dismiss: false, grab: false, live: true });
   }
+
+  function answerDiagnosis(tuid, ok, idx) {
+    if (busy) return; busy = true;
+    const btn = document.querySelector(`[data-diag="${tuid}"][data-i="${idx}"]`);
+    document.querySelectorAll('[data-diag]').forEach(b => {
+      if (b.dataset.ok === '1') b.classList.add('ok');
+      else if (b === btn) b.classList.add('bad');
+    });
+    UI.beep(ok ? 'great' : 'fail');
+    if (!ok) UI.shake();
+    setTimeout(() => {
+      UI.closeSheet();
+      const card = cardOf(tuid);
+      const res = Game.resolveTicket(tuid, { diag: ok ? 1 : 0 });
+      busy = false;
+      if (res) showResult(res, card);
+    }, 760);
+  }
+
+  /* Hand it over. Costs you nothing but the reward and their availability. */
+  function openDelegate(tuid) {
+    const t = Game.ticketBy(tuid); if (!t) return;
+    const S = Game.state;
+    const others = S.roster.filter(c => c.uid !== S.activeId);
+    if (!others.length) {
+      UI.beep('fail');
+      return toast('👥', 'NOBODY TO ASK', 'Hire a colleague on the STAFF tab and you can hand tickets over.');
+    }
+    UI.sheet(`
+      <h3>WHO TAKES IT?</h3>
+      <p class="sub">${esc(t.name)} · they earn 70% and are busy afterwards</p>
+      ${others.map(c => {
+      const d = Game.def(c.defId), free = !Game.isBusy(c);
+      const o = Game.oddsFor(t, c);
+      const left = Math.ceil(((S.busy[c.uid] || 0) - Date.now()) / 1000);
+      return `<button class="dpick ${free ? '' : 'busy'}" ${free ? `data-dele-go="${tuid}" data-who="${c.uid}"` : ''}>
+          <div class="avatar" style="width:44px;height:44px">${Art.portrait(d.art, 'dp' + c.uid)}</div>
+          <div class="who"><h3>${esc(d.name)}</h3><div class="role">${esc(d.role)} · LV.${c.level}</div></div>
+          <div class="fit">${free
+          ? `<b style="color:${o.tech > .7 ? 'var(--good)' : o.tech > .45 ? 'var(--lamp)' : 'var(--alarm)'}">${Math.round(o.tech * 100)}%</b>
+               <div class="tiny muted">chance</div>`
+          : `<b style="color:var(--muted)">BUSY</b><div class="tiny muted">${left}s</div>`}</div>
+        </button>`;
+    }).join('')}
+      <button class="btn ghost cta" data-close="1">CANCEL</button>`, { live: true });
+  }
+
+  function doEscalate(tuid) {
+    const card = cardOf(tuid);
+    if (card) card.classList.add('going');
+    const r = Game.escalateTicket(tuid);
+    if (!r) return;
+    UI.beep('tap');
+    if (card) {
+      const b = card.getBoundingClientRect();
+      UI.floatText(b.left + b.width / 2, b.top + 10, 'ESCALATED  −2 REP', 'var(--muted)', 14);
+    }
+    UI.refresh();
+  }
+
+  Game.on('breach', ({ ticket, rep }) => {
+    UI.beep('alarm'); UI.shake();
+    toast('⏰', 'SLA BREACHED', `${ticket.name} — ${ticket.user} gave up waiting. −${rep} reputation, morale down.`);
+    UI.floatText(window.innerWidth / 2, window.innerHeight * 0.42, `BREACH −${rep} REP`, 'var(--alarm)', 20);
+    if (UI.screen === 'hq') UI.renderQueue();
+  });
 
   /* ---------- LEVEL UP ---------- */
   Game.on('levelup', d => {
@@ -246,12 +333,22 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],#btnResolve,#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],#bell');
     if (!t) return;
     const d = t.dataset;
 
-    if (t.id === 'btnResolve') return doResolve();
     if (t.id === 'bell') return bellSheet();
+    if (d.fix) return doFix(d.fix);
+    if (d.delegate) return openDelegate(d.delegate);
+    if (d.deleGo) {
+      UI.closeSheet();
+      const card = cardOf(d.deleGo);
+      const res = Game.delegate(d.deleGo, d.who);
+      if (res) showResult(res, card); else UI.beep('fail');
+      return;
+    }
+    if (d.escalate) return doEscalate(d.escalate);
+    if (d.diag) return answerDiagnosis(d.diag, d.ok === '1', d.i);
     if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);
@@ -348,11 +445,27 @@
   /* ---------- LOOP ---------- */
   let lastUi = 0, warned = false;
   function loop(ts) {
-    Game.tick();
+    const dt = Game.tick();
+
+    // The queue only runs while you are at the desk and nothing has
+    // interrupted you — it never breaches behind your back.
+    const atDesk = !document.hidden && UI.screen === 'hq' && !UI.isPaused();
+    if (atDesk) {
+      Game.tickQueue(dt);
+      UI.tickQueueUI();
+    }
+    const dl = document.querySelector('#diagLeft');
+    if (dl) {
+      const open = (Game.state.queue || []).find(x => document.querySelector(`[data-diag="${x.uid}"]`));
+      // the sheet is marked live, so the queue above is still ticking it down
+      if (open) dl.textContent = Math.max(0, Math.ceil(open.left)) + 's';
+      else UI.closeSheet();
+    }
+
     if (ts - lastUi > 900) {
       lastUi = ts;
       UI.renderTop();
-      if (UI.screen === 'hq') { UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
+      if (UI.screen === 'hq') { UI.updateMeters(); UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
       if (Game.incidentReady() && !warned && !document.querySelector('#modal.on') && UI.screen === 'hq') {
         warned = true; openIncidentWarning();
       }

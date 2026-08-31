@@ -107,7 +107,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 
 /* ---------- HQ STAGE ---------- */
 .stage{position:relative;isolation:isolate;overflow:hidden;background:var(--ink-2);
-  height:clamp(148px,27dvh,216px)}
+  height:clamp(112px,19dvh,158px)}
 .office-svg{display:block;width:100%;height:100%}
 .stage::after{
   content:'';position:absolute;inset:0;pointer-events:none;
@@ -123,7 +123,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   width:34%;height:15px;background:radial-gradient(closest-side,rgba(0,0,0,.65),transparent);z-index:1;
 }
 .hero-name{
-  position:absolute;left:10px;bottom:32px;z-index:3;max-width:42%;
+  position:absolute;left:10px;bottom:8px;z-index:3;max-width:42%;
 }
 .hero-name .n{font-family:var(--disp);font-weight:800;font-size:18px;line-height:1;text-shadow:0 2px 6px #000}
 .hero-name .r{font-size:10.5px;color:var(--lamp);font-weight:700;text-shadow:0 1px 4px #000}
@@ -132,16 +132,16 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   background:rgba(10,14,26,.8);border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:var(--crt);
 }
 .hero-say{
-  position:absolute;right:8px;bottom:34px;z-index:3;max-width:44%;
+  position:absolute;right:8px;bottom:10px;z-index:3;max-width:44%;
   background:rgba(232,236,247,.94);color:#141A2B;border-radius:12px 12px 12px 3px;
   padding:6px 9px;font-size:11px;font-weight:700;line-height:1.25;box-shadow:var(--shadow);
 }
 .stage-chip{
-  position:absolute;top:8px;left:8px;z-index:3;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 16px);
+  position:absolute;top:8px;left:8px;z-index:3;display:flex;gap:5px;flex-wrap:wrap;max-width:calc(100% - 146px);
 }
 .chip{
-  display:inline-flex;align-items:center;gap:5px;background:rgba(12,16,29,.85);border:1px solid var(--line);
-  border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;letter-spacing:.03em;backdrop-filter:blur(4px);
+  display:inline-flex;align-items:center;gap:4px;background:rgba(12,16,29,.85);border:1px solid var(--line);
+  border-radius:999px;padding:2px 8px;font-size:9.5px;font-weight:800;letter-spacing:.03em;backdrop-filter:blur(4px);
 }
 .chip.live{border-color:var(--crt);color:var(--crt)}
 .chip.event{border-color:var(--lamp);color:var(--lamp);animation:pulseGlow 1.8s ease-in-out infinite}
@@ -414,6 +414,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .hero-wrap.working .arm-idle-r,.hero-wrap.working .arm-work-r{animation:armWork .24s ease-in-out infinite}
 .hero-wrap.working .arm-idle-l,.hero-wrap.working .arm-work-l{animation:armWork .24s ease-in-out infinite reverse}
 .hero-wrap.working .head-bob{animation:bob .5s ease-in-out infinite}
+.dock{padding:9px 12px 4px}
 .toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:65;
   background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--lamp);
@@ -550,6 +551,95 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 }
 @keyframes markPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
 
+/* ============================================================
+   THE QUEUE — three tickets, three clocks, one of you
+   ============================================================ */
+.meters{
+  position:absolute;right:8px;top:8px;z-index:3;display:flex;flex-direction:column;gap:5px;width:126px;
+}
+.meter{
+  display:flex;align-items:center;gap:6px;background:rgba(11,15,27,.82);border:1px solid var(--line);
+  border-radius:999px;padding:3px 8px 3px 6px;backdrop-filter:blur(4px);
+}
+.meter.hot{border-color:var(--lamp);box-shadow:0 0 12px rgba(255,179,71,.35)}
+.meter .m-lbl{font-size:11px;line-height:1}
+.meter b{font-family:var(--mono);font-size:10px;color:var(--lamp);font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.meter b.bad{color:var(--alarm)}
+.mbar{flex:1;height:5px;border-radius:3px;background:#0A0E1A;overflow:hidden}
+.mbar>span{display:block;height:100%;background:linear-gradient(90deg,#C9772A,var(--lamp));transition:width .3s}
+.mbar.morale>span{background:linear-gradient(90deg,#3FA9C9,var(--crt))}
+
+.queue{padding:9px 12px 0;display:flex;flex-direction:column;gap:8px}
+.tk{
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-radius:16px;padding:9px 10px;position:relative;overflow:hidden;
+  animation:tkIn .28s cubic-bezier(.2,1.2,.4,1) both;
+}
+@keyframes tkIn{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+.tk.hard{border-color:#5A3550}
+.tk.urgent{border-color:var(--alarm);animation:tkPulse 1s ease-in-out infinite}
+@keyframes tkPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,0)}50%{box-shadow:0 0 0 3px rgba(255,90,95,.18)}}
+.tk.going{animation:tkOut .3s ease-in forwards}
+@keyframes tkOut{to{opacity:0;transform:translateX(60px) scale(.95)}}
+.tk-head{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:nowrap;overflow:hidden}
+.tier{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;
+  border-radius:6px;padding:2px 6px;border:1px solid}
+.t-EASY{color:var(--good);border-color:#2F6B41;background:rgba(95,211,122,.08)}
+.t-MEDIUM{color:var(--lamp);border-color:var(--lamp-dim);background:rgba(255,179,71,.08)}
+.t-HARD{color:var(--alarm);border-color:#7A2F33;background:rgba(255,90,95,.08)}
+.tk-clock{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tk-clock.urgent{color:var(--alarm);font-weight:600}
+.sla{height:4px;border-radius:2px;background:#0B0F1C;overflow:hidden;margin-bottom:8px}
+.sla>span{display:block;height:100%;background:linear-gradient(90deg,var(--alarm),var(--lamp) 45%,var(--good));
+  transition:width .25s linear}
+.tk-row{display:flex;gap:9px;align-items:flex-start}
+.tk-ico{width:36px;height:36px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;font-size:19px;
+  background:var(--ink-2);border:1px solid var(--line)}
+.tk-txt{min-width:0;flex:1}
+.tk-txt h3{font-family:var(--disp);font-weight:800;font-size:14.5px;margin:0;line-height:1.15}
+.tk-txt p{margin:2px 0 0;font-size:11.5px;color:var(--muted);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tk-rw{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
+.tk-acts{display:flex;gap:7px;margin-top:8px}
+.act{
+  border-radius:11px;font-family:var(--disp);font-weight:800;font-size:12.5px;padding:9px 8px;
+  transition:transform .08s ease,filter .15s;display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.act:active{transform:scale(.96)}
+.act.fix{flex:1;background:linear-gradient(180deg,#FFC46A,#E68A26);color:#31190A;box-shadow:0 3px 0 #A9560F}
+.act.fix:active{transform:translateY(2px);box-shadow:0 1px 0 #A9560F}
+.act.fix.puzzle{background:linear-gradient(180deg,#5FE4D6,#26918A);color:#062421;box-shadow:0 3px 0 #17635D}
+.act.fix.puzzle:active{box-shadow:0 1px 0 #17635D}
+.act.del{width:56px;flex:0 0 auto;background:var(--panel-3);border:1px solid var(--line);font-size:15px}
+.act.del small{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.act.esc{width:42px;flex:0 0 auto;background:var(--ink-2);border:1px solid var(--line);color:var(--muted);font-size:14px}
+.act.off{opacity:.4}
+
+/* diagnosis */
+.diag-clue{
+  background:var(--ink-2);border-left:3px solid var(--crt);border-radius:0 12px 12px 0;
+  padding:11px 12px;margin:12px 0;font-size:13.5px;line-height:1.45;
+}
+.diag-clue span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.diag-opt{
+  width:100%;text-align:left;border-radius:13px;padding:13px;margin-top:8px;
+  background:var(--panel);border:1px solid var(--line);font-family:var(--disp);font-weight:700;font-size:13.5px;
+  line-height:1.3;transition:transform .08s,border-color .15s,background .15s;
+}
+.diag-opt:active{transform:scale(.98)}
+.diag-opt.ok{border-color:var(--good);color:var(--good);background:rgba(95,211,122,.08)}
+.diag-opt.bad{border-color:var(--alarm);color:var(--alarm);background:rgba(255,90,95,.08)}
+.diag-timer{font-family:var(--mono);font-size:11px;text-align:center;color:var(--muted)}
+.diag-timer b{color:var(--alarm)}
+
+/* delegate picker */
+.dpick h3{text-align:left}
+.dpick{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px;margin-top:8px}
+.dpick.busy{opacity:.45}
+.dpick .fit{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px}
+
 </style>
 <div id="app">
 
@@ -575,12 +665,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 
     <!-- ========== HQ ========== -->
     <section class="screen on" id="screen-hq">
-      <div class="stage" id="stage"></div>
-      <div class="ticket" id="ticketCard"></div>
-      <div class="dock">
-        <button class="resolve" id="btnResolve">🔧 RESOLVE TICKET</button>
-        <div class="mini-row" id="miniRow"></div>
-      </div>
+      <div class="stage" id="stage"><div class="meters" id="meters"></div></div>
+      <div class="queue" id="queue"></div>
+      <div class="dock"><div class="mini-row" id="miniRow"></div></div>
       <div class="idle-strip" id="idleStrip"></div>
       <div class="sec-head"><h2>THE OFFICE</h2><span>UPGRADES</span></div>
       <div class="list" id="buildList"></div>
@@ -658,43 +745,96 @@ const DATA = (() => {
 
   /* ---------- TICKETS ----------
      cat: hardware | display | network | software | access | security | vip
-     stat: the stat that decides technical success                       */
+     stat: the stat that decides technical success
+     clue: what you can actually see — the diagnosis is played off this
+     causes: three candidates, exactly one right. Reading the clue beats
+             guessing, which is the whole point.                           */
   const TICKETS = {
     EASY: [
-      { name:'Printer Offline',            cat:'hardware', stat:'PATIENCE',      icon:'🖨️', user:'Reception' },
-      { name:'Wi-Fi Not Connected',        cat:'network',  stat:'TECHNICAL',     icon:'📶', user:'Sales' },
-      { name:'No Audio In Headset',        cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support' },
-      { name:'Monitor Not Detected',       cat:'display',  stat:'TECHNICAL',     icon:'🖥️', user:'Finance' },
-      { name:'Keyboard Not Working',       cat:'hardware', stat:'PATIENCE',      icon:'⌨️', user:'HR' },
-      { name:'Password Expired',           cat:'access',   stat:'COMMUNICATION', icon:'🔑', user:'Marketing' },
-      { name:'Screen Is Upside Down',      cat:'display',  stat:'COMMUNICATION', icon:'🙃', user:'Legal' },
-      { name:'Laptop "Very Slow"',         cat:'software', stat:'PATIENCE',      icon:'🐌', user:'Ops' },
-      { name:'Mouse Battery Mystery',      cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design' },
-      { name:'Cannot Find The Desktop',    cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception' },
+      { name:'Printer Offline', cat:'hardware', stat:'PATIENCE', icon:'🖨️', user:'Reception',
+        clue:'Queue has 31 jobs. The printer is showing a green light.' },
+      { name:'Wi-Fi Not Connected', cat:'network', stat:'TECHNICAL', icon:'📶', user:'Sales',
+        clue:'Connects on their phone. Not on the laptop.' },
+      { name:'No Audio In Headset', cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support',
+        clue:'Green light on the headset. Silence in the app.' },
+      { name:'Monitor Not Detected', cat:'display', stat:'TECHNICAL', icon:'🖥️', user:'Finance',
+        clue:'Second screen black since they moved desks.' },
+      { name:'Keyboard Not Working', cat:'hardware', stat:'PATIENCE', icon:'⌨️', user:'HR',
+        clue:'Every key works except the ones they need.' },
+      { name:'Password Expired', cat:'access', stat:'COMMUNICATION', icon:'🔑', user:'Marketing',
+        clue:'They have tried the old one eleven times.' },
+      { name:'Screen Is Upside Down', cat:'display', stat:'COMMUNICATION', icon:'🙃', user:'Legal',
+        clue:'They leaned on the keyboard. They deny leaning on the keyboard.' },
+      { name:'Laptop "Very Slow"', cat:'software', stat:'PATIENCE', icon:'🐌', user:'Ops',
+        clue:'Ninety-four browser tabs. Uptime: 61 days.' },
+      { name:'Mouse Battery Mystery', cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design',
+        clue:'Works when held at a very specific angle.' },
+      { name:'Cannot Find The Desktop', cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception',
+        clue:'They saved it "to the desktop". They were in a remote session.' },
     ],
     MEDIUM: [
-      { name:'VPN Failure',                cat:'network',  stat:'TECHNICAL',     icon:'🔐', user:'Remote Team' },
-      { name:'Outlook Sync Problem',       cat:'software', stat:'INVESTIGATION', icon:'📧', user:'Sales' },
-      { name:'Certificate Error',          cat:'security', stat:'TECHNICAL',     icon:'📜', user:'Finance' },
-      { name:'BitLocker Recovery',         cat:'security', stat:'PATIENCE',      icon:'🔒', user:'Field Staff' },
-      { name:'External Display Failure',   cat:'display',  stat:'TECHNICAL',     icon:'📺', user:'Meeting Rm 3' },
-      { name:'Software Install Failure',   cat:'software', stat:'INVESTIGATION', icon:'💿', user:'Engineering' },
-      { name:'Shared Drive Vanished',      cat:'network',  stat:'INVESTIGATION', icon:'📁', user:'Accounts' },
-      { name:'MFA Device Lost',            cat:'access',   stat:'COMMUNICATION', icon:'📱', user:'New Joiner' },
-      { name:'Ghost Audio In Meetings',    cat:'software', stat:'SPEED',         icon:'👻', user:'Product' },
-      { name:'Docking Station Rebellion',  cat:'hardware', stat:'TECHNICAL',     icon:'🔌', user:'Consulting' },
+      { name:'VPN Failure', cat:'network', stat:'TECHNICAL', icon:'🔐', user:'Remote Team',
+        clue:'Connects, holds for four seconds, drops. Only from home.',
+        causes:[{t:'MTU mismatch on the tunnel',ok:1},{t:'Their password expired',ok:0},{t:'The laptop needs more RAM',ok:0}] },
+      { name:'Outlook Sync Problem', cat:'software', stat:'INVESTIGATION', icon:'📧', user:'Sales',
+        clue:'Sent items still sync. The inbox stopped three days ago.',
+        causes:[{t:'The mailbox is over quota',ok:1},{t:'The keyboard is faulty',ok:0},{t:'DNS is down company-wide',ok:0}] },
+      { name:'Certificate Error', cat:'security', stat:'TECHNICAL', icon:'📜', user:'Finance',
+        clue:'One machine only. Everyone else on the floor is fine.',
+        causes:[{t:'Their clock is fourteen minutes fast',ok:1},{t:'The website has expired',ok:0},{t:'Their account is locked',ok:0}] },
+      { name:'BitLocker Recovery', cat:'security', stat:'PATIENCE', icon:'🔒', user:'Field Staff',
+        clue:'Asking for a 48-digit key right after a firmware update.',
+        causes:[{t:'The TPM lost its seal in the BIOS update',ok:1},{t:'They typed the password wrong',ok:0},{t:'The disk has failed',ok:0}] },
+      { name:'External Display Failure', cat:'display', stat:'TECHNICAL', icon:'📺', user:'Meeting Rm 3',
+        clue:'Works at their desk. Dead in the meeting room.',
+        causes:[{t:'Room cable is HDMI, the dock outputs DisplayPort',ok:1},{t:'The monitor is broken',ok:0},{t:'The graphics driver is old',ok:0}] },
+      { name:'Software Install Failure', cat:'software', stat:'INVESTIGATION', icon:'💿', user:'Engineering',
+        clue:'Installer reaches 94%, rolls back, reports nothing.',
+        causes:[{t:'An older version is still half-uninstalled',ok:1},{t:'They are offline',ok:0},{t:'They need a bigger monitor',ok:0}] },
+      { name:'Shared Drive Vanished', cat:'network', stat:'INVESTIGATION', icon:'📁', user:'Accounts',
+        clue:'Gone for one person. Fine for the other six on the team.',
+        causes:[{t:'They were dropped from the security group',ok:1},{t:'The whole file server is down',ok:0},{t:'Their laptop needs a restart',ok:0}] },
+      { name:'MFA Device Lost', cat:'access', stat:'COMMUNICATION', icon:'📱', user:'New Joiner',
+        clue:'New phone. Old phone wiped and traded in on Saturday.',
+        causes:[{t:'The authenticator seed went with the old phone',ok:1},{t:'Their password expired',ok:0},{t:'The wifi is blocking them',ok:0}] },
+      { name:'Ghost Audio In Meetings', cat:'software', stat:'SPEED', icon:'👻', user:'Product',
+        clue:'Everyone hears an echo, but only when this one person talks.',
+        causes:[{t:'Laptop speakers and headset are both live',ok:1},{t:'A failing microphone',ok:0},{t:'Their internet is slow',ok:0}] },
+      { name:'Docking Station Rebellion', cat:'hardware', stat:'TECHNICAL', icon:'🔌', user:'Consulting',
+        clue:'Both monitors and the keyboard drop out, then return. Every ten minutes.',
+        causes:[{t:'Dock firmware is three versions behind',ok:1},{t:'Both monitors are failing',ok:0},{t:'The user keeps unplugging it',ok:0}] },
     ],
     HARD: [
-      { name:'Network Outage — Floor 4',   cat:'network',  stat:'INVESTIGATION', icon:'🌐', user:'Floor 4' },
-      { name:'Server Failure',             cat:'network',  stat:'TECHNICAL',     icon:'🖴', user:'Infrastructure' },
-      { name:'Cloud Service Failure',      cat:'network',  stat:'AUTOMATION',    icon:'☁️', user:'Everyone' },
-      { name:'Security Incident',          cat:'security', stat:'INVESTIGATION', icon:'🛡️', user:'SecOps' },
-      { name:'Executive Laptop Failure',   cat:'vip',      stat:'SPEED',         icon:'💼', user:'The CFO' },
-      { name:'Meeting Room AV Meltdown',   cat:'vip',      stat:'SPEED',         icon:'📽️', user:'Board Room' },
-      { name:'Domain Controller Down',     cat:'network',  stat:'TECHNICAL',     icon:'🏛️', user:'All Sites' },
-      { name:'Suspicious Email Campaign',  cat:'security', stat:'MANAGEMENT',    icon:'🎣', user:'Whole Company' },
+      { name:'Network Outage — Floor 4', cat:'network', stat:'INVESTIGATION', icon:'🌐', user:'Floor 4',
+        clue:'Floor 4 only. Started 09:02. Wired and wireless both dead.',
+        causes:[{t:'A loop from the desk switch someone brought in',ok:1},{t:'The internet is down nationally',ok:0},{t:'Everyone expired at once',ok:0}] },
+      { name:'Server Failure', cat:'network', stat:'TECHNICAL', icon:'🖴', user:'Infrastructure',
+        clue:'Service is running, the port answers, every request times out.',
+        causes:[{t:'The disk is full and it cannot write its log',ok:1},{t:'Someone unplugged it',ok:0},{t:'The licence expired',ok:0}] },
+      { name:'Cloud Service Failure', cat:'network', stat:'AUTOMATION', icon:'☁️', user:'Everyone',
+        clue:'Vendor status page is green. Nobody here can sign in.',
+        causes:[{t:'Our federation certificate rolled over last night',ok:1},{t:'The vendor is lying',ok:0},{t:'Everyone forgot their password',ok:0}] },
+      { name:'Security Incident', cat:'security', stat:'INVESTIGATION', icon:'🛡️', user:'SecOps',
+        clue:'One account sent 4,000 emails at 03:14, from two countries.',
+        causes:[{t:'The account is compromised — kill the sessions',ok:1},{t:'The mail server is misconfigured',ok:0},{t:'Somebody is working very late',ok:0}] },
+      { name:'Executive Laptop Failure', cat:'vip', stat:'SPEED', icon:'💼', user:'The CFO',
+        clue:'Black screen, fan spinning, power light on. Boarding in 40 minutes.',
+        causes:[{t:'Drain the residual power and reseat',ok:1},{t:'Order a replacement now',ok:0},{t:'Reinstall Windows',ok:0}] },
+      { name:'Meeting Room AV Meltdown', cat:'vip', stat:'SPEED', icon:'📽️', user:'Board Room',
+        clue:'Fifteen people, a client dialled in, and no picture.',
+        causes:[{t:'The room PC woke on the wrong display profile',ok:1},{t:'The projector bulb has gone',ok:0},{t:'The internet is slow',ok:0}] },
+      { name:'Domain Controller Down', cat:'network', stat:'TECHNICAL', icon:'🏛️', user:'All Sites',
+        clue:'Nobody can log in anywhere. Replication stopped on Sunday.',
+        causes:[{t:'A stale DC passed its tombstone lifetime',ok:1},{t:'The building lost power',ok:0},{t:'A cable is loose',ok:0}] },
+      { name:'Suspicious Email Campaign', cat:'security', stat:'MANAGEMENT', icon:'🎣', user:'Whole Company',
+        clue:'Forty staff got the same invoice PDF — from a real supplier address.',
+        causes:[{t:"The supplier's mailbox is compromised — warn and block",ok:1},{t:'Our spam filter is switched off',ok:0},{t:'It is a marketing campaign',ok:0}] },
     ],
   };
+
+  /* How long a ticket sits in the queue before it breaches. The valuable ones
+     are the impatient ones — that is the whole tension of the queue. */
+  const SLA = { EASY: 42, MEDIUM: 34, HARD: 26 };
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -1035,6 +1175,8 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
+    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:6,  icon:'🔍' },
+    { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
 
   /* ---------- ACHIEVEMENTS ---------- */
@@ -1051,6 +1193,9 @@ const DATA = (() => {
     { id:'a_rich',     name:'BUDGET APPROVED',    desc:'Hold 1,000,000 IT Credits at once.',    metric:'peak',      target:1000000,rep:400 },
     { id:'a_reorg',    name:'REORGANISED',        desc:'Complete your first IT Reorganisation.',metric:'reorgs',    target:1,      rep:1000 },
     { id:'a_gear',     name:'FULLY EQUIPPED',     desc:'Own 12 pieces of equipment.',           metric:'gear',      target:12,     rep:120 },
+    { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 100 times.',       metric:'diagnosed', target:100,    rep:300 },
+    { id:'a_deleg',    name:'THAT IS WHAT A TEAM IS FOR', desc:'Hand 100 tickets to colleagues.', metric:'delegated', target:100,   rep:200 },
+    { id:'a_flow',     name:'IN THE ZONE',        desc:'Reach full momentum.',                  metric:'maxmomentum', target:100,  rep:150 },
   ];
 
   /* ---------- LEGACY (PRESTIGE) UPGRADES ---------- */
@@ -1073,7 +1218,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();
@@ -1603,13 +1748,15 @@ const Game = (() => {
       inventory: [mkItem('lap_basic'), mkItem('kb_sticky'), mkItem(DATA.spec(p.spec).kit)],
       buildings: { helpdesk: 1 },
       dept: {},
-      ticket: null, streak: 0,
+      queue: [], streak: 0,
+      momentum: 0, morale: 75, busy: {}, lastAction: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
       missions: null, missionsAt: 0,
       md: {},                                  // daily mission counters
-      lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {} },
+      lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {},
+                   breaches: 0, escalated: 0, delegated: 0, diagnosed: 0 },
       achievements: {},
       legacy: keep ? keep.legacy : 0,
       legacySpent: keep ? keep.legacySpent : {},
@@ -1619,7 +1766,7 @@ const Game = (() => {
     };
     if (keep) { S.lifetime.reorgs = keep.reorgs; S.achievements = keep.achievements; S.lifetime.tickets = keep.tickets; }
     rollMissions();
-    newTicket();
+    fillQueue();
     return S;
   }
 
@@ -1693,114 +1840,211 @@ const Game = (() => {
     return Math.max(0.05, b);
   }
 
-  /* ---------------- TICKETS ---------------- */
+  /* ---------------- TICKETS ----------------
+     Three tickets sit in the queue at once, each with its own clock. You
+     cannot work them all: you choose who waits, and anyone who waits too
+     long breaches. The valuable tickets are the impatient ones.        */
   const TIER = {
-    EASY:   { n: 1, stars: 1, credits: 14,  xp: 22,  rep: 1,  energy: 2, time: 45 },
-    MEDIUM: { n: 2, stars: 3, credits: 48,  xp: 62,  rep: 3,  energy: 4, time: 90 },
-    HARD:   { n: 3, stars: 5, credits: 170, xp: 190, rep: 9,  energy: 7, time: 180 },
+    EASY:   { n: 1, stars: 1, credits: 14,  xp: 22,  rep: 1, energy: 2 },
+    MEDIUM: { n: 2, stars: 3, credits: 48,  xp: 62,  rep: 3, energy: 4 },
+    HARD:   { n: 3, stars: 5, credits: 170, xp: 190, rep: 9, energy: 7 },
   };
+  const QUEUE_SIZE = 3;
+
+  /* Momentum: a run of good calls is worth more than the calls themselves.
+     It bleeds away the moment you stop, so it rewards being present rather
+     than being fast. */
+  const MOMENTUM_MAX = 100;
+  const momentumMult = () => 1 + (S.momentum / MOMENTUM_MAX) * 1.5;   // 1.0 → 2.5
+
+  /* Morale: what your users think of the department. Breaches and botched
+     fixes cost it, and everything you earn is scaled by it. */
+  const moraleMult = () => 0.55 + (S.morale / 100) * 0.9;             // 0.55 → 1.45
 
   function tierRoll() {
     const l = S.level;
-    const wHard = l < 6 ? 0 : Math.min(0.30, (l - 5) * 0.022);
-    const wMed = l < 3 ? 0 : Math.min(0.45, (l - 2) * 0.05);
+    const wHard = l < 5 ? 0 : Math.min(0.32, (l - 4) * 0.025);
+    const wMed = l < 2 ? 0 : Math.min(0.48, (l - 1) * 0.07);
     const r = Math.random();
     if (r < wHard) return 'HARD';
     if (r < wHard + wMed) return 'MEDIUM';
     return 'EASY';
   }
 
-  function newTicket() {
+  function makeTicket() {
     const tier = tierRoll();
     const t = pick(DATA.TICKETS[tier]);
-    S.ticket = {
-      id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
+    const sla = DATA.SLA[tier] * bonus('sla');
+    return {
+      uid: uid(), id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
       tier, ...t,
       flavour: pick(DATA.TICKET_FLAVOUR),
-      born: Date.now(),
+      sla, left: sla, born: Date.now(),
     };
-    return S.ticket;
+  }
+
+  function fillQueue() {
+    S.queue = S.queue || [];
+    while (S.queue.length < QUEUE_SIZE) S.queue.push(makeTicket());
+    return S.queue;
+  }
+  const ticketBy = tuid => (S.queue || []).find(t => t.uid === tuid);
+
+  /* Only runs while you are actually at the desk — the queue does not
+     breach behind your back while the tab is closed. */
+  function tickQueue(dt) {
+    if (!S.queue) fillQueue();
+    if (Date.now() - (S.lastAction || 0) > 3000)
+      S.momentum = Math.max(0, S.momentum - 5.5 * dt);
+    const breached = [];
+    for (let i = S.queue.length - 1; i >= 0; i--) {
+      const t = S.queue[i];
+      t.left -= dt;
+      if (t.left <= 0) { breached.push(t); S.queue.splice(i, 1); }
+    }
+    breached.forEach(breach);
+    fillQueue();
+    return breached;
+  }
+
+  function breach(t) {
+    const T = TIER[t.tier];
+    const lost = Math.max(1, Math.round(T.rep * 0.8));
+    S.reputation = Math.max(0, S.reputation - lost);
+    S.morale = clamp(S.morale - (t.tier === 'HARD' ? 7 : t.tier === 'MEDIUM' ? 5 : 3), 0, 100);
+    S.momentum = Math.max(0, S.momentum - 40);
+    S.streak = 0;
+    S.lifetime.breaches = (S.lifetime.breaches || 0) + 1;
+    emit('breach', { ticket: t, rep: lost });
+    emit('change');
   }
 
   function requirement(tier) { return TIER[tier].n * (7 + S.level * 1.25); }
 
-  function odds() {
-    const t = S.ticket; if (!t) return { tech: 0, sat: 0 };
-    const c = active(), st = charStats(c);
+  /* diag: 1 you named the cause, 0 you guessed wrong, null not asked */
+  function oddsFor(t, who, diag) {
+    if (!t) return { tech: 0, sat: 0 };
+    const c = who || active(), st = charStats(c);
     const req = requirement(t.tier);
     const catB = bonus('cat_' + t.cat) - 1;
-    const tech = clamp(0.57 + ((st[t.stat] - req) / req) * 0.42 + catB * 0.25, 0.12, 0.985);
+    let tech = 0.57 + ((st[t.stat] - req) / req) * 0.42 + catB * 0.25;
+    if (diag === 1) tech += 0.30;
+    if (diag === 0) tech -= 0.24;
     const sat = clamp(0.40 + (st.COMMUNICATION / (req * 1.2)) * 0.35 + (bonus('sat') - 1) * 0.9, 0.05, 0.97);
-    return { tech, sat, req };
+    return { tech: clamp(tech, 0.05, 0.985), sat, req };
   }
+  const needsDiagnosis = t => !!(t && t.causes && t.causes.length);
 
-  function resolveTicket() {
-    if (!S.ticket) newTicket();
-    const t = S.ticket, T = TIER[t.tier], c = active();
-    const cost = Math.round(T.energy * bonus('energy'));
-    const tired = S.energy < cost;
-    S.energy = Math.max(0, S.energy - cost);
+  function resolveTicket(tuid, opts = {}) {
+    if (!S.queue) fillQueue();
+    const t = tuid ? ticketBy(tuid) : S.queue[0];
+    if (!t) return null;
+    const T = TIER[t.tier];
+    const delegated = !!opts.by;
+    const worker = delegated ? S.roster.find(c => c.uid === opts.by) : active();
+    if (!worker) return null;
+    const diag = opts.diag === 1 ? 1 : opts.diag === 0 ? 0 : null;
 
-    const o = odds();
+    let tired = false;
+    if (!delegated) {
+      const cost = Math.round(T.energy * bonus('energy'));
+      tired = S.energy < cost;
+      S.energy = Math.max(0, S.energy - cost);
+    } else {
+      const busyFor = (t.tier === 'HARD' ? 42 : t.tier === 'MEDIUM' ? 28 : 18) * 1000;
+      S.busy[worker.uid] = Date.now() + busyFor;
+    }
+
+    const o = oddsFor(t, worker, diag);
     let techOk = Math.random() < o.tech;
     let auto = false;
     if (!techOk && t.cat === 'display' && Math.random() < (bonus('autoDisplay') - 1)) { techOk = true; auto = true; }
-    const satOk = techOk && Math.random() < o.sat;
+    const satOk = techOk && Math.random() < o.sat * (delegated ? 0.85 : 1);
 
     const tiredMul = tired ? 0.35 : 1;
-    const failMul = techOk ? 1 : 0.25;
+    const failMul = techOk ? 1 : 0.2;
     const satMul = satOk ? 1.25 : 1;
+    const diagMul = diag === 1 ? 1.6 : diag === 0 ? 0.6 : 1;
+    const delMul = delegated ? 0.7 : 1;
+    const mo = momentumMult(), mr = moraleMult();
 
-    let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit') * bonus('cat_' + t.cat) * tiredMul * failMul * satMul;
-    let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul;
-    let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) : -1;
+    let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit')
+      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr;
+    let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul * diagMul * mo;
+    let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) * (delegated ? 0.7 : 1) : -1;
 
     credits = Math.round(credits); xpv = Math.round(xpv); rep = Math.round(rep);
+
+    // momentum and morale move on what you did, not on luck alone
+    let momGain = techOk ? (delegated ? 5 : 12) : -8;
+    if (diag === 1) momGain += 12;
+    if (diag === 0) momGain -= 22;
+    S.momentum = clamp(S.momentum + momGain, 0, MOMENTUM_MAX);
+    S.morale = clamp(S.morale + (satOk ? 1.6 : techOk ? 0.4 : -2.6), 0, 100);
+    S.lastAction = Date.now();
 
     S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
     addXp(xpv);
     grantStaffXp(Math.round(xpv * 0.35 * bonus('staffXp')));
 
-    // counters
     S.lifetime.tickets++; S.lifetime.credits += credits; S.lifetime.xp += xpv;
     S.lifetime.cat[t.cat] = (S.lifetime.cat[t.cat] || 0) + 1;
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
     if (satOk) S.lifetime.happy++;
+    if (diag === 1) S.lifetime.diagnosed = (S.lifetime.diagnosed || 0) + 1;
+    if (delegated) { S.lifetime.delegated = (S.lifetime.delegated || 0) + 1; bump('delegated', 1); }
     S.streak = techOk ? S.streak + 1 : 0;
     S.lifetime.streak = Math.max(S.lifetime.streak, S.streak);
     bump('tickets', 1); bump('cat_' + t.cat, 1); bump('credits', credits); bump('xp', xpv);
     if (satOk) bump('happy', 1);
+    if (diag === 1) bump('diagnosed', 1);
     bumpSet('streak', S.streak);
+    bumpSet('momentum', Math.round(S.momentum));
+    S.lifetime.maxMomentum = Math.max(S.lifetime.maxMomentum || 0, S.momentum);
 
     const result = {
       ticket: t, techOk, satOk, auto, tired, credits, xp: xpv, rep,
-      satReason: techOk ? (satOk ? pick(DATA.SAT_WINS) : pick(DATA.SAT_FAILS)) : 'Ticket escalated. User is now on first-name terms with your manager.',
-      tech: techOk ? 100 : 0,
+      diag, delegated, worker,
+      momentum: S.momentum, momentumMult: mo, morale: S.morale,
+      satReason: techOk ? (satOk ? pick(DATA.SAT_WINS) : pick(DATA.SAT_FAILS))
+        : 'Ticket escalated. The user is now on first-name terms with your manager.',
       satPct: techOk ? (satOk ? 60 + Math.floor(Math.random() * 40) : 15 + Math.floor(Math.random() * 40)) : 5,
     };
 
-    // equipment drop
-    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03)) {
+    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03))
       result.drop = dropItem(t.tier);
-    }
+
+    const i = S.queue.indexOf(t);
+    if (i >= 0) S.queue.splice(i, 1);
+    fillQueue();
     checkAchievements();
-    newTicket();
     emit('resolved', result);
     emit('change');
     return result;
   }
 
-  function dropItem(tier) {
-    const pool = DATA.EQUIPMENT.filter(e => {
-      const o = DATA.RARITY[e.rarity].order;
-      if (tier === 'EASY') return o <= 1;
-      if (tier === 'MEDIUM') return o <= 2 || (o === 3 && Math.random() < 0.25);
-      return o >= 1 || Math.random() < 0.3;
-    });
-    const e = pick(pool.length ? pool : DATA.EQUIPMENT);
-    const it = mkItem(e.id);
-    S.inventory.push(it);
-    return it;
+  /* Pass it to somebody else. Free of energy, worth less, and it puts that
+     colleague out of action for a while. */
+  const isBusy = c => (S.busy[c.uid] || 0) > Date.now();
+  const freeStaff = () => staff().filter(c => !isBusy(c));
+  function delegate(tuid, charUid) {
+    const c = S.roster.find(x => x.uid === charUid);
+    if (!c || isBusy(c) || c.uid === S.activeId) return null;
+    return resolveTicket(tuid, { by: charUid });
+  }
+
+  /* Sometimes the right call is to admit it is not yours. Costs a little
+     standing, but far less than failing it loudly. */
+  function escalateTicket(tuid) {
+    const t = ticketBy(tuid); if (!t) return null;
+    S.reputation = Math.max(0, S.reputation - 2);
+    S.morale = clamp(S.morale - 1.5, 0, 100);
+    S.momentum = Math.max(0, S.momentum - 10);
+    S.lifetime.escalated = (S.lifetime.escalated || 0) + 1;
+    const i = S.queue.indexOf(t); if (i >= 0) S.queue.splice(i, 1);
+    fillQueue();
+    emit('change');
+    return { ticket: t };
   }
 
   /* ---------------- XP / LEVELS ---------------- */
@@ -1849,7 +2093,8 @@ const Game = (() => {
     return base * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
   }
   function idleCreditsPerTicket() {
-    return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit') * bonus('reward');
+    return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
+      * bonus('reward') * moraleMult();
   }
   function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
   function idlePerSec() {
@@ -2003,6 +2248,9 @@ const Game = (() => {
     if (m === 'staff') return staff().length;
     if (m === 'peak') return L.peak;
     if (m === 'gear') return S.inventory.length;
+    if (m === 'diagnosed') return L.diagnosed || 0;
+    if (m === 'delegated') return L.delegated || 0;
+    if (m === 'maxmomentum') return Math.round(L.maxMomentum || 0);
     if (m === 'monday') return L.monday;
     if (m === 'reorgs') return L.reorgs;
     if (m.startsWith('cat_')) return L.cat[m.slice(4)] || 0;
@@ -2104,6 +2352,11 @@ const Game = (() => {
     // energy
     S.energyAcc += dt * (1 / 7) * bonus('energyRegen');
     if (S.energyAcc >= 1) { const g = Math.floor(S.energyAcc); S.energyAcc -= g; S.energy = Math.min(S.energyMax, S.energy + g); }
+    // Morale drifts slowly back toward workable, so one bad session does not
+    // sour the department forever — but it never drifts up into "great".
+    const rest = 60;
+    if (S.morale < rest) S.morale = Math.min(rest, S.morale + 0.045 * dt);
+    else if (S.morale > 92) S.morale = Math.max(92, S.morale - 0.02 * dt);
     accrue(dt, false);
     maybeEvent(now);
     if (S.incident && now > S.incident.endsAt) emit('incidenttimeout');
@@ -2138,7 +2391,15 @@ const Game = (() => {
       S.lifetime.cat = S.lifetime.cat || {};
       S.incident = null;
       uidSeq = Date.now() % 100000;
-      if (!S.ticket) newTicket();
+      if (S.momentum == null) S.momentum = 0;
+      if (S.morale == null) S.morale = 75;
+      if (!S.busy) S.busy = {};
+      if (!S.lastAction) S.lastAction = 0;
+      delete S.ticket;
+      S.queue = Array.isArray(S.queue) ? S.queue : [];
+      // a queue that sat through a break starts fresh rather than pre-breached
+      S.queue.forEach(t => { t.left = t.sla || DATA.SLA[t.tier] || 40; });
+      fillQueue();
       if (!S.missions || Date.now() > S.missionsAt) rollMissions();
       if (!S.hero) S.hero = { spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };
       // The server's clock is the honest one when we are signed in.
@@ -2157,7 +2418,9 @@ const Game = (() => {
     newGame, load, loadFrom, save, wipe, tick, serialize, setStore, localStore,
     fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
-    newTicket, resolveTicket, odds, TIER, requirement,
+    resolveTicket, delegate, escalateTicket, TIER, requirement,
+    fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
+    momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
     equip, unequip, upgradeItem, upgradeCost, scrapItem,
@@ -2234,15 +2497,17 @@ const UI = (() => {
   }
 
   /* ================= MODAL ================= */
-  let modalStack = [];
+  let paused = false;
   function sheet(html, opts = {}) {
+    paused = !opts.live;               // a sheet stops the clock unless it IS the clock
     const m = $('#modal');
     m.innerHTML = `<div class="sheet">${opts.grab === false ? '' : '<div class="grab"></div>'}${html}</div>`;
     m.classList.add('on');
     m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
     return m.querySelector('.sheet');
   }
-  function closeSheet() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+  function closeSheet() { paused = false; $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+  const isPaused = () => paused && $('#modal').classList.contains('on');
 
   /* ================= TOP BAR ================= */
   function renderTop() {
@@ -2269,12 +2534,14 @@ const UI = (() => {
   function buildStage() {
     const c = Game.active(), d = Game.def(c.defId);
     $('#stage').innerHTML = Art.office() +
-      `<div class="stage-chip" id="stageChips"></div>
+      `<div class="meters" id="meters"></div>
+       <div class="stage-chip" id="stageChips"></div>
        <div class="hero-shadow"></div>
        <div class="hero-wrap" id="heroWrap">${Art.hero(d.art, 'idle')}</div>
        <div class="hero-name" id="heroName"></div>
        <div class="hero-say" id="heroSay"></div>`;
     updateHero();
+    updateMeters();
   }
   function updateHero() {
     const S = Game.state, c = Game.active(), d = Game.def(c.defId);
@@ -2284,8 +2551,8 @@ const UI = (() => {
        <div class="p">⚡ POWER ${f(Game.charPower(c))}</div>`;
     const rate = Game.idleRate();
     $('#heroSay').textContent = rate > 0
-      ? `"The team is on it. ${rate.toFixed(1)} tickets a minute."`
-      : `"Right. Who is first in the queue?"`;
+      ? `"Team's on the queue. ${rate.toFixed(1)} a minute."`
+      : `"Right. Who is first?"`;
     updateChips();
   }
   function say(t) {
@@ -2301,40 +2568,96 @@ const UI = (() => {
     box.innerHTML = h;
   }
 
-  function updateTicket() {
-    const S = Game.state, t = S.ticket; if (!t) return;
-    const T = Game.TIER[t.tier], o = Game.odds();
-    const cr = Math.round(T.credits * (1 + S.level * 0.17) * Game.bonus('reward') * Game.bonus('credit') * Game.bonus('cat_' + t.cat));
-    const xp = Math.round(T.xp * (1 + S.level * 0.11) * Game.bonus('xp'));
-    const rp = Math.round(T.rep * Game.bonus('rep'));
-    $('#ticketCard').className = 'ticket' + (t.tier === 'HARD' ? ' crit' : '');
-    $('#ticketCard').innerHTML = `
-      <div class="tk-top">
-        <span class="tag" style="color:${t.tier === 'HARD' ? 'var(--alarm)' : t.tier === 'MEDIUM' ? 'var(--lamp)' : 'var(--good)'}">${t.tier}</span>
-        <span class="tk-id">#${t.id} · ${esc(t.user)}</span>
-        <span class="tk-stars">${stars(T.stars)}</span>
+  /* ---------------- THE QUEUE ---------------- */
+  function ticketRewards(t) {
+    const S = Game.state, T = Game.TIER[t.tier];
+    const m = Game.momentumMult() * Game.moraleMult();
+    return {
+      cr: Math.round(T.credits * (1 + S.level * 0.17) * Game.bonus('reward') * Game.bonus('credit') * Game.bonus('cat_' + t.cat) * m),
+      xp: Math.round(T.xp * (1 + S.level * 0.11) * Game.bonus('xp') * Game.momentumMult()),
+      rp: Math.round(T.rep * Game.bonus('rep')),
+    };
+  }
+
+  function updateMeters() {
+    const S = Game.state;
+    const mo = Game.momentumMult(), pct = S.momentum / Game.MOMENTUM_MAX * 100;
+    const box = $('#meters'); if (!box) return;
+    box.innerHTML = `
+      <div class="meter ${pct > 66 ? 'hot' : ''}">
+        <span class="m-lbl">🔥</span>
+        <div class="mbar"><span style="width:${pct}%"></span></div>
+        <b>×${mo.toFixed(2)}</b>
       </div>
-      <div class="tk-main">
-        <div class="tk-icon">${t.icon}</div>
-        <div class="tk-body">
-          <h3 class="tk-name">${esc(t.name)}</h3>
-          <p class="tk-flav">${esc(t.flavour)}</p>
-          <div class="tk-meta">
-            <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
-            <span class="tag">${t.cat}</span>
-            <span class="tag odds">${Math.round(o.tech * 100)}% SUCCESS</span>
-          </div>
-        </div>
-      </div>
-      <div class="tk-rewards">
-        <b class="rw-c">+${f(cr)} CR</b><b class="rw-x">+${f(xp)} XP</b><b class="rw-r">+${rp} REP</b>
-        <b class="muted" style="margin-left:auto">−${Math.round(T.energy * Game.bonus('energy'))} ⚡</b>
+      <div class="meter">
+        <span class="m-lbl">😊</span>
+        <div class="mbar morale"><span style="width:${S.morale}%"></span></div>
+        <b class="${S.morale < 35 ? 'bad' : ''}">${Math.round(S.morale)}%</b>
       </div>`;
-    const cost = Math.round(T.energy * Game.bonus('energy'));
-    const tired = S.energy < cost;
-    const btn = $('#btnResolve');
-    btn.className = 'resolve' + (tired ? ' tired' : '');
-    btn.innerHTML = `🔧 RESOLVE TICKET<span class="sub">${tired ? 'RUNNING ON FUMES · 35% REWARDS' : t.tier + ' · ' + Math.round(o.tech * 100) + '% SUCCESS'}</span>`;
+  }
+
+  function renderQueue() {
+    const S = Game.state, box = $('#queue'); if (!box) return;
+    Game.fillQueue();
+    if (nudged.size > 24) nudged.clear();
+    box.innerHTML = S.queue.map((t, i) => {
+      const T = Game.TIER[t.tier], r = ticketRewards(t);
+      const puz = Game.needsDiagnosis(t);
+      // For a puzzle ticket, show the odds you get for calling the cause
+      // right — that is the number the player can actually act on.
+      const o = Game.oddsFor(t, null, puz ? 1 : null);
+      const frac = Math.max(0, t.left / t.sla);
+      const urgent = frac < 0.34;
+      const puzzle = puz;
+      const free = Game.freeStaff().length;
+      return `<article class="tk ${urgent ? 'urgent' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
+        <div class="tk-head">
+          <span class="tier t-${t.tier}">${t.tier}</span>
+          <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
+          <span class="tag odds">${Math.round(o.tech * 100)}%</span>
+          <span class="tk-clock ${urgent ? 'urgent' : ''}">${Math.ceil(t.left)}s</span>
+        </div>
+        <div class="sla"><span style="width:${frac * 100}%"></span></div>
+        <div class="tk-row">
+          <div class="tk-ico">${t.icon}</div>
+          <div class="tk-txt">
+            <h3>${esc(t.name)}</h3>
+            <p>${esc(t.clue)}</p>
+          </div>
+          <div class="tk-rw"><b class="rw-c">+${f(r.cr)}</b><b class="rw-x">+${f(r.xp)}</b></div>
+        </div>
+        <div class="tk-acts">
+          <button class="act fix ${puzzle ? 'puzzle' : ''}" data-fix="${t.uid}">
+            ${puzzle ? '🔍 DIAGNOSE' : '🔧 FIX IT'}</button>
+          <button class="act del ${free ? '' : 'off'}" data-delegate="${t.uid}" title="Hand it to a colleague">
+            👥<small>${free}</small></button>
+          <button class="act esc" data-escalate="${t.uid}" title="Escalate away">✕</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  /* Only the numbers that move every frame — redrawing the whole queue at
+     10fps would fight the player's thumb. A ticket that goes critical pulls
+     itself into view, so nothing ever breaches somewhere you cannot see. */
+  const nudged = new Set();
+  function tickQueueUI() {
+    const S = Game.state;
+    (S.queue || []).forEach(t => {
+      const el = document.querySelector(`[data-tk="${t.uid}"]`);
+      if (!el) return;
+      const frac = Math.max(0, t.left / t.sla), urgent = frac < 0.34;
+      const bar = el.querySelector('.sla > span');
+      const clock = el.querySelector('.tk-clock');
+      if (bar) bar.style.width = (frac * 100) + '%';
+      if (clock) { clock.textContent = Math.ceil(t.left) + 's'; clock.classList.toggle('urgent', urgent); }
+      el.classList.toggle('urgent', urgent);
+      if (urgent && !nudged.has(t.uid)) {
+        nudged.add(t.uid);
+        const r = el.getBoundingClientRect(), nav = document.querySelector('#nav').getBoundingClientRect();
+        if (r.bottom > nav.top || r.top < 140) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
   }
 
   function updateMini() {
@@ -2384,7 +2707,7 @@ const UI = (() => {
     }).join('');
   }
 
-  const renderHQ = () => { updateTicket(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
+  const renderHQ = () => { updateMeters(); renderQueue(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
 
   /* ================= STAFF ================= */
   function renderStaff() {
@@ -2727,8 +3050,9 @@ const UI = (() => {
     else if (screen === 'world') renderWorld();
   }
 
-  return { $, el, esc, sheet, closeSheet, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateTicket, updateMini,
+  return { $, el, esc, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();
@@ -2949,55 +3273,142 @@ const Onboard = (() => {
     setTimeout(() => { n.style.transition = 'opacity .4s'; n.style.opacity = '0'; setTimeout(() => n.remove(), 400); }, 2600);
   }
 
-  /* ---------- RESOLVE ---------- */
+  /* ---------- WORKING THE QUEUE ---------- */
   let busy = false;
-  function doResolve() {
-    if (busy) return; busy = true;
-    const btn = $('#btnResolve'), hero = $('#heroWrap');
-    const r = btn.getBoundingClientRect();
+
+  function cardOf(tuid) { return document.querySelector(`[data-tk="${tuid}"]`); }
+
+  function showResult(res, anchor) {
+    const r = (anchor || document.body).getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + 10;
+    const lines = [];
+    if (res.xp) lines.push({ t: `+${f(res.xp)} XP`, c: 'var(--crt)' });
+    if (res.credits) lines.push({ t: `+${f(res.credits)} CR`, c: 'var(--lamp)', s: 19 });
+    if (res.rep) lines.push({ t: `${res.rep > 0 ? '+' : ''}${res.rep} REP`, c: res.rep > 0 ? 'var(--rep)' : 'var(--alarm)' });
+    UI.burstFloats(x, y, lines);
+    UI.coins(anchor || document.body, Math.min(10, 3 + Math.floor(res.credits / 60)));
+
+    if (res.diag === 1) UI.floatText(x, y - 40, 'CORRECT DIAGNOSIS', 'var(--good)', 15);
+    else if (res.diag === 0) UI.floatText(x, y - 40, 'WRONG CALL', 'var(--alarm)', 15);
+    if (res.momentumMult >= 1.6) UI.floatText(x, y - 62, `🔥 ×${res.momentumMult.toFixed(1)}`, 'var(--lamp)', 16);
+
+    if (!res.techOk) { UI.beep('fail'); UI.floatText(x, y - 22, 'ESCALATED', 'var(--alarm)', 15); }
+    else if (res.ticket.tier === 'HARD' || res.diag === 1) {
+      UI.beep('great'); UI.sparks(x, y, res.diag === 1 ? '#5FD37A' : '#FFB347', 16);
+      if (res.ticket.tier === 'HARD') UI.shake();
+    } else UI.beep('ok');
+
+    UI.say(res.delegated
+      ? `"${res.worker.defId === 'hero' ? 'I' : Game.def(res.worker.defId).name} took that one."`
+      : res.auto ? '"The Dongle of Destiny strikes again."' : res.satReason);
+    if (res.drop) setTimeout(() => showDrop(res.drop), 480);
+    UI.refresh();
+  }
+
+  function doFix(tuid) {
+    if (busy) return;
+    const t = Game.ticketBy(tuid); if (!t) return;
+    if (Game.needsDiagnosis(t)) return openDiagnosis(tuid);
+    busy = true;
+    const card = cardOf(tuid), hero = $('#heroWrap');
     hero && hero.classList.add('working');
+    card && card.classList.add('going');
     UI.beep('tap');
     setTimeout(() => {
       hero && hero.classList.remove('working');
-      const res = Game.resolveTicket();
-      const lines = [];
-      if (res.xp) lines.push({ t: `+${f(res.xp)} XP`, c: 'var(--crt)' });
-      if (res.credits) lines.push({ t: `+${f(res.credits)} CR`, c: 'var(--lamp)', s: 19 });
-      if (res.rep) lines.push({ t: `${res.rep > 0 ? '+' : ''}${res.rep} REP`, c: res.rep > 0 ? 'var(--rep)' : 'var(--alarm)' });
-      UI.burstFloats(r.left + r.width / 2, r.top - 6, lines);
-      UI.coins(btn, Math.min(10, 3 + Math.floor(res.credits / 60)));
-
-      if (!res.techOk) {
-        UI.beep('fail');
-        UI.floatText(r.left + r.width / 2, r.top - 34, 'ESCALATED', 'var(--alarm)', 15);
-      } else if (res.ticket.tier === 'HARD') {
-        UI.beep('great'); UI.shake();
-        UI.sparks(r.left + r.width / 2, r.top, '#FFB347', 16);
-      } else UI.beep('ok');
-
-      UI.say(res.auto ? '"The Dongle of Destiny strikes again."' : res.satReason);
-      if (res.drop) setTimeout(() => showDrop(res.drop), 480);
-      UI.refresh();
+      const res = Game.resolveTicket(tuid);
       busy = false;
-    }, 340);
+      if (res) showResult(res, card);
+    }, 260);
   }
 
-  function showDrop(it) {
-    const e = Game.eqDef(it.eid), col = UI.rarColor(e.rarity);
-    UI.beep('great');
+  /* The diagnosis. The ticket's clock keeps running while you think — that
+     is the point of it. */
+  function openDiagnosis(tuid) {
+    const t = Game.ticketBy(tuid); if (!t) return;
+    const opts = t.causes.map((c, i) => ({ ...c, i })).sort(() => Math.random() - 0.5);
+    UI.beep('tap');
     UI.sheet(`
-      <span class="big-emoji">🎁</span>
-      <h3 style="color:${col}">${esc(e.name)}</h3>
-      <p class="sub">${e.rarity} ${DATA.SLOTS.find(s => s.key === e.slot).label.toUpperCase()} — pulled out of a ticket</p>
-      <div class="reward-line">${Object.entries(e.stats || {}).map(([k, v]) =>
-      `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${v} ${k}</span>`).join('')}</div>
-      <p class="tiny muted" style="text-align:center">${esc(e.effect)}</p>
-      <button class="btn gold cta" data-close="1">NICE</button>`);
-    setTimeout(() => {
-      const s = document.querySelector('.sheet');
-      if (s) { const b = s.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 60, col, 22); }
-    }, 120);
+      <div class="row" style="gap:10px;align-items:flex-start">
+        <div class="tk-ico" style="width:46px;height:46px;font-size:23px">${t.icon}</div>
+        <div style="flex:1;min-width:0">
+          <h3 style="text-align:left;font-size:16px;margin:0">${esc(t.name)}</h3>
+          <div class="tiny muted">${esc(t.user)} · #${t.id}</div>
+        </div>
+        <span class="tier t-${t.tier}">${t.tier}</span>
+      </div>
+      <div class="diag-clue"><span>WHAT YOU CAN SEE</span>${esc(t.clue)}</div>
+      <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
+      ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
+      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
+    `, { dismiss: false, grab: false, live: true });
   }
+
+  function answerDiagnosis(tuid, ok, idx) {
+    if (busy) return; busy = true;
+    const btn = document.querySelector(`[data-diag="${tuid}"][data-i="${idx}"]`);
+    document.querySelectorAll('[data-diag]').forEach(b => {
+      if (b.dataset.ok === '1') b.classList.add('ok');
+      else if (b === btn) b.classList.add('bad');
+    });
+    UI.beep(ok ? 'great' : 'fail');
+    if (!ok) UI.shake();
+    setTimeout(() => {
+      UI.closeSheet();
+      const card = cardOf(tuid);
+      const res = Game.resolveTicket(tuid, { diag: ok ? 1 : 0 });
+      busy = false;
+      if (res) showResult(res, card);
+    }, 760);
+  }
+
+  /* Hand it over. Costs you nothing but the reward and their availability. */
+  function openDelegate(tuid) {
+    const t = Game.ticketBy(tuid); if (!t) return;
+    const S = Game.state;
+    const others = S.roster.filter(c => c.uid !== S.activeId);
+    if (!others.length) {
+      UI.beep('fail');
+      return toast('👥', 'NOBODY TO ASK', 'Hire a colleague on the STAFF tab and you can hand tickets over.');
+    }
+    UI.sheet(`
+      <h3>WHO TAKES IT?</h3>
+      <p class="sub">${esc(t.name)} · they earn 70% and are busy afterwards</p>
+      ${others.map(c => {
+      const d = Game.def(c.defId), free = !Game.isBusy(c);
+      const o = Game.oddsFor(t, c);
+      const left = Math.ceil(((S.busy[c.uid] || 0) - Date.now()) / 1000);
+      return `<button class="dpick ${free ? '' : 'busy'}" ${free ? `data-dele-go="${tuid}" data-who="${c.uid}"` : ''}>
+          <div class="avatar" style="width:44px;height:44px">${Art.portrait(d.art, 'dp' + c.uid)}</div>
+          <div class="who"><h3>${esc(d.name)}</h3><div class="role">${esc(d.role)} · LV.${c.level}</div></div>
+          <div class="fit">${free
+          ? `<b style="color:${o.tech > .7 ? 'var(--good)' : o.tech > .45 ? 'var(--lamp)' : 'var(--alarm)'}">${Math.round(o.tech * 100)}%</b>
+               <div class="tiny muted">chance</div>`
+          : `<b style="color:var(--muted)">BUSY</b><div class="tiny muted">${left}s</div>`}</div>
+        </button>`;
+    }).join('')}
+      <button class="btn ghost cta" data-close="1">CANCEL</button>`, { live: true });
+  }
+
+  function doEscalate(tuid) {
+    const card = cardOf(tuid);
+    if (card) card.classList.add('going');
+    const r = Game.escalateTicket(tuid);
+    if (!r) return;
+    UI.beep('tap');
+    if (card) {
+      const b = card.getBoundingClientRect();
+      UI.floatText(b.left + b.width / 2, b.top + 10, 'ESCALATED  −2 REP', 'var(--muted)', 14);
+    }
+    UI.refresh();
+  }
+
+  Game.on('breach', ({ ticket, rep }) => {
+    UI.beep('alarm'); UI.shake();
+    toast('⏰', 'SLA BREACHED', `${ticket.name} — ${ticket.user} gave up waiting. −${rep} reputation, morale down.`);
+    UI.floatText(window.innerWidth / 2, window.innerHeight * 0.42, `BREACH −${rep} REP`, 'var(--alarm)', 20);
+    if (UI.screen === 'hq') UI.renderQueue();
+  });
 
   /* ---------- LEVEL UP ---------- */
   Game.on('levelup', d => {
@@ -3160,12 +3571,22 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],#btnResolve,#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],#bell');
     if (!t) return;
     const d = t.dataset;
 
-    if (t.id === 'btnResolve') return doResolve();
     if (t.id === 'bell') return bellSheet();
+    if (d.fix) return doFix(d.fix);
+    if (d.delegate) return openDelegate(d.delegate);
+    if (d.deleGo) {
+      UI.closeSheet();
+      const card = cardOf(d.deleGo);
+      const res = Game.delegate(d.deleGo, d.who);
+      if (res) showResult(res, card); else UI.beep('fail');
+      return;
+    }
+    if (d.escalate) return doEscalate(d.escalate);
+    if (d.diag) return answerDiagnosis(d.diag, d.ok === '1', d.i);
     if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);
@@ -3262,11 +3683,27 @@ const Onboard = (() => {
   /* ---------- LOOP ---------- */
   let lastUi = 0, warned = false;
   function loop(ts) {
-    Game.tick();
+    const dt = Game.tick();
+
+    // The queue only runs while you are at the desk and nothing has
+    // interrupted you — it never breaches behind your back.
+    const atDesk = !document.hidden && UI.screen === 'hq' && !UI.isPaused();
+    if (atDesk) {
+      Game.tickQueue(dt);
+      UI.tickQueueUI();
+    }
+    const dl = document.querySelector('#diagLeft');
+    if (dl) {
+      const open = (Game.state.queue || []).find(x => document.querySelector(`[data-diag="${x.uid}"]`));
+      // the sheet is marked live, so the queue above is still ticking it down
+      if (open) dl.textContent = Math.max(0, Math.ceil(open.left)) + 's';
+      else UI.closeSheet();
+    }
+
     if (ts - lastUi > 900) {
       lastUi = ts;
       UI.renderTop();
-      if (UI.screen === 'hq') { UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
+      if (UI.screen === 'hq') { UI.updateMeters(); UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
       if (Game.incidentReady() && !warned && !document.querySelector('#modal.on') && UI.screen === 'hq') {
         warned = true; openIncidentWarning();
       }

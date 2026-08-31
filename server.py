@@ -23,10 +23,13 @@ import secrets
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse
+
+import owner
+from urllib.parse import urlparse, parse_qs
 
 PORT = int(os.environ.get("PORT", 8480))
 DIR = Path(__file__).parent
@@ -35,10 +38,22 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 # Tables are prefixed so this can share a database with other projects.
 P_TABLE = "ie_players"
 S_TABLE = "ie_sessions"
+A_TABLE = "ie_activity"
+
+# The owner dashboard stays switched off on a host until a real key is set.
+# "localtest" only ever works on your own machine.
+OWNER_KEY = os.environ.get("OWNER_KEY", "" if os.environ.get("RENDER") else "localtest")
+
+# A save more than this far after the last one means they walked away in
+# between, so the gap is not counted as time played.
+ACTIVE_GAP_MAX = 90
+# A gap longer than this starts a new visit.
+SESSION_GAP = 30 * 60
 
 SESSION_DAYS = 90
 MAX_STATE_BYTES = 400_000          # a very long game is ~40KB; this is generous
 NAME_RE = re.compile(r"^[A-Za-z0-9 ._-]{2,18}$")
+SG = ZoneInfo("Asia/Singapore")
 
 # Files the browser is allowed to ask for. Everything else is a 404, so the
 # server's own source and the build folder are never served.
@@ -80,6 +95,14 @@ SCHEMA_PG = (
           player_id  bigint not null,
           created_at timestamptz not null default now()
         )""",
+    f"""create table if not exists {A_TABLE} (
+          player_id  bigint not null,
+          day        date not null,
+          seconds    int default 0,
+          saves      int default 0,
+          sessions   int default 0,
+          primary key (player_id, day)
+        )""",
     f"create index if not exists {P_TABLE}_rep_idx on {P_TABLE} (reputation desc)",
 )
 
@@ -92,6 +115,10 @@ SCHEMA_LITE = (
           tickets integer default 0, spec text, art text)""",
     f"""create table if not exists {S_TABLE} (
           token text primary key, player_id integer not null, created_at text not null)""",
+    f"""create table if not exists {A_TABLE} (
+          player_id integer not null, day text not null, seconds integer default 0,
+          saves integer default 0, sessions integer default 0,
+          primary key (player_id, day))""",
 )
 
 _ready = False
@@ -219,7 +246,7 @@ def player_public(row):
 def session_player(token: str):
     if not token:
         return None
-    row = q(f"""select p.id, p.display, p.state, p.spec
+    row = q(f"""select p.id, p.display, p.state, p.spec, p.updated_at
                 from {S_TABLE} s join {P_TABLE} p on p.id = s.player_id
                 where s.token = %s""", (token,), "one")
     return row
@@ -230,6 +257,48 @@ def new_session(player_id: int) -> str:
     q(f"insert into {S_TABLE} (token, player_id, created_at) values (%s, %s, %s)",
       (token, player_id, _now_iso()))
     return token
+
+
+def _parse_ts(value):
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def today_key():
+    return datetime.now(SG).date().isoformat()
+
+
+def record_activity(player_id, last_seen, new_session=False):
+    """Count time played from the gap between saves.
+
+    The game saves every ten seconds while somebody is actually playing, so
+    consecutive saves are a decent measure of attention. A gap longer than
+    ACTIVE_GAP_MAX means they walked away, and is not counted at all — this
+    measures time played, not time logged in."""
+    now = datetime.now(timezone.utc)
+    prev = _parse_ts(last_seen)
+    gap = (now - prev).total_seconds() if prev else None
+    seconds = int(gap) if gap is not None and 0 < gap <= ACTIVE_GAP_MAX else 0
+    starts = 1 if (new_session or gap is None or gap > SESSION_GAP) else 0
+    day = today_key()
+    if _pg:
+        q(f"""insert into {A_TABLE} (player_id, day, seconds, saves, sessions)
+              values (%s, %s, %s, 1, %s)
+              on conflict (player_id, day) do update set
+                seconds = {A_TABLE}.seconds + excluded.seconds,
+                saves = {A_TABLE}.saves + 1,
+                sessions = {A_TABLE}.sessions + excluded.sessions""",
+          (player_id, day, seconds, starts))
+    else:
+        q(f"""insert into {A_TABLE} (player_id, day, seconds, saves, sessions)
+              values (%s, %s, %s, 1, %s)
+              on conflict (player_id, day) do update set
+                seconds = seconds + %s, saves = saves + 1, sessions = sessions + %s""",
+          (player_id, day, seconds, starts, seconds, starts))
 
 
 def summarise(state: dict):
@@ -305,10 +374,23 @@ class Handler(BaseHTTPRequestHandler):
                 return None
 
     def do_GET(self):
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path.startswith("/api/"):
             return self.guard(self.api_get, path[5:])
+        if path == "/owner":
+            return self.guard(self.owner_page, parse_qs(parsed.query))
         return self.guard(self.static, path)
+
+    def owner_page(self, params):
+        """Wrong key, no key, or no key configured all look identical from
+        outside: a plain 404. The page never announces that it exists."""
+        given = (params.get("key") or [""])[0]
+        if not OWNER_KEY or not hmac.compare_digest(given, OWNER_KEY):
+            return self.fail(404, "Not found")
+        _ensure_schema()
+        body = owner.page(q, P_TABLE, A_TABLE).encode()
+        self._send(200, body, "text/html; charset=utf-8", {"Cache-Control": "no-store"})
 
     do_HEAD = do_GET
 
@@ -390,6 +472,7 @@ class Handler(BaseHTTPRequestHandler):
                None, 1, 0, 0, spec, _json_in(art)))
             row = player_by_name(name)
             token = new_session(row[0])
+            record_activity(row[0], None, new_session=True)
             return self.json(200, {"ok": True, "token": token, "fresh": True,
                                    "player": {"name": row[1]}, "state": None,
                                    "now": int(time.time() * 1000)})
@@ -404,6 +487,7 @@ class Handler(BaseHTTPRequestHandler):
                 note_attempt(self.ip)
                 return self.fail(401, "That name and password do not match.")
             token = new_session(row[0])
+            record_activity(row[0], None, new_session=True)
             saved = q(f"select state from {P_TABLE} where id = %s", (row[0],), "one")
             return self.json(200, {"ok": True, "token": token,
                                    "player": {"name": row[1]},
@@ -425,6 +509,7 @@ class Handler(BaseHTTPRequestHandler):
         if not row:
             return self.fail(401, "Your session expired. Sign in again.")
         q(f"delete from {S_TABLE} where player_id = %s", (row[0],))
+        q(f"delete from {A_TABLE} where player_id = %s", (row[0],))
         q(f"delete from {P_TABLE} where id = %s", (row[0],))
         return self.json(200, {"ok": True})
 
@@ -438,6 +523,7 @@ class Handler(BaseHTTPRequestHandler):
         blob = json.dumps(state)
         if len(blob) > MAX_STATE_BYTES:
             return self.fail(413, "That save is too large to store.")
+        record_activity(row[0], row[4] if len(row) > 4 else None)
         level, rep, tickets, spec, art = summarise(state)
         q(f"""update {P_TABLE} set state = %s, updated_at = %s, level = %s,
               reputation = %s, tickets = %s, spec = coalesce(%s, spec), art = coalesce(%s, art)

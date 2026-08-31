@@ -64,15 +64,17 @@ const UI = (() => {
   }
 
   /* ================= MODAL ================= */
-  let modalStack = [];
+  let paused = false;
   function sheet(html, opts = {}) {
+    paused = !opts.live;               // a sheet stops the clock unless it IS the clock
     const m = $('#modal');
     m.innerHTML = `<div class="sheet">${opts.grab === false ? '' : '<div class="grab"></div>'}${html}</div>`;
     m.classList.add('on');
     m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
     return m.querySelector('.sheet');
   }
-  function closeSheet() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+  function closeSheet() { paused = false; $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+  const isPaused = () => paused && $('#modal').classList.contains('on');
 
   /* ================= TOP BAR ================= */
   function renderTop() {
@@ -99,12 +101,14 @@ const UI = (() => {
   function buildStage() {
     const c = Game.active(), d = Game.def(c.defId);
     $('#stage').innerHTML = Art.office() +
-      `<div class="stage-chip" id="stageChips"></div>
+      `<div class="meters" id="meters"></div>
+       <div class="stage-chip" id="stageChips"></div>
        <div class="hero-shadow"></div>
        <div class="hero-wrap" id="heroWrap">${Art.hero(d.art, 'idle')}</div>
        <div class="hero-name" id="heroName"></div>
        <div class="hero-say" id="heroSay"></div>`;
     updateHero();
+    updateMeters();
   }
   function updateHero() {
     const S = Game.state, c = Game.active(), d = Game.def(c.defId);
@@ -114,8 +118,8 @@ const UI = (() => {
        <div class="p">⚡ POWER ${f(Game.charPower(c))}</div>`;
     const rate = Game.idleRate();
     $('#heroSay').textContent = rate > 0
-      ? `"The team is on it. ${rate.toFixed(1)} tickets a minute."`
-      : `"Right. Who is first in the queue?"`;
+      ? `"Team's on the queue. ${rate.toFixed(1)} a minute."`
+      : `"Right. Who is first?"`;
     updateChips();
   }
   function say(t) {
@@ -131,40 +135,96 @@ const UI = (() => {
     box.innerHTML = h;
   }
 
-  function updateTicket() {
-    const S = Game.state, t = S.ticket; if (!t) return;
-    const T = Game.TIER[t.tier], o = Game.odds();
-    const cr = Math.round(T.credits * (1 + S.level * 0.17) * Game.bonus('reward') * Game.bonus('credit') * Game.bonus('cat_' + t.cat));
-    const xp = Math.round(T.xp * (1 + S.level * 0.11) * Game.bonus('xp'));
-    const rp = Math.round(T.rep * Game.bonus('rep'));
-    $('#ticketCard').className = 'ticket' + (t.tier === 'HARD' ? ' crit' : '');
-    $('#ticketCard').innerHTML = `
-      <div class="tk-top">
-        <span class="tag" style="color:${t.tier === 'HARD' ? 'var(--alarm)' : t.tier === 'MEDIUM' ? 'var(--lamp)' : 'var(--good)'}">${t.tier}</span>
-        <span class="tk-id">#${t.id} · ${esc(t.user)}</span>
-        <span class="tk-stars">${stars(T.stars)}</span>
+  /* ---------------- THE QUEUE ---------------- */
+  function ticketRewards(t) {
+    const S = Game.state, T = Game.TIER[t.tier];
+    const m = Game.momentumMult() * Game.moraleMult();
+    return {
+      cr: Math.round(T.credits * (1 + S.level * 0.17) * Game.bonus('reward') * Game.bonus('credit') * Game.bonus('cat_' + t.cat) * m),
+      xp: Math.round(T.xp * (1 + S.level * 0.11) * Game.bonus('xp') * Game.momentumMult()),
+      rp: Math.round(T.rep * Game.bonus('rep')),
+    };
+  }
+
+  function updateMeters() {
+    const S = Game.state;
+    const mo = Game.momentumMult(), pct = S.momentum / Game.MOMENTUM_MAX * 100;
+    const box = $('#meters'); if (!box) return;
+    box.innerHTML = `
+      <div class="meter ${pct > 66 ? 'hot' : ''}">
+        <span class="m-lbl">🔥</span>
+        <div class="mbar"><span style="width:${pct}%"></span></div>
+        <b>×${mo.toFixed(2)}</b>
       </div>
-      <div class="tk-main">
-        <div class="tk-icon">${t.icon}</div>
-        <div class="tk-body">
-          <h3 class="tk-name">${esc(t.name)}</h3>
-          <p class="tk-flav">${esc(t.flavour)}</p>
-          <div class="tk-meta">
-            <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
-            <span class="tag">${t.cat}</span>
-            <span class="tag odds">${Math.round(o.tech * 100)}% SUCCESS</span>
-          </div>
-        </div>
-      </div>
-      <div class="tk-rewards">
-        <b class="rw-c">+${f(cr)} CR</b><b class="rw-x">+${f(xp)} XP</b><b class="rw-r">+${rp} REP</b>
-        <b class="muted" style="margin-left:auto">−${Math.round(T.energy * Game.bonus('energy'))} ⚡</b>
+      <div class="meter">
+        <span class="m-lbl">😊</span>
+        <div class="mbar morale"><span style="width:${S.morale}%"></span></div>
+        <b class="${S.morale < 35 ? 'bad' : ''}">${Math.round(S.morale)}%</b>
       </div>`;
-    const cost = Math.round(T.energy * Game.bonus('energy'));
-    const tired = S.energy < cost;
-    const btn = $('#btnResolve');
-    btn.className = 'resolve' + (tired ? ' tired' : '');
-    btn.innerHTML = `🔧 RESOLVE TICKET<span class="sub">${tired ? 'RUNNING ON FUMES · 35% REWARDS' : t.tier + ' · ' + Math.round(o.tech * 100) + '% SUCCESS'}</span>`;
+  }
+
+  function renderQueue() {
+    const S = Game.state, box = $('#queue'); if (!box) return;
+    Game.fillQueue();
+    if (nudged.size > 24) nudged.clear();
+    box.innerHTML = S.queue.map((t, i) => {
+      const T = Game.TIER[t.tier], r = ticketRewards(t);
+      const puz = Game.needsDiagnosis(t);
+      // For a puzzle ticket, show the odds you get for calling the cause
+      // right — that is the number the player can actually act on.
+      const o = Game.oddsFor(t, null, puz ? 1 : null);
+      const frac = Math.max(0, t.left / t.sla);
+      const urgent = frac < 0.34;
+      const puzzle = puz;
+      const free = Game.freeStaff().length;
+      return `<article class="tk ${urgent ? 'urgent' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
+        <div class="tk-head">
+          <span class="tier t-${t.tier}">${t.tier}</span>
+          <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
+          <span class="tag odds">${Math.round(o.tech * 100)}%</span>
+          <span class="tk-clock ${urgent ? 'urgent' : ''}">${Math.ceil(t.left)}s</span>
+        </div>
+        <div class="sla"><span style="width:${frac * 100}%"></span></div>
+        <div class="tk-row">
+          <div class="tk-ico">${t.icon}</div>
+          <div class="tk-txt">
+            <h3>${esc(t.name)}</h3>
+            <p>${esc(t.clue)}</p>
+          </div>
+          <div class="tk-rw"><b class="rw-c">+${f(r.cr)}</b><b class="rw-x">+${f(r.xp)}</b></div>
+        </div>
+        <div class="tk-acts">
+          <button class="act fix ${puzzle ? 'puzzle' : ''}" data-fix="${t.uid}">
+            ${puzzle ? '🔍 DIAGNOSE' : '🔧 FIX IT'}</button>
+          <button class="act del ${free ? '' : 'off'}" data-delegate="${t.uid}" title="Hand it to a colleague">
+            👥<small>${free}</small></button>
+          <button class="act esc" data-escalate="${t.uid}" title="Escalate away">✕</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  /* Only the numbers that move every frame — redrawing the whole queue at
+     10fps would fight the player's thumb. A ticket that goes critical pulls
+     itself into view, so nothing ever breaches somewhere you cannot see. */
+  const nudged = new Set();
+  function tickQueueUI() {
+    const S = Game.state;
+    (S.queue || []).forEach(t => {
+      const el = document.querySelector(`[data-tk="${t.uid}"]`);
+      if (!el) return;
+      const frac = Math.max(0, t.left / t.sla), urgent = frac < 0.34;
+      const bar = el.querySelector('.sla > span');
+      const clock = el.querySelector('.tk-clock');
+      if (bar) bar.style.width = (frac * 100) + '%';
+      if (clock) { clock.textContent = Math.ceil(t.left) + 's'; clock.classList.toggle('urgent', urgent); }
+      el.classList.toggle('urgent', urgent);
+      if (urgent && !nudged.has(t.uid)) {
+        nudged.add(t.uid);
+        const r = el.getBoundingClientRect(), nav = document.querySelector('#nav').getBoundingClientRect();
+        if (r.bottom > nav.top || r.top < 140) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
   }
 
   function updateMini() {
@@ -214,7 +274,7 @@ const UI = (() => {
     }).join('');
   }
 
-  const renderHQ = () => { updateTicket(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
+  const renderHQ = () => { updateMeters(); renderQueue(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
 
   /* ================= STAFF ================= */
   function renderStaff() {
@@ -557,8 +617,9 @@ const UI = (() => {
     else if (screen === 'world') renderWorld();
   }
 
-  return { $, el, esc, sheet, closeSheet, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateTicket, updateMini,
+  return { $, el, esc, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();
