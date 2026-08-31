@@ -751,8 +751,9 @@ const Game = (() => {
       uidSeq = Date.now() % 100000;
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
-      // a queue that sat through a break starts fresh rather than pre-breached
-      S.queue.forEach(t => { t.left = t.sla || DATA.SLA[t.tier] || 40; });
+      // a queue that sat through a break starts fresh rather than pre-breached,
+      // and picks up the current SLA budget rather than the one it was born with
+      S.queue.forEach(t => { t.sla = DATA.SLA[t.tier] || 300; t.left = t.sla; });
       fillQueue();
       if (!S.missions || Date.now() > S.missionsAt) rollMissions();
       if (!S.hero) S.hero = { spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };

@@ -119,7 +119,7 @@
       <div class="diag-clue"><span>WHAT YOU CAN SEE</span>${esc(t.clue)}</div>
       <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
       ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
-      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
+      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${UI.clock(t.left)}</b></p>
       <button class="btn cta giveup" data-giveup="${tuid}">
         🤷 I DON'T KNOW <span>hand it up · −${Game.escalateCost(t.tier)} REP</span></button>
       <button class="btn ghost cta" data-close="1">← BACK TO THE QUEUE (keep it)</button>
@@ -523,7 +523,7 @@
     if (dl) {
       const open = (Game.state.queue || []).find(x => document.querySelector(`[data-diag="${x.uid}"]`));
       // the sheet is marked live, so the queue above is still ticking it down
-      if (open) dl.textContent = Math.max(0, Math.ceil(open.left)) + 's';
+      if (open) dl.textContent = UI.clock(open.left);
       else UI.closeSheet();
     }
 

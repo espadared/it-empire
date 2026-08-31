@@ -132,9 +132,14 @@ const DATA = (() => {
     ],
   };
 
-  /* How long a ticket sits in the queue before it breaches. The valuable ones
-     are the impatient ones — that is the whole tension of the queue. */
-  const SLA = { EASY: 42, MEDIUM: 34, HARD: 26 };
+  /* How long a ticket sits in the queue before it breaches. Five minutes each:
+     long enough to read the symptom, think, and still choose what to work
+     first, rather than being rushed by a stopwatch. */
+  const SLA = { EASY: 300, MEDIUM: 300, HARD: 300 };
+
+  /* A ticket counts as critical in its last half-minute, whatever its budget —
+     an absolute threshold, so "urgent" always means the same thing. */
+  const SLA_URGENT = 30;
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -518,7 +523,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();

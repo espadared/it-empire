@@ -21,6 +21,11 @@ const UI = (() => {
   }
 
   const rarColor = r => DATA.RARITY[r].color;
+  /* A ticket clock reads as m:ss once there are minutes on it. */
+  const clock = secs => {
+    const n = Math.max(0, Math.ceil(secs));
+    return n >= 60 ? `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}` : `${n}s`;
+  };
   const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 
   /* ================= FX ================= */
@@ -174,7 +179,7 @@ const UI = (() => {
       // right — that is the number the player can actually act on.
       const o = Game.oddsFor(t, null, puz ? 1 : null);
       const frac = Math.max(0, t.left / t.sla);
-      const urgent = frac < 0.34;
+      const urgent = t.left <= DATA.SLA_URGENT;
       const puzzle = puz;
       const free = Game.freeStaff().length;
       // only a genuinely new ticket slides in; a re-render must not replay
@@ -185,7 +190,7 @@ const UI = (() => {
           <span class="tier t-${t.tier}">${t.tier}</span>
           <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
           <span class="tag odds">${Math.round(o.tech * 100)}%</span>
-          <span class="tk-clock ${urgent ? 'urgent' : ''}">${Math.ceil(t.left)}s</span>
+          <span class="tk-clock ${urgent ? 'urgent' : ''}">${clock(t.left)}</span>
         </div>
         <div class="sla"><span style="width:${frac * 100}%"></span></div>
         <div class="tk-row">
@@ -219,11 +224,11 @@ const UI = (() => {
     (S.queue || []).forEach(t => {
       const el = document.querySelector(`[data-tk="${t.uid}"]`);
       if (!el) return;
-      const frac = Math.max(0, t.left / t.sla), urgent = frac < 0.34;
+      const frac = Math.max(0, t.left / t.sla), urgent = t.left <= DATA.SLA_URGENT;
       const bar = el.querySelector('.sla > span');
-      const clock = el.querySelector('.tk-clock');
+      const clockEl = el.querySelector('.tk-clock');
       if (bar) bar.style.width = (frac * 100) + '%';
-      if (clock) { clock.textContent = Math.ceil(t.left) + 's'; clock.classList.toggle('urgent', urgent); }
+      if (clockEl) { clockEl.textContent = clock(t.left); clockEl.classList.toggle('urgent', urgent); }
       el.classList.toggle('urgent', urgent);
       if (urgent && !nudged.has(t.uid)) {
         nudged.add(t.uid);
@@ -623,7 +628,7 @@ const UI = (() => {
     else if (screen === 'world') renderWorld();
   }
 
-  return { $, el, esc, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+  return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,

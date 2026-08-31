@@ -853,9 +853,14 @@ const DATA = (() => {
     ],
   };
 
-  /* How long a ticket sits in the queue before it breaches. The valuable ones
-     are the impatient ones — that is the whole tension of the queue. */
-  const SLA = { EASY: 42, MEDIUM: 34, HARD: 26 };
+  /* How long a ticket sits in the queue before it breaches. Five minutes each:
+     long enough to read the symptom, think, and still choose what to work
+     first, rather than being rushed by a stopwatch. */
+  const SLA = { EASY: 300, MEDIUM: 300, HARD: 300 };
+
+  /* A ticket counts as critical in its last half-minute, whatever its budget —
+     an absolute threshold, so "urgent" always means the same thing. */
+  const SLA_URGENT = 30;
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -1239,7 +1244,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();
@@ -2451,8 +2456,9 @@ const Game = (() => {
       uidSeq = Date.now() % 100000;
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
-      // a queue that sat through a break starts fresh rather than pre-breached
-      S.queue.forEach(t => { t.left = t.sla || DATA.SLA[t.tier] || 40; });
+      // a queue that sat through a break starts fresh rather than pre-breached,
+      // and picks up the current SLA budget rather than the one it was born with
+      S.queue.forEach(t => { t.sla = DATA.SLA[t.tier] || 300; t.left = t.sla; });
       fillQueue();
       if (!S.missions || Date.now() > S.missionsAt) rollMissions();
       if (!S.hero) S.hero = { spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };
@@ -2508,6 +2514,11 @@ const UI = (() => {
   }
 
   const rarColor = r => DATA.RARITY[r].color;
+  /* A ticket clock reads as m:ss once there are minutes on it. */
+  const clock = secs => {
+    const n = Math.max(0, Math.ceil(secs));
+    return n >= 60 ? `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}` : `${n}s`;
+  };
   const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 
   /* ================= FX ================= */
@@ -2661,7 +2672,7 @@ const UI = (() => {
       // right — that is the number the player can actually act on.
       const o = Game.oddsFor(t, null, puz ? 1 : null);
       const frac = Math.max(0, t.left / t.sla);
-      const urgent = frac < 0.34;
+      const urgent = t.left <= DATA.SLA_URGENT;
       const puzzle = puz;
       const free = Game.freeStaff().length;
       // only a genuinely new ticket slides in; a re-render must not replay
@@ -2672,7 +2683,7 @@ const UI = (() => {
           <span class="tier t-${t.tier}">${t.tier}</span>
           <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
           <span class="tag odds">${Math.round(o.tech * 100)}%</span>
-          <span class="tk-clock ${urgent ? 'urgent' : ''}">${Math.ceil(t.left)}s</span>
+          <span class="tk-clock ${urgent ? 'urgent' : ''}">${clock(t.left)}</span>
         </div>
         <div class="sla"><span style="width:${frac * 100}%"></span></div>
         <div class="tk-row">
@@ -2706,11 +2717,11 @@ const UI = (() => {
     (S.queue || []).forEach(t => {
       const el = document.querySelector(`[data-tk="${t.uid}"]`);
       if (!el) return;
-      const frac = Math.max(0, t.left / t.sla), urgent = frac < 0.34;
+      const frac = Math.max(0, t.left / t.sla), urgent = t.left <= DATA.SLA_URGENT;
       const bar = el.querySelector('.sla > span');
-      const clock = el.querySelector('.tk-clock');
+      const clockEl = el.querySelector('.tk-clock');
       if (bar) bar.style.width = (frac * 100) + '%';
-      if (clock) { clock.textContent = Math.ceil(t.left) + 's'; clock.classList.toggle('urgent', urgent); }
+      if (clockEl) { clockEl.textContent = clock(t.left); clockEl.classList.toggle('urgent', urgent); }
       el.classList.toggle('urgent', urgent);
       if (urgent && !nudged.has(t.uid)) {
         nudged.add(t.uid);
@@ -3110,7 +3121,7 @@ const UI = (() => {
     else if (screen === 'world') renderWorld();
   }
 
-  return { $, el, esc, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+  return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
@@ -3417,7 +3428,7 @@ const Onboard = (() => {
       <div class="diag-clue"><span>WHAT YOU CAN SEE</span>${esc(t.clue)}</div>
       <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
       ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
-      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
+      <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${UI.clock(t.left)}</b></p>
       <button class="btn cta giveup" data-giveup="${tuid}">
         🤷 I DON'T KNOW <span>hand it up · −${Game.escalateCost(t.tier)} REP</span></button>
       <button class="btn ghost cta" data-close="1">← BACK TO THE QUEUE (keep it)</button>
@@ -3821,7 +3832,7 @@ const Onboard = (() => {
     if (dl) {
       const open = (Game.state.queue || []).find(x => document.querySelector(`[data-diag="${x.uid}"]`));
       // the sheet is marked live, so the queue above is still ticking it down
-      if (open) dl.textContent = Math.max(0, Math.ceil(open.left)) + 's';
+      if (open) dl.textContent = UI.clock(open.left);
       else UI.closeSheet();
     }
 
