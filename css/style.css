@@ -608,7 +608,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .act.fix.puzzle:active{box-shadow:0 1px 0 #17635D}
 .act.del{width:56px;flex:0 0 auto;background:var(--panel-3);border:1px solid var(--line);font-size:15px}
 .act.del small{font-family:var(--mono);font-size:10px;color:var(--muted)}
-.act.esc{width:42px;flex:0 0 auto;background:var(--ink-2);border:1px solid var(--line);color:var(--muted);font-size:14px}
+.act.esc{width:46px;flex:0 0 auto;background:var(--ink-2);border:1px solid var(--line);
+  color:var(--muted);font-size:14px;flex-direction:column;gap:0;line-height:1.1}
+.act.esc small{font-family:var(--mono);font-size:9px;color:var(--alarm)}
 .act.off{opacity:.4}
 
 /* diagnosis */
@@ -634,3 +636,19 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px;margin-top:8px}
 .dpick.busy{opacity:.45}
 .dpick .fit{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px}
+
+/* admitting you are stuck */
+.btn.giveup{
+  background:var(--panel-3);border:1px solid #6B4450;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.btn.giveup span{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.06em;color:var(--alarm);
+}
+.diag-answer{
+  text-align:center;font-size:13px;color:var(--muted);margin:14px 0 4px;
+  animation:pop .3s cubic-bezier(.2,1.5,.4,1);
+}
+.diag-answer b{color:var(--good);font-family:var(--disp);font-size:14px}
+.diag-opt:disabled{opacity:.55}
+.diag-opt.ok:disabled{opacity:1}

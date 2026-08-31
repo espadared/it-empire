@@ -357,18 +357,24 @@ const Game = (() => {
     return resolveTicket(tuid, { by: charUid });
   }
 
-  /* Sometimes the right call is to admit it is not yours. Costs a little
-     standing, but far less than failing it loudly. */
+  /* Sometimes the right call is to admit it is not yours. It costs standing —
+     more for the big ones — but far less than letting it breach, which takes
+     your morale and your whole momentum run with it. */
+  const escalateCost = tier => ({ EASY: 1, MEDIUM: 3, HARD: 6 })[tier] || 2;
+
   function escalateTicket(tuid) {
     const t = ticketBy(tuid); if (!t) return null;
-    S.reputation = Math.max(0, S.reputation - 2);
+    const cost = escalateCost(t.tier);
+    S.reputation = Math.max(0, S.reputation - cost);
     S.morale = clamp(S.morale - 1.5, 0, 100);
     S.momentum = Math.max(0, S.momentum - 10);
+    S.streak = 0;
     S.lifetime.escalated = (S.lifetime.escalated || 0) + 1;
     const i = S.queue.indexOf(t); if (i >= 0) S.queue.splice(i, 1);
     fillQueue();
+    checkAchievements();
     emit('change');
-    return { ticket: t };
+    return { ticket: t, cost };
   }
 
   /* ---------------- XP / LEVELS ---------------- */
@@ -766,7 +772,7 @@ const Game = (() => {
     newGame, load, loadFrom, save, wipe, tick, serialize, setStore, localStore,
     fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
-    resolveTicket, delegate, escalateTicket, TIER, requirement,
+    resolveTicket, delegate, escalateTicket, escalateCost, TIER, requirement,
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,

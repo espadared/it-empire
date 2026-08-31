@@ -616,7 +616,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .act.fix.puzzle:active{box-shadow:0 1px 0 #17635D}
 .act.del{width:56px;flex:0 0 auto;background:var(--panel-3);border:1px solid var(--line);font-size:15px}
 .act.del small{font-family:var(--mono);font-size:10px;color:var(--muted)}
-.act.esc{width:42px;flex:0 0 auto;background:var(--ink-2);border:1px solid var(--line);color:var(--muted);font-size:14px}
+.act.esc{width:46px;flex:0 0 auto;background:var(--ink-2);border:1px solid var(--line);
+  color:var(--muted);font-size:14px;flex-direction:column;gap:0;line-height:1.1}
+.act.esc small{font-family:var(--mono);font-size:9px;color:var(--alarm)}
 .act.off{opacity:.4}
 
 /* diagnosis */
@@ -642,6 +644,22 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px;margin-top:8px}
 .dpick.busy{opacity:.45}
 .dpick .fit{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px}
+
+/* admitting you are stuck */
+.btn.giveup{
+  background:var(--panel-3);border:1px solid #6B4450;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.btn.giveup span{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.06em;color:var(--alarm);
+}
+.diag-answer{
+  text-align:center;font-size:13px;color:var(--muted);margin:14px 0 4px;
+  animation:pop .3s cubic-bezier(.2,1.5,.4,1);
+}
+.diag-answer b{color:var(--good);font-family:var(--disp);font-size:14px}
+.diag-opt:disabled{opacity:.55}
+.diag-opt.ok:disabled{opacity:1}
 
 </style>
 <div id="app">
@@ -2039,18 +2057,24 @@ const Game = (() => {
     return resolveTicket(tuid, { by: charUid });
   }
 
-  /* Sometimes the right call is to admit it is not yours. Costs a little
-     standing, but far less than failing it loudly. */
+  /* Sometimes the right call is to admit it is not yours. It costs standing —
+     more for the big ones — but far less than letting it breach, which takes
+     your morale and your whole momentum run with it. */
+  const escalateCost = tier => ({ EASY: 1, MEDIUM: 3, HARD: 6 })[tier] || 2;
+
   function escalateTicket(tuid) {
     const t = ticketBy(tuid); if (!t) return null;
-    S.reputation = Math.max(0, S.reputation - 2);
+    const cost = escalateCost(t.tier);
+    S.reputation = Math.max(0, S.reputation - cost);
     S.morale = clamp(S.morale - 1.5, 0, 100);
     S.momentum = Math.max(0, S.momentum - 10);
+    S.streak = 0;
     S.lifetime.escalated = (S.lifetime.escalated || 0) + 1;
     const i = S.queue.indexOf(t); if (i >= 0) S.queue.splice(i, 1);
     fillQueue();
+    checkAchievements();
     emit('change');
-    return { ticket: t };
+    return { ticket: t, cost };
   }
 
   /* ---------------- XP / LEVELS ---------------- */
@@ -2448,7 +2472,7 @@ const Game = (() => {
     newGame, load, loadFrom, save, wipe, tick, serialize, setStore, localStore,
     fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
-    resolveTicket, delegate, escalateTicket, TIER, requirement,
+    resolveTicket, delegate, escalateTicket, escalateCost, TIER, requirement,
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
@@ -2664,7 +2688,8 @@ const UI = (() => {
             ${puzzle ? '🔍 DIAGNOSE' : '🔧 FIX IT'}</button>
           <button class="act del ${free ? '' : 'off'}" data-delegate="${t.uid}" title="Hand it to a colleague">
             👥<small>${free}</small></button>
-          <button class="act esc" data-escalate="${t.uid}" title="Escalate away">✕</button>
+          <button class="act esc" data-escalate="${t.uid}"
+            title="Escalate away — costs ${Game.escalateCost(t.tier)} reputation">✕<small>−${Game.escalateCost(t.tier)}</small></button>
         </div>
       </article>`;
     }).join('');
@@ -3393,7 +3418,9 @@ const Onboard = (() => {
       <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
       ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
       <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
-      <button class="btn ghost cta" data-close="1">BACK TO THE QUEUE</button>
+      <button class="btn cta giveup" data-giveup="${tuid}">
+        🤷 I DON'T KNOW <span>hand it up · −${Game.escalateCost(t.tier)} REP</span></button>
+      <button class="btn ghost cta" data-close="1">← BACK TO THE QUEUE (keep it)</button>
     `, { grab: false, live: true });
   }
 
@@ -3417,6 +3444,38 @@ const Onboard = (() => {
         stopWorking(tuid);
       }
     }, 700);
+  }
+
+  /* Admitting you are stuck. It costs reputation — more on the big ones — but
+     far less than letting it breach, and you are told what it actually was,
+     which is how you get better at the next one. */
+  function giveUp(tuid) {
+    if (working.has(tuid)) return;
+    const t = Game.ticketBy(tuid); if (!t) return;
+    working.add(tuid);
+    const right = (t.causes || []).find(c => c.ok) || { t: 'something else entirely' };
+    document.querySelectorAll('[data-diag]').forEach(b => {
+      if (b.dataset.ok === '1') b.classList.add('ok');
+      b.disabled = true;
+    });
+    const btn = document.querySelector('[data-giveup]');
+    if (btn) btn.outerHTML = `<p class="diag-answer">It was <b>${esc(right.t)}</b></p>`;
+    // the free back-out is gone the moment you commit to handing it up
+    const back = document.querySelector('#modal [data-close]');
+    if (back) back.remove();
+    UI.beep('fail');
+    setTimeout(() => {
+      try {
+        UI.closeSheet();
+        const r = Game.escalateTicket(tuid);
+        if (r) {
+          UI.floatText(window.innerWidth / 2, window.innerHeight * 0.45,
+            `HANDED UP  −${r.cost} REP`, 'var(--alarm)', 19);
+          toast('🤷', 'PASSED UP THE CHAIN', `${t.name} — it was ${right.t.toLowerCase()}. Now you know.`);
+        }
+        UI.refresh();
+      } finally { working.delete(tuid); }
+    }, 1600);
   }
 
   /* Hand it over. Costs you nothing but the reward and their availability. */
@@ -3448,16 +3507,20 @@ const Onboard = (() => {
   }
 
   function doEscalate(tuid) {
-    const card = cardOf(tuid);
-    if (card) card.classList.add('going');
-    const r = Game.escalateTicket(tuid);
-    if (!r) return;
-    UI.beep('tap');
-    if (card) {
-      const b = card.getBoundingClientRect();
-      UI.floatText(b.left + b.width / 2, b.top + 10, 'ESCALATED  −2 REP', 'var(--muted)', 14);
-    }
-    UI.refresh();
+    if (working.has(tuid)) return;
+    working.add(tuid);
+    try {
+      const card = cardOf(tuid);
+      if (card) card.classList.add('going');
+      const r = Game.escalateTicket(tuid);
+      if (!r) return;
+      UI.beep('tap');
+      if (card) {
+        const b = card.getBoundingClientRect();
+        UI.floatText(b.left + b.width / 2, b.top + 10, `ESCALATED  −${r.cost} REP`, 'var(--alarm)', 14);
+      }
+      UI.refresh();
+    } finally { working.delete(tuid); }
   }
 
   Game.on('breach', ({ ticket, rep }) => {
@@ -3628,7 +3691,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -3646,6 +3709,7 @@ const Onboard = (() => {
       } finally { stopWorking(d.deleGo); }
       return;
     }
+    if (d.giveup) return giveUp(d.giveup);
     if (d.escalate) return doEscalate(d.escalate);
     if (d.diag) return answerDiagnosis(d.diag, d.ok === '1', d.i);
     if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }

@@ -201,7 +201,8 @@ const UI = (() => {
             ${puzzle ? '🔍 DIAGNOSE' : '🔧 FIX IT'}</button>
           <button class="act del ${free ? '' : 'off'}" data-delegate="${t.uid}" title="Hand it to a colleague">
             👥<small>${free}</small></button>
-          <button class="act esc" data-escalate="${t.uid}" title="Escalate away">✕</button>
+          <button class="act esc" data-escalate="${t.uid}"
+            title="Escalate away — costs ${Game.escalateCost(t.tier)} reputation">✕<small>−${Game.escalateCost(t.tier)}</small></button>
         </div>
       </article>`;
     }).join('');

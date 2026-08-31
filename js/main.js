@@ -120,7 +120,9 @@
       <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
       ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
       <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
-      <button class="btn ghost cta" data-close="1">BACK TO THE QUEUE</button>
+      <button class="btn cta giveup" data-giveup="${tuid}">
+        🤷 I DON'T KNOW <span>hand it up · −${Game.escalateCost(t.tier)} REP</span></button>
+      <button class="btn ghost cta" data-close="1">← BACK TO THE QUEUE (keep it)</button>
     `, { grab: false, live: true });
   }
 
@@ -144,6 +146,38 @@
         stopWorking(tuid);
       }
     }, 700);
+  }
+
+  /* Admitting you are stuck. It costs reputation — more on the big ones — but
+     far less than letting it breach, and you are told what it actually was,
+     which is how you get better at the next one. */
+  function giveUp(tuid) {
+    if (working.has(tuid)) return;
+    const t = Game.ticketBy(tuid); if (!t) return;
+    working.add(tuid);
+    const right = (t.causes || []).find(c => c.ok) || { t: 'something else entirely' };
+    document.querySelectorAll('[data-diag]').forEach(b => {
+      if (b.dataset.ok === '1') b.classList.add('ok');
+      b.disabled = true;
+    });
+    const btn = document.querySelector('[data-giveup]');
+    if (btn) btn.outerHTML = `<p class="diag-answer">It was <b>${esc(right.t)}</b></p>`;
+    // the free back-out is gone the moment you commit to handing it up
+    const back = document.querySelector('#modal [data-close]');
+    if (back) back.remove();
+    UI.beep('fail');
+    setTimeout(() => {
+      try {
+        UI.closeSheet();
+        const r = Game.escalateTicket(tuid);
+        if (r) {
+          UI.floatText(window.innerWidth / 2, window.innerHeight * 0.45,
+            `HANDED UP  −${r.cost} REP`, 'var(--alarm)', 19);
+          toast('🤷', 'PASSED UP THE CHAIN', `${t.name} — it was ${right.t.toLowerCase()}. Now you know.`);
+        }
+        UI.refresh();
+      } finally { working.delete(tuid); }
+    }, 1600);
   }
 
   /* Hand it over. Costs you nothing but the reward and their availability. */
@@ -175,16 +209,20 @@
   }
 
   function doEscalate(tuid) {
-    const card = cardOf(tuid);
-    if (card) card.classList.add('going');
-    const r = Game.escalateTicket(tuid);
-    if (!r) return;
-    UI.beep('tap');
-    if (card) {
-      const b = card.getBoundingClientRect();
-      UI.floatText(b.left + b.width / 2, b.top + 10, 'ESCALATED  −2 REP', 'var(--muted)', 14);
-    }
-    UI.refresh();
+    if (working.has(tuid)) return;
+    working.add(tuid);
+    try {
+      const card = cardOf(tuid);
+      if (card) card.classList.add('going');
+      const r = Game.escalateTicket(tuid);
+      if (!r) return;
+      UI.beep('tap');
+      if (card) {
+        const b = card.getBoundingClientRect();
+        UI.floatText(b.left + b.width / 2, b.top + 10, `ESCALATED  −${r.cost} REP`, 'var(--alarm)', 14);
+      }
+      UI.refresh();
+    } finally { working.delete(tuid); }
   }
 
   Game.on('breach', ({ ticket, rep }) => {
@@ -355,7 +393,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -373,6 +411,7 @@
       } finally { stopWorking(d.deleGo); }
       return;
     }
+    if (d.giveup) return giveUp(d.giveup);
     if (d.escalate) return doEscalate(d.escalate);
     if (d.diag) return answerDiagnosis(d.diag, d.ok === '1', d.i);
     if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }
