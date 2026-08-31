@@ -411,7 +411,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -505,9 +505,19 @@
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.char && !e.target.closest('[data-levelup]')) return UI.charSheet(d.char);
-    if (d.slot) return UI.pickItemSheet(d.for, d.slot);
-    if (d.equip) { Game.equip(d.equip, d.for); UI.beep('ok'); return UI.charSheet(d.for); }
-    if (d.unequip) { Game.unequip(d.for, d.unequip); UI.beep('tap'); return UI.charSheet(d.for); }
+    if (d.slot) return UI.pickItemSheet(d.slot);
+    if (d.issue) {
+      const it = Game.state.inventory.find(i => i.uid === d.issue);
+      const e = it && Game.eqDef(it.eid);
+      if (Game.issueStandard(d.issue)) {
+        UI.beep('great');
+        toast(DATA.SLOTS.find(s => s.key === e.slot).icon, 'ISSUED TO EVERYONE',
+          `${e.name} is now standard for the whole department.`);
+      }
+      UI.closeSheet(); UI.show('gear');
+      return;
+    }
+    if (d.withdraw) { Game.withdrawStandard(d.withdraw); UI.beep('tap'); UI.closeSheet(); return UI.show('gear'); }
     if (d.back) return UI.charSheet(d.back);
     if (d.dept) {
       const c = Game.state.roster.find(x => x.uid === d.for);

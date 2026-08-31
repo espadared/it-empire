@@ -77,6 +77,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [hero], activeId: hero.uid,
       inventory: [mkItem('lap_basic'), mkItem('kb_sticky'), mkItem(DATA.spec(p.spec).kit)],
+      standard: {},
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0,
@@ -119,9 +120,10 @@ const Game = (() => {
     DATA.STATS.forEach(s => {
       out[s] = Math.round((d.base[s] + d.growth[s] * (c.level - 1) * growthBonus) * DATA.RARITY[c.rarity].mult);
     });
-    Object.values(c.equip).forEach(iuid => {
-      const it = S.inventory.find(i => i.uid === iuid); if (!it) return;
-      const e = eqDef(it.eid); if (!e.stats) return;
+    // Standard issue: whatever the department has decided everyone carries.
+    // Nobody has a personal loadout — that is the point of a standard.
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); if (!e || !e.stats) return;
       Object.entries(e.stats).forEach(([k, v]) => { out[k] = (out[k] || 0) + Math.round(v * (1 + (it.level - 1) * 0.25)); });
     });
     return out;
@@ -159,10 +161,10 @@ const Game = (() => {
       if (p[key]) b += p[key];
       if (p.all && key !== 'energy') b += p.all;
     });
-    // equipment perks
-    S.inventory.forEach(it => {
-      if (!it.on) return;
-      const p = eqDef(it.eid).perks; if (p && p[key]) b += p[key];
+    // standard issue perks — counted once for the whole department
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); const p = e && e.perks;
+      if (p && p[key]) b += p[key];
     });
     // event modifiers
     if (S.event && S.event.mods[key] != null) b *= S.event.mods[key];
@@ -582,21 +584,39 @@ const Game = (() => {
   }
 
   /* ---------------- EQUIPMENT ---------------- */
-  function equip(itemUid, charUid) {
-    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return;
-    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
-    const slot = eqDef(it.eid).slot;
-    const prev = c.equip[slot];
-    if (prev) { const p = S.inventory.find(i => i.uid === prev); if (p) p.on = null; }
-    S.inventory.forEach(i => { if (i.on === charUid && eqDef(i.eid).slot === slot) i.on = null; });
-    it.on = charUid; c.equip[slot] = it.uid;
+  /* ---------------- STANDARD ISSUE ----------------
+     One kit for the whole department. You do not fit out people individually;
+     you decide what an IT technician here carries, and everybody carries it. */
+  const standardItem = slot => {
+    const uidv = (S.standard || {})[slot];
+    return uidv ? S.inventory.find(i => i.uid === uidv) : null;
+  };
+  const standardItems = () => DATA.SLOTS.map(s => standardItem(s.key)).filter(Boolean);
+  const isStandard = itemUid => Object.values(S.standard || {}).includes(itemUid);
+
+  function issueStandard(itemUid) {
+    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
+    const e = eqDef(it.eid); if (!e) return false;
+    S.standard = S.standard || {};
+    S.standard[e.slot] = it.uid;
     emit('change');
+    return true;
   }
-  function unequip(charUid, slot) {
-    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
-    const iu = c.equip[slot]; if (!iu) return;
-    const it = S.inventory.find(i => i.uid === iu); if (it) it.on = null;
-    delete c.equip[slot]; emit('change');
+  function withdrawStandard(slot) {
+    if (!S.standard || !S.standard[slot]) return false;
+    delete S.standard[slot];
+    emit('change');
+    return true;
+  }
+
+  /* The whole department's kit, rated as one number. */
+  function standardPower() {
+    let p = 0;
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); if (!e || !e.stats) return;
+      Object.values(e.stats).forEach(v => { p += v * (1 + (it.level - 1) * 0.25); });
+    });
+    return Math.round(p);
   }
   function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
   function upgradeItem(itemUid) {
@@ -607,7 +627,7 @@ const Game = (() => {
   function scrapItem(itemUid) {
     const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return;
     const it = S.inventory[i];
-    if (it.on) unequip(it.on, eqDef(it.eid).slot);
+    if (isStandard(it.uid)) withdrawStandard(eqDef(it.eid).slot);
     S.credits += Math.floor(upgradeCost(it) * 0.4);
     S.inventory.splice(i, 1); emit('change');
   }
@@ -819,7 +839,7 @@ const Game = (() => {
     return {
       v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
-      roster: [], activeId: null, inventory: [], buildings: {}, dept: {},
+      roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -842,6 +862,9 @@ const Game = (() => {
     if (!saved || typeof saved !== 'object') { return { needsCharacter: true }; }
     try {
       const base = skeleton();
+      // Note this before the merge: the skeleton supplies an empty standard,
+      // so afterwards we cannot tell "never had one" from "has none issued".
+      const preStandard = !saved.standard;
       const s = { ...base, ...saved };
       s.lifetime = { ...base.lifetime, ...(saved.lifetime || {}) };
       s.lifetime.cat = { ...(saved.lifetime && saved.lifetime.cat) };
@@ -855,6 +878,27 @@ const Game = (() => {
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
       refreshQuota();          // an hour away means a full allowance on arrival
+
+      // Older saves fitted people out individually. Promote the best of what
+      // anyone was carrying into the department standard, then retire the
+      // personal loadouts.
+      if (preStandard) {
+        S.standard = {};
+        const rank = it => {
+          const e = eqDef(it.eid); if (!e) return -1;
+          return DATA.RARITY[e.rarity].order * 100 + it.level;
+        };
+        (S.roster || []).forEach(c => {
+          Object.values(c.equip || {}).forEach(iuid => {
+            const it = (S.inventory || []).find(i => i.uid === iuid); if (!it) return;
+            const e = eqDef(it.eid); if (!e) return;
+            const cur = S.standard[e.slot] && S.inventory.find(i => i.uid === S.standard[e.slot]);
+            if (!cur || rank(it) > rank(cur)) S.standard[e.slot] = it.uid;
+          });
+          c.equip = {};
+        });
+        (S.inventory || []).forEach(i => { delete i.on; });
+      }
       // a queue that sat through a break starts fresh rather than pre-breached,
       // and picks up the current SLA budget rather than the one it was born with
       S.queue.forEach(t => { t.sla = DATA.SLA[t.tier] || 300; t.left = t.sla; });
@@ -884,7 +928,8 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
-    equip, unequip, upgradeItem, upgradeCost, scrapItem,
+    issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
+    upgradeItem, upgradeCost, scrapItem,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,

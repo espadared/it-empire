@@ -688,6 +688,22 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .spent-idle{margin-top:14px!important;padding-top:12px;border-top:1px dashed var(--line);font-size:12px!important}
 .spent-idle b{color:var(--crt)}
 
+/* standard issue rack */
+.issue-rack{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px}
+.issue-slot{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 7px;
+  text-align:center;transition:transform .08s ease,border-color .15s;min-width:0;
+}
+.issue-slot:active{transform:scale(.96)}
+.issue-slot.filled{background:linear-gradient(180deg,var(--panel-2),var(--panel))}
+.is-ico{font-size:20px;line-height:1}
+.is-lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--muted);margin-top:3px}
+.is-item{
+  font-family:var(--disp);font-weight:700;font-size:10.5px;margin-top:3px;line-height:1.2;color:var(--faint);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:25px;
+}
+.is-lv{font-family:var(--mono);font-size:8.5px;color:var(--muted);margin-top:2px}
+
 </style>
 <div id="app">
 
@@ -2017,6 +2033,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [hero], activeId: hero.uid,
       inventory: [mkItem('lap_basic'), mkItem('kb_sticky'), mkItem(DATA.spec(p.spec).kit)],
+      standard: {},
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0,
@@ -2059,9 +2076,10 @@ const Game = (() => {
     DATA.STATS.forEach(s => {
       out[s] = Math.round((d.base[s] + d.growth[s] * (c.level - 1) * growthBonus) * DATA.RARITY[c.rarity].mult);
     });
-    Object.values(c.equip).forEach(iuid => {
-      const it = S.inventory.find(i => i.uid === iuid); if (!it) return;
-      const e = eqDef(it.eid); if (!e.stats) return;
+    // Standard issue: whatever the department has decided everyone carries.
+    // Nobody has a personal loadout — that is the point of a standard.
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); if (!e || !e.stats) return;
       Object.entries(e.stats).forEach(([k, v]) => { out[k] = (out[k] || 0) + Math.round(v * (1 + (it.level - 1) * 0.25)); });
     });
     return out;
@@ -2099,10 +2117,10 @@ const Game = (() => {
       if (p[key]) b += p[key];
       if (p.all && key !== 'energy') b += p.all;
     });
-    // equipment perks
-    S.inventory.forEach(it => {
-      if (!it.on) return;
-      const p = eqDef(it.eid).perks; if (p && p[key]) b += p[key];
+    // standard issue perks — counted once for the whole department
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); const p = e && e.perks;
+      if (p && p[key]) b += p[key];
     });
     // event modifiers
     if (S.event && S.event.mods[key] != null) b *= S.event.mods[key];
@@ -2522,21 +2540,39 @@ const Game = (() => {
   }
 
   /* ---------------- EQUIPMENT ---------------- */
-  function equip(itemUid, charUid) {
-    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return;
-    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
-    const slot = eqDef(it.eid).slot;
-    const prev = c.equip[slot];
-    if (prev) { const p = S.inventory.find(i => i.uid === prev); if (p) p.on = null; }
-    S.inventory.forEach(i => { if (i.on === charUid && eqDef(i.eid).slot === slot) i.on = null; });
-    it.on = charUid; c.equip[slot] = it.uid;
+  /* ---------------- STANDARD ISSUE ----------------
+     One kit for the whole department. You do not fit out people individually;
+     you decide what an IT technician here carries, and everybody carries it. */
+  const standardItem = slot => {
+    const uidv = (S.standard || {})[slot];
+    return uidv ? S.inventory.find(i => i.uid === uidv) : null;
+  };
+  const standardItems = () => DATA.SLOTS.map(s => standardItem(s.key)).filter(Boolean);
+  const isStandard = itemUid => Object.values(S.standard || {}).includes(itemUid);
+
+  function issueStandard(itemUid) {
+    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
+    const e = eqDef(it.eid); if (!e) return false;
+    S.standard = S.standard || {};
+    S.standard[e.slot] = it.uid;
     emit('change');
+    return true;
   }
-  function unequip(charUid, slot) {
-    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
-    const iu = c.equip[slot]; if (!iu) return;
-    const it = S.inventory.find(i => i.uid === iu); if (it) it.on = null;
-    delete c.equip[slot]; emit('change');
+  function withdrawStandard(slot) {
+    if (!S.standard || !S.standard[slot]) return false;
+    delete S.standard[slot];
+    emit('change');
+    return true;
+  }
+
+  /* The whole department's kit, rated as one number. */
+  function standardPower() {
+    let p = 0;
+    standardItems().forEach(it => {
+      const e = eqDef(it.eid); if (!e || !e.stats) return;
+      Object.values(e.stats).forEach(v => { p += v * (1 + (it.level - 1) * 0.25); });
+    });
+    return Math.round(p);
   }
   function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
   function upgradeItem(itemUid) {
@@ -2547,7 +2583,7 @@ const Game = (() => {
   function scrapItem(itemUid) {
     const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return;
     const it = S.inventory[i];
-    if (it.on) unequip(it.on, eqDef(it.eid).slot);
+    if (isStandard(it.uid)) withdrawStandard(eqDef(it.eid).slot);
     S.credits += Math.floor(upgradeCost(it) * 0.4);
     S.inventory.splice(i, 1); emit('change');
   }
@@ -2759,7 +2795,7 @@ const Game = (() => {
     return {
       v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
-      roster: [], activeId: null, inventory: [], buildings: {}, dept: {},
+      roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -2782,6 +2818,9 @@ const Game = (() => {
     if (!saved || typeof saved !== 'object') { return { needsCharacter: true }; }
     try {
       const base = skeleton();
+      // Note this before the merge: the skeleton supplies an empty standard,
+      // so afterwards we cannot tell "never had one" from "has none issued".
+      const preStandard = !saved.standard;
       const s = { ...base, ...saved };
       s.lifetime = { ...base.lifetime, ...(saved.lifetime || {}) };
       s.lifetime.cat = { ...(saved.lifetime && saved.lifetime.cat) };
@@ -2795,6 +2834,27 @@ const Game = (() => {
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
       refreshQuota();          // an hour away means a full allowance on arrival
+
+      // Older saves fitted people out individually. Promote the best of what
+      // anyone was carrying into the department standard, then retire the
+      // personal loadouts.
+      if (preStandard) {
+        S.standard = {};
+        const rank = it => {
+          const e = eqDef(it.eid); if (!e) return -1;
+          return DATA.RARITY[e.rarity].order * 100 + it.level;
+        };
+        (S.roster || []).forEach(c => {
+          Object.values(c.equip || {}).forEach(iuid => {
+            const it = (S.inventory || []).find(i => i.uid === iuid); if (!it) return;
+            const e = eqDef(it.eid); if (!e) return;
+            const cur = S.standard[e.slot] && S.inventory.find(i => i.uid === S.standard[e.slot]);
+            if (!cur || rank(it) > rank(cur)) S.standard[e.slot] = it.uid;
+          });
+          c.equip = {};
+        });
+        (S.inventory || []).forEach(i => { delete i.on; });
+      }
       // a queue that sat through a break starts fresh rather than pre-breached,
       // and picks up the current SLA budget rather than the one it was born with
       S.queue.forEach(t => { t.sla = DATA.SLA[t.tier] || 300; t.left = t.sla; });
@@ -2824,7 +2884,8 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
-    equip, unequip, upgradeItem, upgradeCost, scrapItem,
+    issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
+    upgradeItem, upgradeCost, scrapItem,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,
@@ -2855,6 +2916,8 @@ const UI = (() => {
   }
 
   const rarColor = r => DATA.RARITY[r].color;
+  const statLine = (e, i) => Object.entries(e.stats || {}).map(([k, v]) =>
+    `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ');
   /* A ticket clock reads as m:ss once there are minutes on it. */
   const clock = secs => {
     const n = Math.max(0, Math.ceil(secs));
@@ -3197,14 +3260,14 @@ const UI = (() => {
   function charSheet(uid) {
     const S = Game.state, c = S.roster.find(x => x.uid === uid); if (!c) return;
     const d = Game.def(c.defId), st = Game.charStats(c), need = Game.charXpNeed(c.level);
-    const slotHtml = DATA.SLOTS.map(s => {
-      const iu = c.equip[s.key], it = iu && S.inventory.find(i => i.uid === iu);
+    const issued = Game.standardItems().length;
+    const slotHtml = DATA.SLOTS.map(sl => {
+      const it = Game.standardItem(sl.key);
       const e = it && Game.eqDef(it.eid);
-      return `<button class="slot ${it ? 'filled' : ''}" data-slot="${s.key}" data-for="${c.uid}"
-        style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
-        <div class="si">${e ? '🔧' : s.icon}</div>
-        <div class="sn" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name.split(' ').slice(0, 2).join(' ')) : s.label}</div>
-      </button>`;
+      return `<div class="slot ${it ? 'filled' : ''}" style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
+        <div class="si">${sl.icon}</div>
+        <div class="sn" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name.split(' ').slice(0, 2).join(' ')) : sl.label}</div>
+      </div>`;
     }).join('');
     const deptHtml = DATA.DEPARTMENTS.map(dp => {
       const locked = S.reputation < dp.repReq;
@@ -3241,8 +3304,11 @@ const UI = (() => {
         LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
 
-      <div class="sec-head" style="padding:14px 0 4px"><h2>EQUIPMENT</h2></div>
+      <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>
+        <span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
+      <p class="tiny muted" style="margin:0 0 4px">Everyone in the department carries the same kit — these stats are already counted above. Change it on the <b>GEAR</b> tab and it changes for all of them.</p>
       <div class="slots">${slotHtml}</div>
+      <button class="btn ghost cta" data-screen="gear">OPEN STANDARD ISSUE</button>
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>DEPARTMENT</h2></div>
       <div class="row" style="flex-wrap:wrap;gap:8px">${deptHtml}</div>
@@ -3250,55 +3316,83 @@ const UI = (() => {
     `);
   }
 
-  function pickItemSheet(charUid, slot) {
+  /* Choosing what the whole department carries in one slot. */
+  function pickItemSheet(slot) {
     const S = Game.state;
     const items = S.inventory.filter(i => Game.eqDef(i.eid).slot === slot);
-    const c = S.roster.find(x => x.uid === charUid);
-    const cur = c.equip[slot];
+    const label = DATA.SLOTS.find(s => s.key === slot);
+    const cur = Game.standardItem(slot);
     sheet(`
-      <h3>${DATA.SLOTS.find(s => s.key === slot).label.toUpperCase()}</h3>
-      <p class="sub">Fitting out ${esc(c.defId === 'hero' ? S.name : Game.def(c.defId).name)}</p>
-      ${cur ? `<button class="btn ghost cta" data-unequip="${slot}" data-for="${charUid}">REMOVE CURRENT</button>` : ''}
+      <h3>${label.label.toUpperCase()}</h3>
+      <p class="sub">Standard issue — whatever you pick here, everybody carries</p>
+      ${cur ? `<button class="btn ghost cta" data-withdraw="${slot}">WITHDRAW FROM STANDARD</button>` : ''}
       <div class="list" style="padding:0;margin-top:10px">
         ${items.length ? items.map(i => {
-      const e = Game.eqDef(i.eid);
-      return `<div class="card col" data-equip="${i.uid}" data-for="${charUid}" style="border-color:${rarColor(e.rarity)}55">
+      const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
+      return `<div class="card col" ${on ? '' : `data-issue="${i.uid}"`} style="border-color:${on ? rarColor(e.rarity) : rarColor(e.rarity) + '55'}">
             <div class="spread">
-              <div><h3 style="font-family:var(--disp);font-size:14px;margin:0">${esc(e.name)}</h3>
+              <div style="min-width:0"><h3 style="font-family:var(--disp);font-size:14px;margin:0">${esc(e.name)}</h3>
               <span class="rar" style="color:${rarColor(e.rarity)}">${e.rarity} · LV.${i.level}</span></div>
-              ${i.on === charUid ? '<span class="tiny" style="color:var(--good)">EQUIPPED</span>' : '<button class="btn teal sm">EQUIP</button>'}
+              ${on ? '<span class="tiny" style="color:var(--good)">ISSUED</span>' : '<button class="btn teal sm">ISSUE</button>'}
             </div>
-            <div class="tiny mono" style="margin-top:6px">${Object.entries(e.stats || {}).map(([k, v]) => `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ')}</div>
+            <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
             <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
           </div>`;
-    }).join('') : `<div class="empty"><span class="big">🎒</span>No ${DATA.SLOTS.find(s => s.key === slot).label.toLowerCase()} in the store cupboard yet. Resolve tickets — gear drops.</div>`}
+    }).join('') : `<div class="empty"><span class="big">🎒</span>No ${label.label.toLowerCase()} in the store cupboard yet. Resolve tickets — gear drops.</div>`}
       </div>
-      <button class="btn ghost cta" data-back="${charUid}">BACK</button>`);
+      <button class="btn ghost cta" data-close="1">DONE</button>`);
   }
 
   /* ================= EQUIPMENT SCREEN ================= */
   function renderGear() {
     const S = Game.state;
+    const issued = Game.standardItems().length;
+
+    // What the department carries. One kit, everyone.
+    const rack = DATA.SLOTS.map(sl => {
+      const it = Game.standardItem(sl.key);
+      const e = it && Game.eqDef(it.eid);
+      return `<button class="issue-slot ${it ? 'filled' : ''}" data-slot="${sl.key}"
+        style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
+        <div class="is-ico">${sl.icon}</div>
+        <div class="is-lbl">${sl.label}</div>
+        <div class="is-item" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name) : 'not issued'}</div>
+        ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
+      </button>`;
+    }).join('');
+
     const sorted = [...S.inventory].sort((a, b) =>
+      (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0) ||
       DATA.RARITY[Game.eqDef(b.eid).rarity].order - DATA.RARITY[Game.eqDef(a.eid).rarity].order || b.level - a.level);
+
     $('#screen-gear').innerHTML = `
+      <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">This is what every technician in the department carries — you, and everyone you hire. There are no personal loadouts. Tap a slot to change what the standard is.</p>
+      <div class="issue-rack">${rack}</div>
+      <div class="list" style="margin-top:10px"><div class="card">
+        <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🏷️</div>
+        <div class="who"><h3>Kit rating</h3><div class="role">Every point here lands on every member of staff</div></div>
+        <div class="pw">⚡ ${f(Game.standardPower())}</div>
+      </div></div>
+
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Gear drops from tickets and incidents. Upgrade it with credits, or scrap what you will never use.</p>
       <div class="list">${sorted.length ? sorted.map(i => {
-      const e = Game.eqDef(i.eid), owner = i.on && S.roster.find(c => c.uid === i.on);
+      const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
       const up = Game.upgradeCost(i);
-      return `<div class="card col" style="border-color:${rarColor(e.rarity)}44">
+      return `<div class="card col" style="border-color:${on ? rarColor(e.rarity) : 'var(--line)'}">
           <div class="spread">
             <div style="min-width:0">
               <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s => s.key === e.slot).icon} ${esc(e.name)}</h3>
               <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
-              ${owner ? `<span class="tiny" style="color:var(--good);margin-left:6px">worn by ${esc(owner.defId === 'hero' ? S.name : Game.def(owner.defId).name)}</span>` : ''}
+              ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
             </div>
           </div>
-          <div class="tiny mono" style="margin-top:6px">${Object.entries(e.stats || {}).map(([k, v]) => `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ')}</div>
+          <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
           <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
           <div class="row" style="margin-top:8px">
             <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+            ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
+          : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
             <button class="btn sm ghost" data-scrap="${i.uid}" style="margin-left:auto">SCRAP</button>
           </div>
         </div>`;
@@ -4080,7 +4174,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -4174,9 +4268,19 @@ const Onboard = (() => {
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.char && !e.target.closest('[data-levelup]')) return UI.charSheet(d.char);
-    if (d.slot) return UI.pickItemSheet(d.for, d.slot);
-    if (d.equip) { Game.equip(d.equip, d.for); UI.beep('ok'); return UI.charSheet(d.for); }
-    if (d.unequip) { Game.unequip(d.for, d.unequip); UI.beep('tap'); return UI.charSheet(d.for); }
+    if (d.slot) return UI.pickItemSheet(d.slot);
+    if (d.issue) {
+      const it = Game.state.inventory.find(i => i.uid === d.issue);
+      const e = it && Game.eqDef(it.eid);
+      if (Game.issueStandard(d.issue)) {
+        UI.beep('great');
+        toast(DATA.SLOTS.find(s => s.key === e.slot).icon, 'ISSUED TO EVERYONE',
+          `${e.name} is now standard for the whole department.`);
+      }
+      UI.closeSheet(); UI.show('gear');
+      return;
+    }
+    if (d.withdraw) { Game.withdrawStandard(d.withdraw); UI.beep('tap'); UI.closeSheet(); return UI.show('gear'); }
     if (d.back) return UI.charSheet(d.back);
     if (d.dept) {
       const c = Game.state.roster.find(x => x.uid === d.for);

@@ -56,9 +56,26 @@ check('incident win with drop', () => {
 });
 check('buildings', () => { if (!Game.build('knowledge')) throw new Error('build failed'); });
 check('character level up', () => { const c = S.roster[1]; c.xp = 1e9; if (!Game.levelUpChar(c.uid)) throw new Error('levelup failed'); });
-check('equip + upgrade + scrap', () => {
+check('standard issue: issue + upgrade + scrap', () => {
   const it = S.inventory[0];
-  Game.equip(it.uid, S.activeId); Game.upgradeItem(it.uid); Game.scrapItem(it.uid);
+  if (!Game.issueStandard(it.uid)) throw new Error('could not issue');
+  if (!Game.isStandard(it.uid)) throw new Error('not marked as standard');
+  Game.upgradeItem(it.uid);
+  Game.scrapItem(it.uid);
+  if (Game.isStandard(it.uid)) throw new Error('scrapped item still standard');
+});
+check('standard issue lifts every member of staff', () => {
+  const other = S.roster[1] || S.roster[0];
+  const before = Game.charPower(other);
+  S.inventory.push(Game.mkItem('mon_ultra', 4));
+  Game.issueStandard(S.inventory[S.inventory.length - 1].uid);
+  if (Game.charPower(other) <= before) throw new Error('staff did not benefit from standard issue');
+});
+check('one item per slot, never stacking', () => {
+  S.inventory.push(Game.mkItem('mon_old', 1));
+  Game.issueStandard(S.inventory[S.inventory.length - 1].uid);
+  if (Game.standardItems().filter(i => Game.eqDef(i.eid).slot === 'monitor').length !== 1)
+    throw new Error('two items in one slot');
 });
 check('missions claim', () => { Game.rollMissions(); S.missions.forEach(m => { m.done = true; Game.claimMission(m.id); }); });
 check('save + reload round trip', () => {
