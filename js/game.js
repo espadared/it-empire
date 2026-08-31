@@ -17,6 +17,16 @@ const Game = (() => {
   /* ---------------- HELPERS ---------------- */
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  /* Pick from a pool while avoiding the last few, so variety is actually felt
+     rather than merely existing in the data. */
+  function pickFresh(pool, recent, keep) {
+    const fresh = pool.filter(x => !recent.includes(x.id));
+    const chosen = pick(fresh.length ? fresh : pool);
+    recent.push(chosen.id);
+    while (recent.length > keep) recent.shift();
+    return chosen;
+  }
   function def(id) {
     const base = DATA.CHARACTERS.find(c => c.id === id);
     if (id !== 'hero' || !S || !S.hero) return base;
@@ -74,6 +84,7 @@ const Game = (() => {
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
+      recentEvents: [], recentIncidents: [],
       missions: null, missionsAt: 0,
       md: {},                                  // daily mission counters
       lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {},
@@ -202,6 +213,9 @@ const Game = (() => {
     return {
       uid: uid(), id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
       tier, ...t,
+      // Most tickets are a known fix. Occasionally one genuinely needs working
+      // out — and that is decided per ticket, not by how hard it looks.
+      diagnose: !!(t.causes && t.causes.length) && Math.random() < DATA.DIAGNOSE_CHANCE,
       flavour: pick(DATA.TICKET_FLAVOUR),
       sla, left: sla, born: Date.now(),
     };
@@ -257,7 +271,7 @@ const Game = (() => {
     const sat = clamp(0.40 + (st.COMMUNICATION / (req * 1.2)) * 0.35 + (bonus('sat') - 1) * 0.9, 0.05, 0.97);
     return { tech: clamp(tech, 0.05, 0.985), sat, req };
   }
-  const needsDiagnosis = t => !!(t && t.causes && t.causes.length);
+  const needsDiagnosis = t => !!(t && t.diagnose && t.causes && t.causes.length);
 
   function resolveTicket(tuid, opts = {}) {
     if (!S.queue) fillQueue();
@@ -288,7 +302,7 @@ const Game = (() => {
     const tiredMul = tired ? 0.35 : 1;
     const failMul = techOk ? 1 : 0.2;
     const satMul = satOk ? 1.25 : 1;
-    const diagMul = diag === 1 ? 1.6 : diag === 0 ? 0.6 : 1;
+    const diagMul = diag === 1 ? 2.2 : diag === 0 ? 0.5 : 1;
     const delMul = delegated ? 0.7 : 1;
     const mo = momentumMult(), mr = moraleMult();
 
@@ -301,7 +315,7 @@ const Game = (() => {
 
     // momentum and morale move on what you did, not on luck alone
     let momGain = techOk ? (delegated ? 5 : 12) : -8;
-    if (diag === 1) momGain += 12;
+    if (diag === 1) momGain += 20;
     if (diag === 0) momGain -= 22;
     S.momentum = clamp(S.momentum + momGain, 0, MOMENTUM_MAX);
     S.morale = clamp(S.morale + (satOk ? 1.6 : techOk ? 0.4 : -2.6), 0, 100);
@@ -601,7 +615,8 @@ const Game = (() => {
   function maybeEvent(now) {
     if (S.event && now > S.event.until) { S.event = null; S.eventAt = now + (120 + Math.random() * 180) * 1000; emit('change'); }
     if (!S.event && now > S.eventAt && S.level >= 2) {
-      const e = pick(DATA.EVENTS);
+      S.recentEvents = S.recentEvents || [];
+      const e = pickFresh(DATA.EVENTS, S.recentEvents, 4);
       S.event = { ...e, until: now + e.dur * 1000 };
       if (e.id === 'monday') { S.lifetime.monday++; checkAchievements(); }
       emit('event', S.event); emit('change');
@@ -611,7 +626,8 @@ const Game = (() => {
   /* ---------------- CRITICAL INCIDENTS ---------------- */
   const incidentReady = () => S.level >= 3 && !S.incident && Date.now() > S.incidentAt;
   function startIncident() {
-    const d = pick(DATA.INCIDENTS);
+    S.recentIncidents = S.recentIncidents || [];
+    const d = pickFresh(DATA.INCIDENTS, S.recentIncidents, 5);
     S.incident = {
       ...d, step: 0, chance: 0.34 + (bonus('incidentSuccess') - 1),
       endsAt: Date.now() + d.time * 1000, log: [],
@@ -724,6 +740,7 @@ const Game = (() => {
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
+      recentEvents: [], recentIncidents: [],
       missions: null, missionsAt: 0, md: {},
       lifetime: {
         tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0,

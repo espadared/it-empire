@@ -185,9 +185,10 @@ const UI = (() => {
       // only a genuinely new ticket slides in; a re-render must not replay
       // the entrance animation on cards the player is already looking at
       const isNew = !shown.has(t.uid);
-      return `<article class="tk ${isNew ? 'fresh' : ''} ${urgent ? 'urgent' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
+      return `<article class="tk ${isNew ? 'fresh' : ''} ${urgent ? 'urgent' : ''} ${puz ? 'tricky' : ''} ${t.tier === 'HARD' ? 'hard' : ''}" data-tk="${t.uid}">
         <div class="tk-head">
           <span class="tier t-${t.tier}">${t.tier}</span>
+          ${puz ? '<span class="tier tricky">🔍 TRICKY</span>' : ''}
           <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
           <span class="tag odds">${Math.round(o.tech * 100)}%</span>
           <span class="tk-clock ${urgent ? 'urgent' : ''}">${clock(t.left)}</span>

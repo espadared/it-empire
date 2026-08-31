@@ -52,25 +52,53 @@ const DATA = (() => {
   const TICKETS = {
     EASY: [
       { name:'Printer Offline', cat:'hardware', stat:'PATIENCE', icon:'🖨️', user:'Reception',
-        clue:'Queue has 31 jobs. The printer is showing a green light.' },
+        clue:'Queue has 31 jobs. The printer is showing a green light.',
+        causes:[{t:"The print spooler has hung",ok:1},{t:"It is out of paper",ok:0},{t:"It needs a new toner cartridge",ok:0}] },
       { name:'Wi-Fi Not Connected', cat:'network', stat:'TECHNICAL', icon:'📶', user:'Sales',
-        clue:'Connects on their phone. Not on the laptop.' },
+        clue:'Connects on their phone. Not on the laptop.',
+        causes:[{t:"The laptop is clinging to a stale saved profile",ok:1},{t:"The router is broken",ok:0},{t:"They are out of mobile data",ok:0}] },
       { name:'No Audio In Headset', cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support',
-        clue:'Green light on the headset. Silence in the app.' },
+        clue:'Green light on the headset. Silence in the app.',
+        causes:[{t:"The app is pointed at the wrong output device",ok:1},{t:"The headset has died",ok:0},{t:"The volume is muted at the wall",ok:0}] },
       { name:'Monitor Not Detected', cat:'display', stat:'TECHNICAL', icon:'🖥️', user:'Finance',
-        clue:'Second screen black since they moved desks.' },
+        clue:'Second screen black since they moved desks.',
+        causes:[{t:"The cable went back into the wrong port in the move",ok:1},{t:"The monitor died in the move",ok:0},{t:"Windows needs reinstalling",ok:0}] },
       { name:'Keyboard Not Working', cat:'hardware', stat:'PATIENCE', icon:'⌨️', user:'HR',
-        clue:'Every key works except the ones they need.' },
+        clue:'Every key works except the ones they need.',
+        causes:[{t:"There is something under the keycaps",ok:1},{t:"The driver is out of date",ok:0},{t:"It needs charging",ok:0}] },
       { name:'Password Expired', cat:'access', stat:'COMMUNICATION', icon:'🔑', user:'Marketing',
-        clue:'They have tried the old one eleven times.' },
+        clue:'They have tried the old one eleven times.',
+        causes:[{t:"Eleven attempts have now locked the account",ok:1},{t:"The keyboard layout changed",ok:0},{t:"The domain is down",ok:0}] },
       { name:'Screen Is Upside Down', cat:'display', stat:'COMMUNICATION', icon:'🙃', user:'Legal',
-        clue:'They leaned on the keyboard. They deny leaning on the keyboard.' },
+        clue:'They leaned on the keyboard. They deny leaning on the keyboard.',
+        causes:[{t:"Ctrl+Alt+Arrow rotated the display",ok:1},{t:"The graphics card is failing",ok:0},{t:"The monitor is mounted wrong",ok:0}] },
       { name:'Laptop "Very Slow"', cat:'software', stat:'PATIENCE', icon:'🐌', user:'Ops',
-        clue:'Ninety-four browser tabs. Uptime: 61 days.' },
+        clue:'Ninety-four browser tabs. Uptime: 61 days.',
+        causes:[{t:"It has not been restarted since April",ok:1},{t:"It needs a bigger hard drive",ok:0},{t:"The wifi is slow",ok:0}] },
       { name:'Mouse Battery Mystery', cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design',
-        clue:'Works when held at a very specific angle.' },
+        clue:'Works when held at a very specific angle.',
+        causes:[{t:"The battery contact spring has lost its tension",ok:1},{t:"The desk is the wrong colour for the sensor",ok:0},{t:"The USB port is faulty",ok:0}] },
       { name:'Cannot Find The Desktop', cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception',
-        clue:'They saved it "to the desktop". They were in a remote session.' },
+        clue:'They saved it "to the desktop". They were in a remote session.',
+        causes:[{t:"It is on the remote desktop, not theirs",ok:1},{t:"The file was deleted",ok:0},{t:"Desktop icons are hidden",ok:0}] },
+      { name:'Camera Shows Only Ceiling', cat:'display', stat:'COMMUNICATION', icon:'📹', user:'Marketing',
+        clue:'A perfect view of the ceiling tiles. For the entire call.',
+        causes:[{t:'The laptop is open on a stand behind them',ok:1},{t:'The camera has failed',ok:0},{t:'The driver is missing',ok:0}] },
+      { name:'Everything Is In German', cat:'software', stat:'INVESTIGATION', icon:'🇩🇪', user:'Accounts',
+        clue:'Menus changed language overnight. They insist they touched nothing.',
+        causes:[{t:'The display language was switched in settings',ok:1},{t:'A virus',ok:0},{t:'The keyboard is German',ok:0}] },
+      { name:'Chair Will Not Go Up', cat:'hardware', stat:'PATIENCE', icon:'🪑', user:'Legal',
+        clue:'Not strictly IT. They logged it anyway. It is under your desk now.',
+        causes:[{t:'This is a facilities job, not yours',ok:1},{t:'The gas cylinder needs a driver',ok:0},{t:'It needs a firmware update',ok:0}] },
+      { name:'Printing To The Wrong Floor', cat:'hardware', stat:'COMMUNICATION', icon:'🖨️', user:'Ops',
+        clue:'Everything comes out on the third floor. They sit on the first.',
+        causes:[{t:'Their default printer is still the old floor',ok:1},{t:'The printer was moved',ok:0},{t:'Their account is wrong',ok:0}] },
+      { name:'The Cursor Has Vanished', cat:'hardware', stat:'INVESTIGATION', icon:'👻', user:'Design',
+        clue:'The mouse moves. No cursor anywhere. Their second monitor is switched off.',
+        causes:[{t:'The cursor is on the screen they turned off',ok:1},{t:'The mouse is dead',ok:0},{t:'The graphics driver crashed',ok:0}] },
+      { name:'It Says I Am Away', cat:'software', stat:'COMMUNICATION', icon:'🟡', user:'Sales',
+        clue:'They are very much at their desk, and slightly offended about it.',
+        causes:[{t:'Status is stuck from a locked session elsewhere',ok:1},{t:'The app is broken',ok:0},{t:'The network is slow',ok:0}] },
     ],
     MEDIUM: [
       { name:'VPN Failure', cat:'network', stat:'TECHNICAL', icon:'🔐', user:'Remote Team',
@@ -103,6 +131,24 @@ const DATA = (() => {
       { name:'Docking Station Rebellion', cat:'hardware', stat:'TECHNICAL', icon:'🔌', user:'Consulting',
         clue:'Both monitors and the keyboard drop out, then return. Every ten minutes.',
         causes:[{t:'Dock firmware is three versions behind',ok:1},{t:'Both monitors are failing',ok:0},{t:'The user keeps unplugging it',ok:0}] },
+      { name:'Cloud Sync Stuck For Days', cat:'software', stat:'PATIENCE', icon:'🔄', user:'Projects',
+        clue:'Spinning for three days. Forty thousand files, one of them named "con".',
+        causes:[{t:'A file name the filesystem refuses to accept',ok:1},{t:'Their internet is slow',ok:0},{t:'The disk is failing',ok:0}] },
+      { name:'Scanner Will Not Scan To Email', cat:'hardware', stat:'TECHNICAL', icon:'📠', user:'Reception',
+        clue:'Copies fine. Scan-to-email fails silently, and only since Tuesday.',
+        causes:[{t:'The mail relay changed its auth on Tuesday',ok:1},{t:'The scanner glass is dirty',ok:0},{t:'The paper tray is empty',ok:0}] },
+      { name:'One Spreadsheet Kills The App', cat:'software', stat:'INVESTIGATION', icon:'📊', user:'Finance',
+        clue:'Every other workbook opens fine. This one takes the whole application down.',
+        causes:[{t:'A broken external link inside the workbook',ok:1},{t:'The software needs reinstalling',ok:0},{t:'Their laptop is too slow',ok:0}] },
+      { name:'Calls Drop At Five, Every Day', cat:'network', stat:'INVESTIGATION', icon:'📞', user:'Support',
+        clue:'Only at five. Only outbound. Every single weekday.',
+        causes:[{t:'The nightly backup saturates the uplink at five',ok:1},{t:'The handsets are old',ok:0},{t:'People are hanging up',ok:0}] },
+      { name:'New Starter Has No Access', cat:'access', stat:'MANAGEMENT', icon:'🆕', user:'HR',
+        clue:'Started this morning. Has a desk, a laptop, and access to nothing at all.',
+        causes:[{t:'HR raised the record after the sync had run',ok:1},{t:'They are typing it wrong',ok:0},{t:'The laptop is faulty',ok:0}] },
+      { name:'Wi-Fi Dies In Room 4 Only', cat:'network', stat:'INVESTIGATION', icon:'📶', user:'Meeting Rm 4',
+        clue:'Only room 4, and only once the room fills up.',
+        causes:[{t:'The access point hits its client limit',ok:1},{t:'The walls are too thick',ok:0},{t:'The room is cursed',ok:0}] },
     ],
     HARD: [
       { name:'Network Outage — Floor 4', cat:'network', stat:'INVESTIGATION', icon:'🌐', user:'Floor 4',
@@ -129,6 +175,18 @@ const DATA = (() => {
       { name:'Suspicious Email Campaign', cat:'security', stat:'MANAGEMENT', icon:'🎣', user:'Whole Company',
         clue:'Forty staff got the same invoice PDF — from a real supplier address.',
         causes:[{t:"The supplier's mailbox is compromised — warn and block",ok:1},{t:'Our spam filter is switched off',ok:0},{t:'It is a marketing campaign',ok:0}] },
+      { name:'Storage Array Degraded', cat:'network', stat:'TECHNICAL', icon:'💽', user:'Infrastructure',
+        clue:'One disk failed. The rebuild has been running for eleven hours.',
+        causes:[{t:'A second disk is erroring mid-rebuild',ok:1},{t:'Rebuilds are just slow',ok:0},{t:'The controller needs a reboot',ok:0}] },
+      { name:'Locked Out After The Patch', cat:'access', stat:'INVESTIGATION', icon:'🔐', user:'Everyone',
+        clue:'The patch went out overnight. This morning nobody can sign in anywhere.',
+        causes:[{t:'The update broke the auth agent\'s trust',ok:1},{t:'Everyone forgot their password',ok:0},{t:'The internet is down',ok:0}] },
+      { name:'Finance Cannot Close The Month', cat:'software', stat:'MANAGEMENT', icon:'📅', user:'Finance',
+        clue:'The reporting job has failed four nights running. Month-end is tomorrow.',
+        causes:[{t:'A schema change upstream broke the job',ok:1},{t:'The server needs more memory',ok:0},{t:'Finance are running it wrong',ok:0}] },
+      { name:'The Backup Has Not Run Since June', cat:'security', stat:'INVESTIGATION', icon:'💾', user:'Everyone',
+        clue:'Green ticks all the way down the dashboard. No actual data since June.',
+        causes:[{t:'The job reports success but writes nothing',ok:1},{t:'The tapes are full',ok:0},{t:'Nobody was checking',ok:0}] },
     ],
   };
 
@@ -140,6 +198,12 @@ const DATA = (() => {
   /* A ticket counts as critical in its last half-minute, whatever its budget —
      an absolute threshold, so "urgent" always means the same thing. */
   const SLA_URGENT = 30;
+
+  /* How often a ticket turns out to be a real puzzle rather than a known fix.
+     Roughly one in twenty: rare enough that a diagnosis is an event, not a
+     tax on every other ticket. Difficulty no longer decides this — a printer
+     can be baffling and a server outage can be routine. */
+  const DIAGNOSE_CHANCE = 0.05;
 
   /* Flavour lines shown while the ticket sits in the queue */
   const TICKET_FLAVOUR = [
@@ -235,6 +299,118 @@ const DATA = (() => {
         { q:'Long term.',        opts:[{t:'RAISE A FACILITIES CASE',ok:1},{t:'BUY A DESK FAN',ok:0},{t:'DO NOTHING',ok:0}] },
       ]
     },
+    {
+      id:'replyall', title:'REPLY-ALL STORM', icon:'📧',
+      brief:'Someone emailed four thousand people. Now four thousand people are replying "please remove me".',
+      time:26,
+      steps:[
+        { q:'First move?',              opts:[{t:'DISABLE REPLY-ALL ON THE LIST',ok:1},{t:'EMAIL EVERYONE ASKING THEM TO STOP',ok:0},{t:'RESTART THE MAIL SERVER',ok:0}] },
+        { q:'The queue is backing up.', opts:[{t:'DELETE ALL THE MESSAGES',ok:0},{t:'THROTTLE THE OUTBOUND QUEUE',ok:1},{t:'TURN OFF EMAIL ENTIRELY',ok:0}] },
+        { q:'Where did it start?',      opts:[{t:'BLAME THE INTERN',ok:0},{t:'QUARANTINE THE ORIGINAL THREAD',ok:1},{t:'WAIT FOR IT TO PASS',ok:0}] },
+        { q:'Stop the next one.',       opts:[{t:'CAP LIST SIZE, REQUIRE APPROVAL',ok:1},{t:'SEND A STRONGLY WORDED MEMO',ok:0},{t:'DO NOTHING',ok:0}] },
+      ]
+    },
+    {
+      id:'deleted', title:'A FOLDER HAS GONE MISSING', icon:'🗑️',
+      brief:'Twelve years of finance records vanished at 14:20. The intern has gone very quiet.',
+      time:28,
+      steps:[
+        { q:'Immediate action?',        opts:[{t:'STOP ALL WRITES TO THAT VOLUME',ok:1},{t:'ASK THEM TO UNDO IT',ok:0},{t:'RUN A VIRUS SCAN',ok:0}] },
+        { q:'Recovery route.',          opts:[{t:'BUY RECOVERY SOFTWARE',ok:0},{t:'CHECK LAST NIGHT\'S SNAPSHOT',ok:1},{t:'REFORMAT AND START AGAIN',ok:0}] },
+        { q:'Snapshot is 18h old.',     opts:[{t:'ACCEPT THE LOSS',ok:0},{t:'FILL THE GAP FROM THE JOURNAL',ok:1},{t:'BLAME THE INTERN PUBLICLY',ok:0}] },
+        { q:'Afterwards.',              opts:[{t:'TURN ON VERSIONING, TIGHTEN RIGHTS',ok:1},{t:'FIRE THE INTERN',ok:0},{t:'SAY NOTHING',ok:0}] },
+      ]
+    },
+    {
+      id:'badges', title:'NOBODY CAN BADGE IN', icon:'🚪',
+      brief:'Two hundred people are queued in the lobby. The door controller is not answering.',
+      time:25,
+      steps:[
+        { q:'Start where?',             opts:[{t:'CHECK THE CONTROLLER\'S LINK',ok:1},{t:'REISSUE EVERYONE\'S BADGE',ok:0},{t:'CALL A LOCKSMITH',ok:0}] },
+        { q:'Controller is offline.',   opts:[{t:'LEAVE THEM ALL LOCKED',ok:0},{t:'FAIL SAFE-OPEN WITH A GUARD',ok:1},{t:'FORCE THE DOORS',ok:0}] },
+        { q:'Root cause.',              opts:[{t:'ITS CERTIFICATE EXPIRED OVERNIGHT',ok:1},{t:'THE BADGES DEMAGNETISED',ok:0},{t:'THE BUILDING LOST POWER',ok:0}] },
+        { q:'Fix it properly.',         opts:[{t:'RENEW THE CERT AND RE-SYNC',ok:1},{t:'REINSTALL THE SOFTWARE',ok:0},{t:'REPLACE THE CONTROLLER',ok:0}] },
+      ]
+    },
+    {
+      id:'miner', title:'THE BUILD FARM IS AT 100%', icon:'⛏️',
+      brief:'Every build agent is pinned at full CPU and not one build is running.',
+      time:28,
+      steps:[
+        { q:'What is it doing?',        opts:[{t:'SEE WHAT PROCESS IS EATING CPU',ok:1},{t:'REBOOT EVERYTHING',ok:0},{t:'ADD MORE SERVERS',ok:0}] },
+        { q:'Unknown binary, phoning out.', opts:[{t:'KILL IT AND MOVE ON',ok:0},{t:'ISOLATE THE AGENTS FROM THE NETWORK',ok:1},{t:'IGNORE IT',ok:0}] },
+        { q:'How did it get in?',       opts:[{t:'AN UNPINNED BUILD DEPENDENCY',ok:1},{t:'THE FIREWALL LET IT THROUGH',ok:0},{t:'SOMEBODY INSIDE DID IT',ok:0}] },
+        { q:'Clean up.',                opts:[{t:'REBUILD FROM A KNOWN GOOD IMAGE',ok:1},{t:'DELETE THE FILE',ok:0},{t:'RUN AN ANTIVIRUS SCAN',ok:0}] },
+        { q:'Report it.',               opts:[{t:'TELL SECURITY, ROTATE CREDENTIALS',ok:1},{t:'KEEP IT QUIET',ok:0},{t:'POST ABOUT IT ONLINE',ok:0}] },
+      ]
+    },
+    {
+      id:'certweb', title:'THE WEBSITE SAYS "NOT SECURE"', icon:'🔓',
+      brief:'Customers are staring at a big red warning. Sales noticed before you did.',
+      time:24,
+      steps:[
+        { q:'Confirm it.',              opts:[{t:'CHECK THE CERT ON THE LIVE HOST',ok:1},{t:'CLEAR YOUR BROWSER CACHE',ok:0},{t:'ASK A CUSTOMER TO RETRY',ok:0}] },
+        { q:'Expired at midnight.',     opts:[{t:'TELL PEOPLE TO CLICK THROUGH',ok:0},{t:'ISSUE AND INSTALL A RENEWAL',ok:1},{t:'TAKE THE SITE DOWN',ok:0}] },
+        { q:'There are four load balancers.', opts:[{t:'DEPLOY TO EVERY NODE',ok:1},{t:'DO THE FIRST ONE AND HOPE',ok:0},{t:'RESTART THE SITE',ok:0}] },
+        { q:'Never again.',             opts:[{t:'AUTOMATE RENEWAL WITH ALERTING',ok:1},{t:'PUT IT IN YOUR CALENDAR',ok:0},{t:'NOTHING',ok:0}] },
+      ]
+    },
+    {
+      id:'typhoon', title:'EVERYONE IS REMOTE AT ONCE', icon:'🌀',
+      brief:'The office is shut for the storm. Two thousand people just hit a VPN built for four hundred.',
+      time:26,
+      steps:[
+        { q:'First response.',          opts:[{t:'CHECK SESSION AND LICENCE LIMITS',ok:1},{t:'TELL THEM TO COME IN ANYWAY',ok:0},{t:'REBOOT THE FIREWALL',ok:0}] },
+        { q:'Sessions are capped.',     opts:[{t:'ASK PEOPLE TO TAKE TURNS',ok:0},{t:'RAISE THE CAP, ADD THE SPARE NODE',ok:1},{t:'ORDER HARDWARE TODAY',ok:0}] },
+        { q:'Bandwidth is saturated.',  opts:[{t:'SPLIT-TUNNEL WHAT DOES NOT NEED VPN',ok:1},{t:'BAN VIDEO CALLS',ok:0},{t:'THROTTLE EVERYONE EQUALLY',ok:0}] },
+        { q:'Keep it steady.',          opts:[{t:'STATUS PAGE, STAGGER RECONNECTS',ok:1},{t:'SAY NOTHING',ok:0},{t:'REBOOT IT HOURLY',ok:0}] },
+      ]
+    },
+    {
+      id:'licence', title:'THE DESIGN TEAM IS DEAD IN THE WATER', icon:'🔑',
+      brief:'Every design application says "no licence available". The deadline is at five.',
+      time:25,
+      steps:[
+        { q:'Check what first?',        opts:[{t:'WHETHER THE LICENCE SERVICE RUNS',ok:1},{t:'WHETHER THEY ARE ON WIFI',ok:0},{t:'WHETHER THEY SAVED THEIR WORK',ok:0}] },
+        { q:'Service is up, no seats.', opts:[{t:'RELEASE THE STALE CHECKED-OUT SEATS',ok:1},{t:'BUY MORE LICENCES NOW',ok:0},{t:'REINSTALL THE SOFTWARE',ok:0}] },
+        { q:'Seats freed, still failing.', opts:[{t:'THE USERS ARE MISTAKEN',ok:0},{t:'THE LICENCE FILE EXPIRED TODAY',ok:1},{t:'THE DISK IS FULL',ok:0}] },
+        { q:'Get them working.',        opts:[{t:'INSTALL THE RENEWAL, RESTART SERVICE',ok:1},{t:'HAND OUT PERSONAL LICENCES',ok:0},{t:'TELL THEM TO WAIT',ok:0}] },
+      ]
+    },
+    {
+      id:'chatbot', title:'THE CHATBOT KNOWS TOO MUCH', icon:'🧠',
+      brief:'The new AI assistant just quoted next year\'s unreleased salary bands to a summer intern.',
+      time:28,
+      steps:[
+        { q:'First move.',              opts:[{t:'TAKE THE ASSISTANT OFFLINE',ok:1},{t:'ASK THE INTERN TO FORGET IT',ok:0},{t:'DELETE THE CHAT LOG',ok:0}] },
+        { q:'Contain it.',              opts:[{t:'TELL IT TO "BE MORE CAREFUL"',ok:0},{t:'FIND OUT WHAT ELSE IT INDEXED',ok:1},{t:'RESTART THE SERVER',ok:0}] },
+        { q:'It indexed a whole HR share.', opts:[{t:'RE-SCOPE RIGHTS AT THE SOURCE',ok:1},{t:'FILTER THE RUDE WORDS',ok:0},{t:'TURN OFF LOGGING',ok:0}] },
+        { q:'Who needs to know?',       opts:[{t:'HR AND SECURITY, NOW',ok:1},{t:'NOBODY',ok:0},{t:'ONLY YOUR MANAGER',ok:0}] },
+        { q:'Bring it back.',           opts:[{t:'RE-INDEX WITH PERMISSION TRIMMING',ok:1},{t:'JUST SWITCH IT ON AGAIN',ok:0},{t:'LEAVE IT OFF FOREVER',ok:0}] },
+      ]
+    },
+    {
+      id:'officemove', title:'DAY ONE IN THE NEW OFFICE', icon:'📦',
+      brief:'Three hundred desks, no network, and a managing director holding a laptop and a question.',
+      time:27,
+      steps:[
+        { q:'Where do you start?',      opts:[{t:'CONFIRM THE BUILDING UPLINK IS LIVE',ok:1},{t:'UNBOX THE MONITORS',ok:0},{t:'SET UP THE COFFEE MACHINE',ok:0}] },
+        { q:'Uplink fine, floor dark.', opts:[{t:'REPLACE EVERY CABLE',ok:0},{t:'CHECK THE FLOOR SWITCHES ARE PATCHED',ok:1},{t:'CALL THE LANDLORD',ok:0}] },
+        { q:'Half the panel is unlabelled.', opts:[{t:'TONE AND LABEL AS YOU GO',ok:1},{t:'GUESS',ok:0},{t:'PLUG IT ALL IN AT RANDOM',ok:0}] },
+        { q:'People are arriving.',     opts:[{t:'STAND UP A TEMPORARY WIRELESS BRIDGE',ok:1},{t:'SEND EVERYONE HOME',ok:0},{t:'DO NOTHING',ok:0}] },
+      ]
+    },
+    {
+      id:'ddos', title:'THE CUSTOMER PORTAL IS DROWNING', icon:'🌊',
+      brief:'Traffic is forty times normal and none of it is buying anything.',
+      time:26,
+      steps:[
+        { q:'Confirm what it is.',      opts:[{t:'CHECK IF THE PATTERN IS REAL USERS',ok:1},{t:'ADD MORE SERVERS NOW',ok:0},{t:'RESTART THE DATABASE',ok:0}] },
+        { q:'It is not real users.',    opts:[{t:'BLOCK THE WHOLE COUNTRY',ok:0},{t:'TURN ON UPSTREAM DDOS PROTECTION',ok:1},{t:'TAKE THE SITE OFFLINE',ok:0}] },
+        { q:'Some still gets through.', opts:[{t:'RATE-LIMIT BY FINGERPRINT AT THE EDGE',ok:1},{t:'BLOCK EVERY IP YOU SEE',ok:0},{t:'TURN OFF LOGGING',ok:0}] },
+        { q:'Customers are calling.',   opts:[{t:'PUBLISH A STATUS PAGE, KEEP IT FRESH',ok:1},{t:'SAY THE SITE IS FINE',ok:0},{t:'BLAME THEIR INTERNET',ok:0}] },
+      ]
+    },
   ];
 
   /* ---------- RANDOM EVENTS ---------- */
@@ -257,6 +433,24 @@ const DATA = (() => {
     { id:'audit',   title:'SURPRISE IT AUDIT',      icon:'📋', dur:40,
       desc:'Document everything. Credits +150%, satisfaction is harder to earn.',
       mods:{ credit:2.5, sat:0.8 } },
+    { id:'patch',   title:'PATCH TUESDAY',          icon:'🩹', dur:55,
+      desc:'Everything needs a restart and everyone wants to know why. Ticket rewards +150%.',
+      mods:{ reward:2.5 } },
+    { id:'leave',   title:'HALF THE TEAM IS ON LEAVE', icon:'🏝️', dur:50,
+      desc:'The automated queue is limping, but anything you close yourself is worth double.',
+      mods:{ idle:0.5, reward:2.0 } },
+    { id:'board',   title:'BOARD MEETING WEEK',      icon:'📊', dur:45,
+      desc:'Executives on every floor, watching. Reputation gain +150%.',
+      mods:{ rep:2.5 } },
+    { id:'intake',  title:'NEW STARTER INTAKE',      icon:'🎓', dur:50,
+      desc:'Forty laptops to hand out and forty people to teach. XP +120%.',
+      mods:{ xp:2.2 } },
+    { id:'aircon',  title:'AIR CONDITIONING FAILURE', icon:'🥵', dur:45,
+      desc:'The office is thirty-one degrees. Everyone is slower and considerably crosser.',
+      mods:{ idle:0.75, sat:0.75 } },
+    { id:'window',  title:'MAINTENANCE WINDOW',      icon:'🌙', dur:50,
+      desc:'A quiet night shift with nobody to interrupt you. Idle output +120%.',
+      mods:{ idle:2.2 } },
   ];
 
   /* ---------- CHARACTERS ---------- */
@@ -480,7 +674,7 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
-    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:6,  icon:'🔍' },
+    { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:2,  icon:'🔍' },
     { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
 
@@ -498,7 +692,7 @@ const DATA = (() => {
     { id:'a_rich',     name:'BUDGET APPROVED',    desc:'Hold 1,000,000 IT Credits at once.',    metric:'peak',      target:1000000,rep:400 },
     { id:'a_reorg',    name:'REORGANISED',        desc:'Complete your first IT Reorganisation.',metric:'reorgs',    target:1,      rep:1000 },
     { id:'a_gear',     name:'FULLY EQUIPPED',     desc:'Own 12 pieces of equipment.',           metric:'gear',      target:12,     rep:120 },
-    { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 100 times.',       metric:'diagnosed', target:100,    rep:300 },
+    { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 25 times.',        metric:'diagnosed', target:25,     rep:300 },
     { id:'a_deleg',    name:'THAT IS WHAT A TEAM IS FOR', desc:'Hand 100 tickets to colleagues.', metric:'delegated', target:100,   rep:200 },
     { id:'a_flow',     name:'IN THE ZONE',        desc:'Reach full momentum.',                  metric:'maxmomentum', target:100,  rep:150 },
   ];
@@ -523,7 +717,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();

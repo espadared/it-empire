@@ -652,3 +652,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .diag-answer b{color:var(--good);font-family:var(--disp);font-size:14px}
 .diag-opt:disabled{opacity:.55}
 .diag-opt.ok:disabled{opacity:1}
+
+/* the rare ticket that actually needs working out */
+.tier.tricky{
+  color:var(--crt);border-color:var(--crt-dim);background:rgba(79,214,201,.1);
+  animation:trickyGlow 2.4s ease-in-out infinite;
+}
+@keyframes trickyGlow{0%,100%{box-shadow:0 0 0 0 rgba(79,214,201,.35)}50%{box-shadow:0 0 0 4px rgba(79,214,201,0)}}
+.tk.tricky{border-color:var(--crt-dim)}
+.tk.tricky.urgent{border-color:var(--alarm)}
