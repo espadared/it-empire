@@ -424,6 +424,132 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .toast .t1{font-family:var(--disp);font-weight:800;font-size:13px}
 .toast .t2{font-size:11px;color:var(--muted)}
 
+/* ============================================================
+   THE GATE — sign in, and the character you build before you start
+   ============================================================ */
+#gate{
+  position:fixed;inset:0;z-index:80;display:none;overflow-y:auto;
+  background:
+    radial-gradient(90% 55% at 50% 0%,#2A2352 0%,transparent 60%),
+    radial-gradient(70% 40% at 80% 100%,#3A2340 0%,transparent 60%),
+    var(--ink);
+}
+#gate.on{display:block}
+.gate-inner{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 26px) 16px 26px}
+
+.gate-logo{text-align:center;margin-bottom:20px}
+.gate-logo.tight{margin:22px 0 10px}
+.gate-mark{
+  width:64px;height:64px;margin:0 auto 12px;border-radius:20px;display:grid;place-items:center;font-size:30px;
+  background:linear-gradient(160deg,var(--lamp),#E07C2B);
+  box-shadow:0 5px 0 #8A4E17,0 14px 34px rgba(240,145,44,.35);
+  animation:markIn .5s cubic-bezier(.2,1.5,.4,1) both;
+}
+@keyframes markIn{from{transform:scale(.5) rotate(-25deg);opacity:0}to{transform:none;opacity:1}}
+.gate-logo h1{
+  font-family:var(--disp);font-weight:800;font-size:26px;margin:0;letter-spacing:.04em;
+  background:linear-gradient(180deg,#FFE0B0,var(--lamp));-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.gate-logo.tight h1{font-size:17px;letter-spacing:.06em}
+.gate-logo p{margin:5px 0 0;font-size:12.5px;color:var(--muted);line-height:1.4}
+
+.gate-card{
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:var(--shadow);
+}
+.seg{display:flex;gap:6px;background:var(--ink-2);border-radius:13px;padding:4px;margin-bottom:14px}
+.seg-btn{
+  flex:1;border-radius:10px;padding:9px 6px;font-family:var(--disp);font-weight:800;font-size:12px;
+  color:var(--muted);letter-spacing:.04em;transition:background .18s,color .18s;
+}
+.seg-btn.on{background:var(--panel-3);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.fld{display:block;margin-bottom:11px}
+.fld span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.fld input{
+  width:100%;background:var(--ink-2);border:1px solid var(--line);border-radius:12px;
+  padding:12px;color:var(--text);font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.02em;
+}
+.fld input::placeholder{color:var(--faint);font-weight:600;letter-spacing:0;font-size:14px}
+.fld input:focus{outline:none;border-color:var(--lamp);box-shadow:0 0 0 3px rgba(255,179,71,.16)}
+.fld.locked{background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+.fld.locked b{font-family:var(--disp);font-size:17px;letter-spacing:.02em}
+.gate-err{min-height:16px;margin:2px 0 8px;font-size:12px;color:var(--alarm);text-align:center;font-weight:700}
+.gate-err.shownow{animation:pop .3s}
+.gate-note{margin:11px 0 0;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.45}
+.gate-inner .cta{width:100%;margin-top:12px;display:block}
+.cta.big{padding:15px;font-size:16px}
+
+/* character preview */
+.creator-stage{
+  position:relative;height:216px;margin:14px 0;border-radius:20px;overflow:hidden;
+  background:linear-gradient(180deg,#232B47,#131829);border:1px solid var(--line);
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.creator-glow{
+  position:absolute;left:50%;bottom:-40px;transform:translateX(-50%);
+  width:230px;height:150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,201,122,.3),transparent);
+}
+.creator-svg{position:relative;height:98%;width:auto;filter:drop-shadow(0 12px 16px rgba(0,0,0,.5))}
+.dice{position:absolute;top:9px;right:9px;background:rgba(12,16,29,.8);border:1px solid var(--line)}
+
+.opt{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
+.opt-lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);width:46px;flex:0 0 auto}
+.sws{display:flex;gap:6px;flex:1;min-width:0}
+.sws.wrap{flex-wrap:wrap}
+.sw{
+  width:30px;height:30px;border-radius:10px;border:2px solid transparent;flex:0 0 auto;
+  transition:transform .12s,border-color .12s;box-shadow:inset 0 -3px 6px rgba(0,0,0,.3);
+}
+.sw.on{border-color:var(--text);transform:scale(1.1)}
+.pill{
+  border-radius:10px;padding:7px 11px;background:var(--ink-2);border:1px solid var(--line);
+  font-family:var(--disp);font-weight:700;font-size:12px;color:var(--muted);transition:all .15s;
+}
+.pill.on{border-color:var(--lamp);color:var(--lamp);background:rgba(255,179,71,.1)}
+
+.spec-list{display:flex;flex-direction:column;gap:9px}
+.spec{
+  text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;
+  transition:border-color .18s,background .18s,transform .1s;width:100%;
+}
+.spec:active{transform:scale(.99)}
+.spec.on{border-color:var(--lamp);background:linear-gradient(180deg,rgba(255,179,71,.09),var(--panel))}
+.spec-top{display:flex;align-items:center;gap:10px}
+.spec-ico{
+  width:42px;height:42px;border-radius:13px;background:var(--ink-2);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:21px;flex:0 0 auto;
+}
+.spec-top h3{font-family:var(--disp);font-weight:800;font-size:14.5px;margin:0}
+.spec-tag{font-size:11px;color:var(--muted)}
+.spec-tick{margin-left:auto;font-size:17px;color:var(--lamp);font-weight:800}
+.spec-blurb{margin:9px 0 7px;font-size:12px;color:var(--muted);line-height:1.4;font-style:italic}
+.spec-pro{font-size:11.5px;color:var(--good)}
+.spec-con{font-size:11.5px;color:var(--alarm)}
+
+/* leaderboard + account */
+.lb-pos{
+  width:24px;flex:0 0 auto;text-align:center;font-family:var(--disp);font-weight:800;font-size:15px;color:var(--muted);
+}
+.lb-pos.top{color:var(--lamp)}
+.acct{
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+}
+.acct b{font-family:var(--disp);font-size:15px}
+.acct button{margin-left:auto;flex:0 0 auto}
+
+/* boot splash while we work out whether there is a server behind this page */
+#splash{
+  position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:var(--ink);
+  transition:opacity .3s;
+}
+#splash.gone{opacity:0;pointer-events:none}
+#splash .s-mark{
+  width:60px;height:60px;border-radius:19px;display:grid;place-items:center;font-size:28px;
+  background:linear-gradient(160deg,var(--lamp),#E07C2B);animation:markPulse 1.3s ease-in-out infinite;
+}
+@keyframes markPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+
 </style>
 <div id="app">
 
@@ -482,6 +608,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 
 <div id="fx"></div>
 <div id="modal"></div>
+<div id="gate"></div>
+<div id="splash"><div class="s-mark">🔧</div></div>
 <script>
 /* ============================================================
    IT EMPIRE — DATA LAYER
@@ -951,6 +1079,67 @@ const DATA = (() => {
 })();
 
 /* ============================================================
+   CHARACTER CREATION — the choices that make your technician yours.
+   ============================================================ */
+const CREATOR = {
+  skin:  ['#F6D6B8', '#F1C398', '#E0A870', '#C98A5E', '#8D5A3B', '#6E4630'],
+  hair:  ['#241A18', '#3A2A22', '#6B4A2F', '#C87F3A', '#E3C88A', '#B9BFCB', '#5B4EE0', '#E0715F'],
+  shirt: ['#3D6FE0', '#E0715F', '#5FD37A', '#B67CFF', '#4FD6C9', '#F0A93C', '#2F3A57', '#D14D8B'],
+  styles: [
+    { key: 'short', label: 'Short' }, { key: 'spiky', label: 'Spiky' },
+    { key: 'fade',  label: 'Fade'  }, { key: 'bun',   label: 'Bun'   },
+    { key: 'long',  label: 'Long'  }, { key: 'cap',   label: 'Cap'   },
+  ],
+
+  /* Your starting path. Permanent, and different enough that two friends
+     playing side by side end up with genuinely different departments. */
+  specs: [
+    {
+      id: 'fixer', name: 'THE FIXER', icon: '🔧',
+      tag: 'Hands-on hardware',
+      blurb: 'You would rather open the laptop than read the ticket. Cables fear you.',
+      strength: '+20% on hardware and display tickets',
+      weakness: 'Automation comes slowly to you (−10% idle)',
+      perks: { cat_hardware: 0.20, cat_display: 0.20, idle: -0.10 },
+      stats: { TECHNICAL: 4, PATIENCE: 3 },
+      kit: 'tool_screw',
+    },
+    {
+      id: 'diplomat', name: 'THE DIPLOMAT', icon: '💬',
+      tag: 'Service desk',
+      blurb: 'You calm people down before you fix anything. Users ask for you by name.',
+      strength: '+25% user satisfaction, +15% reputation',
+      weakness: 'Raw technical power comes later (−8% power)',
+      perks: { sat: 0.25, rep: 0.15, power: -0.08 },
+      stats: { COMMUNICATION: 5, PATIENCE: 3 },
+      kit: 'head_cheap',
+    },
+    {
+      id: 'scripter', name: 'THE SCRIPTER', icon: '🤖',
+      tag: 'Automation',
+      blurb: 'You solved it once, then made sure you never have to solve it again.',
+      strength: '+30% idle output, +15% XP',
+      weakness: 'The script never says good morning (−12% satisfaction)',
+      perks: { idle: 0.30, xp: 0.15, sat: -0.12 },
+      stats: { AUTOMATION: 5, TECHNICAL: 2 },
+      kit: 'tool_usb',
+    },
+    {
+      id: 'analyst', name: 'THE ANALYST', icon: '🔍',
+      tag: 'Network & security',
+      blurb: 'You read the logs. All of them. You have opinions about the firewall.',
+      strength: '+20% network and security tickets, +20% incident success',
+      weakness: 'Slower on the simple stuff (−8% speed)',
+      perks: { cat_network: 0.20, cat_security: 0.20, incidentSuccess: 0.20 },
+      stats: { INVESTIGATION: 5, TECHNICAL: 2 },
+      kit: 'net_crimp',
+    },
+  ],
+};
+DATA.CREATOR = CREATOR;
+DATA.spec = id => CREATOR.specs.find(s => s.id === id) || CREATOR.specs[0];
+
+/* ============================================================
    IT EMPIRE — ART LAYER
    Hand-built SVG: the office diorama and the illustrated staff.
    ============================================================ */
@@ -1241,6 +1430,109 @@ const Art = (() => {
 })();
 
 /* ============================================================
+   IT EMPIRE — NETWORK
+   When the game is served by its own backend, progress lives on
+   the server behind a login. Opened as a plain file (or as a
+   published Artifact) the same build runs solo from this browser.
+   ============================================================ */
+const Net = (() => {
+  const TOKEN_KEY = 'ie-token';
+  let online = false, token = null, player = null, cache = null;
+  let dirty = false, sending = false, lastSent = 0;
+
+  try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { }
+
+  async function api(path, opts = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    const r = await fetch('api/' + path, { ...opts, headers });
+    let body = {};
+    try { body = await r.json(); } catch (e) { }
+    if (!r.ok) return { ok: false, status: r.status, error: body.error || 'Something went wrong. Try again.' };
+    return { ok: true, ...body };
+  }
+
+  /* Is there a backend behind this page? */
+  async function probe() {
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 4000);
+      const r = await fetch('api/ping', { signal: ctl.signal });
+      clearTimeout(t);
+      online = r.ok;
+    } catch (e) { online = false; }
+    return online;
+  }
+
+  function keep(r) {
+    token = r.token; player = r.player; cache = r.state || null;
+    try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { }
+    return { ok: true, state: r.state, now: r.now, player: r.player, fresh: r.fresh };
+  }
+
+  const signup = async (name, password, profile) => {
+    const r = await api('signup', { method: 'POST', body: JSON.stringify({ name, password, profile }) });
+    return r.ok ? { ...keep(r), profile } : r;
+  };
+  const login = async (name, password) => {
+    const r = await api('login', { method: 'POST', body: JSON.stringify({ name, password }) });
+    return r.ok ? keep(r) : r;
+  };
+  function logout() {
+    if (token) api('logout', { method: 'POST' }).catch(() => { });
+    token = null; player = null; cache = null;
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) { }
+  }
+  const resume = async () => {
+    if (!token) return { ok: false };
+    const r = await api('state');
+    return r.ok ? keep({ ...r, token }) : r;
+  };
+
+  /* The store the game writes through when signed in. Writes are queued and
+     flushed at most once every few seconds so tapping never waits on a
+     network call; the browser cache keeps a copy in case the server is down. */
+  const store = {
+    read: () => cache,
+    write(obj) {
+      cache = obj; dirty = true;
+      Game.localStore.write(obj);
+      flush();
+    },
+  };
+
+  async function flush(force) {
+    if (!online || !token || !dirty || sending) return;
+    if (!force && Date.now() - lastSent < 4000) return;
+    sending = true; dirty = false; lastSent = Date.now();
+    try {
+      await api('state', { method: 'PUT', body: JSON.stringify({ state: cache }) });
+    } catch (e) { dirty = true; }
+    sending = false;
+  }
+
+  /* On the way out, a beacon still gets through where fetch would be killed. */
+  function flushBeacon() {
+    if (!online || !token || !cache) return;
+    try {
+      const blob = new Blob([JSON.stringify({ state: cache, token })], { type: 'application/json' });
+      navigator.sendBeacon('api/state-beacon', blob);
+      dirty = false;
+    } catch (e) { }
+  }
+
+  const leaderboard = () => api('leaderboard');
+  const deleteAccount = () => api('account', { method: 'DELETE' });
+
+  return {
+    probe, signup, login, logout, resume, store, flush, flushBeacon, leaderboard, deleteAccount,
+    get online() { return online; },
+    get token() { return token; },
+    get player() { return player; },
+  };
+})();
+
+/* ============================================================
    IT EMPIRE — GAME LAYER
    State, economy, ticket loop, idle engine, save/load.
    No DOM here. UI subscribes via Game.on().
@@ -1259,7 +1551,18 @@ const Game = (() => {
   /* ---------------- HELPERS ---------------- */
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-  const def = id => DATA.CHARACTERS.find(c => c.id === id);
+  function def(id) {
+    const base = DATA.CHARACTERS.find(c => c.id === id);
+    if (id !== 'hero' || !S || !S.hero) return base;
+    const sp = DATA.spec(S.hero.spec);
+    const stats = { ...base.base };
+    Object.entries(sp.stats || {}).forEach(([k, v]) => { stats[k] += v; });
+    return {
+      ...base, name: S.name, art: S.hero.art, base: stats,
+      role: sp.tag, strength: sp.strength, weakness: sp.weakness,
+      personality: sp.blurb, perks: { ...base.perks, ...sp.perks },
+    };
+  }
   const eqDef = id => DATA.EQUIPMENT.find(e => e.id === id);
   const bDef = id => DATA.BUILDINGS.find(b => b.id === id);
 
@@ -1285,16 +1588,19 @@ const Game = (() => {
   const nextRank = rep => DATA.RANKS.find(x => rep < x.at) || null;
 
   /* ---------------- NEW GAME ---------------- */
-  function newGame(keep) {
+  function newGame(keep, profile) {
     const hero = mkChar('hero', 1);
+    const p = profile || (keep && keep.hero ? { name: keep.name, ...keep.hero } : null)
+      || { name: 'JASON', spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };
     S = {
       v: 1,
-      name: 'JASON',
+      name: p.name,
+      hero: { spec: p.spec, art: p.art },
       level: 1, xp: 0,
       credits: 120, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [hero], activeId: hero.uid,
-      inventory: [mkItem('lap_basic'), mkItem('kb_sticky')],
+      inventory: [mkItem('lap_basic'), mkItem('kb_sticky'), mkItem(DATA.spec(p.spec).kit)],
       buildings: { helpdesk: 1 },
       dept: {},
       ticket: null, streak: 0,
@@ -1775,6 +2081,7 @@ const Game = (() => {
     const keep = {
       legacy: S.legacy + gain, legacySpent: S.legacySpent, unlocked: S.unlocked,
       reorgs: S.reorgs + 1, achievements: S.achievements, tickets: S.lifetime.tickets,
+      name: S.name, hero: S.hero,
     };
     newGame(keep);
     S.lifetime.reorgs = keep.reorgs;
@@ -1803,16 +2110,29 @@ const Game = (() => {
     return dt;
   }
 
-  /* ---------------- SAVE / LOAD ---------------- */
-  function save() {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...S, savedAt: Date.now() })); } catch (e) { }
-  }
+  /* ---------------- SAVE / LOAD ----------------
+     The game does not care where the save lives. Solo play keeps it in this
+     browser; signed in, net.js swaps in a store that keeps it on the server,
+     so the same progress follows you to any device.                        */
+  const localStore = {
+    read() { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } },
+    write(obj) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(obj)); } catch (e) { } },
+  };
+  let store = localStore;
+  const setStore = st => { store = st; };
+  const serialize = () => ({ ...S, savedAt: Date.now() });
+
+  function save() { if (S) store.write(serialize()); }
+
   function load() {
-    let raw = null;
-    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { }
-    if (!raw) { newGame(); return { fresh: true }; }
+    const saved = store.read();
+    return loadFrom(saved);
+  }
+
+  function loadFrom(saved, serverNow) {
+    if (!saved) { return { needsCharacter: true }; }
     try {
-      const s = JSON.parse(raw);
+      const s = saved;
       S = s;
       S.md = S.md || {}; S.idleAcc = S.idleAcc || { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
       S.lifetime.cat = S.lifetime.cat || {};
@@ -1820,18 +2140,21 @@ const Game = (() => {
       uidSeq = Date.now() % 100000;
       if (!S.ticket) newTicket();
       if (!S.missions || Date.now() > S.missionsAt) rollMissions();
-      const away = Math.max(0, (Date.now() - (s.savedAt || s.lastTick || Date.now())) / 1000);
+      if (!S.hero) S.hero = { spec: 'fixer', art: { ...DATA.CHARACTERS[0].art } };
+      // The server's clock is the honest one when we are signed in.
+      const now = serverNow || Date.now();
+      const away = Math.max(0, (now - (s.savedAt || s.lastTick || now)) / 1000);
       const capped = Math.min(away, offlineCapHours() * 3600);
       S.lastTick = Date.now();
       if (capped > 60 && staff().length) { accrue(capped, true); return { away: capped, offline: true }; }
       return { away: capped };
-    } catch (e) { newGame(); return { fresh: true }; }
+    } catch (e) { return { needsCharacter: true, broken: true }; }
   }
   function wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }
 
   return {
     on, emit, get state() { return S; },
-    newGame, load, save, wipe, tick,
+    newGame, load, loadFrom, save, wipe, tick, serialize, setStore, localStore,
     fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
     def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
     newTicket, resolveTicket, odds, TIER, requirement,
@@ -1856,6 +2179,16 @@ const UI = (() => {
   const f = Game.fmt;
   let screen = 'hq';
   let sayTimer = null;
+  let board = null, boardAt = 0;
+
+  function loadBoard(force) {
+    if (typeof Net === 'undefined' || !Net.online) return;
+    if (!force && Date.now() - boardAt < 20000) return;
+    boardAt = Date.now();
+    Net.leaderboard().then(r => {
+      if (r && r.ok) { board = r.players; if (screen === 'rank') renderRanking(); }
+    }).catch(() => { });
+  }
 
   const rarColor = r => DATA.RARITY[r].color;
   const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -2291,7 +2624,28 @@ const UI = (() => {
       </div>`;
     }).join('');
 
-    $('#screen-rank').innerHTML = `
+    const me = (S.name || '').toLowerCase();
+    const company = (typeof Net === 'undefined' || !Net.online) ? '' : `
+      <div class="sec-head"><h2>THE COMPANY</h2><span>${board ? board.length + ' PLAYING' : 'LOADING…'}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Everyone signed in to this office, ranked by reputation. Send your friends the link and they will appear here.</p>
+      <div class="list">${board ? (board.length ? board.map((p, i) => {
+      const isMe = (p.name || '').toLowerCase() === me;
+      const art = p.art || DATA.CHARACTERS[0].art;
+      const sp = p.spec ? DATA.spec(p.spec) : null;
+      return `<div class="card" style="${isMe ? 'border-color:var(--lamp)' : ''}">
+          <div class="lb-pos ${i < 3 ? 'top' : ''}">${i + 1}</div>
+          <div class="avatar">${Art.portrait(art, 'lb' + i)}<span class="lv">L${p.level}</span></div>
+          <div class="who">
+            <h3>${esc(p.name)}${isMe ? ' <span class="tiny" style="color:var(--lamp)">· YOU</span>' : ''}</h3>
+            <div class="role">${esc(Game.title(p.level))}${sp ? ' · ' + esc(sp.name) : ''}</div>
+            <div class="tiny mono muted">${f(p.tickets)} tickets resolved</div>
+          </div>
+          <div class="mono tiny" style="color:var(--rep);text-align:right">🏆 ${f(p.reputation)}</div>
+        </div>`;
+    }).join('') : '<div class="empty"><span class="big">👥</span>Nobody else has clocked in yet. You are employee number one.</div>')
+      : '<div class="empty">Fetching the company directory…</div>'}</div>`;
+
+    $('#screen-rank').innerHTML = company + `
       <div class="sec-head"><h2>REPUTATION</h2><span>${f(S.reputation)} REP</span></div>
       <div class="list"><div class="card col">
         <div class="spread"><h3 style="font-family:var(--disp);font-size:17px;margin:0;color:var(--rep)">${esc(r.name)}</h3>
@@ -2369,14 +2723,193 @@ const UI = (() => {
     else if (screen === 'staff') renderStaff();
     else if (screen === 'gear') renderGear();
     else if (screen === 'missions') renderMissions();
-    else if (screen === 'rank') renderRanking();
+    else if (screen === 'rank') { loadBoard(); renderRanking(); }
     else if (screen === 'world') renderWorld();
   }
 
   return { $, el, esc, sheet, closeSheet, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateTicket, updateMini,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
-           get screen() { return screen; }, rarColor, stars };
+           loadBoard, get screen() { return screen; }, rarColor, stars };
+})();
+
+/* ============================================================
+   IT EMPIRE — ONBOARDING
+   The sign-in gate and the character creator. Both render into
+   #gate, a full-screen layer that sits over the game until the
+   player has an identity and a technician of their own.
+   ============================================================ */
+const Onboard = (() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const gate = () => $('#gate');
+
+  const show = html => { const g = gate(); g.innerHTML = html; g.classList.add('on'); g.scrollTop = 0; };
+  const hide = () => { const g = gate(); g.classList.remove('on'); g.innerHTML = ''; };
+
+  const LOGO = `<div class="gate-logo">
+      <div class="gate-mark">🔧</div>
+      <h1>IT EMPIRE</h1>
+      <p>One desk. One screwdriver. A queue that never ends.</p>
+    </div>`;
+
+  /* ================= SIGN IN ================= */
+  let mode = 'login';                 // 'login' | 'signup'
+  function auth(onDone, opts = {}) {
+    const signup = mode === 'signup';
+    show(`<div class="gate-inner">
+      ${LOGO}
+      <div class="gate-card">
+        <div class="seg">
+          <button class="seg-btn ${!signup ? 'on' : ''}" data-mode="login">SIGN IN</button>
+          <button class="seg-btn ${signup ? 'on' : ''}" data-mode="signup">NEW STARTER</button>
+        </div>
+        <label class="fld"><span>TECHNICIAN NAME</span>
+          <input id="fName" type="text" autocomplete="username" maxlength="18"
+            placeholder="the name on your badge" autocapitalize="characters"></label>
+        <label class="fld"><span>PASSWORD</span>
+          <input id="fPass" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}"
+            maxlength="72" placeholder="${signup ? 'at least 6 characters' : ''}"></label>
+        <p class="gate-err" id="gErr">${opts.error ? esc(opts.error) : ''}</p>
+        <button class="btn gold cta" id="gGo">${signup ? 'CREATE MY ACCOUNT' : 'CLOCK IN'}</button>
+        <p class="gate-note">${signup
+        ? 'Your progress is saved to the server, so you can carry on from any phone or laptop — and your friends can see you climbing the company ladder.'
+        : 'Signing in on a new device picks up exactly where you left off.'}</p>
+      </div>
+    </div>`);
+
+    const go = async () => {
+      const name = $('#fName').value.trim();
+      const pass = $('#fPass').value;
+      const err = m => { $('#gErr').textContent = m; $('#gErr').classList.add('shownow'); };
+      if (name.length < 2) return err('Pick a name of at least 2 characters.');
+      if (pass.length < (signup ? 6 : 1)) return err('Passwords need at least 6 characters.');
+      $('#gGo').disabled = true; $('#gGo').textContent = 'CONNECTING…';
+      if (signup) {
+        // A new starter builds their technician first, then the account is created.
+        creator(async profile => {
+          const r = await Net.signup(name, pass, profile);
+          if (!r.ok) { mode = 'signup'; auth(onDone, { error: r.error }); return; }
+          onDone(r);
+        }, { name: name.toUpperCase(), lockName: true, back: () => { mode = 'signup'; auth(onDone); } });
+      } else {
+        const r = await Net.login(name, pass);
+        if (!r.ok) { $('#gGo').disabled = false; $('#gGo').textContent = 'CLOCK IN'; return err(r.error); }
+        onDone(r);
+      }
+    };
+
+    $('#gGo').onclick = go;
+    $('#fPass').onkeydown = e => { if (e.key === 'Enter') go(); };
+    $('#fName').onkeydown = e => { if (e.key === 'Enter') $('#fPass').focus(); };
+    gate().querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; auth(onDone); });
+  }
+
+  /* ================= CHARACTER CREATOR ================= */
+  function creator(onDone, opts = {}) {
+    const C = DATA.CREATOR;
+    const art = {
+      skin: C.skin[Math.floor(Math.random() * C.skin.length)],
+      hair: C.hair[Math.floor(Math.random() * C.hair.length)],
+      hairStyle: C.styles[Math.floor(Math.random() * C.styles.length)].key,
+      shirt: C.shirt[Math.floor(Math.random() * C.shirt.length)],
+      accent: '#2B4EA8', glasses: true, headset: false, beard: false,
+    };
+    const sync = () => { art.accent = Art.shade(art.shirt, -45); };
+    sync();
+    let spec = 'fixer';
+    let name = (opts.name || '').toUpperCase();
+
+    const swatches = (list, key) => list.map(c =>
+      `<button class="sw ${art[key] === c ? 'on' : ''}" data-set="${key}" data-val="${c}"
+        style="background:${c}" aria-label="colour ${c}"></button>`).join('');
+
+    function render() {
+      show(`<div class="gate-inner">
+        <div class="gate-logo tight"><h1>YOUR TECHNICIAN</h1>
+          <p>This is you. Every player builds their own — no two desks look alike.</p></div>
+
+        <div class="creator-stage">
+          <div class="creator-glow"></div>
+          <svg class="creator-svg" viewBox="0 0 160 250" xmlns="http://www.w3.org/2000/svg" id="cPrev">
+            ${Art.person(art, { id: 'cr' + Date.now() })}
+          </svg>
+          <button class="btn sm ghost dice" data-act="random">🎲 SURPRISE ME</button>
+        </div>
+
+        <div class="gate-card">
+          ${opts.lockName
+          ? `<div class="fld locked"><span>NAME ON THE BADGE</span><b>${esc(name)}</b></div>`
+          : `<label class="fld"><span>NAME ON THE BADGE</span>
+            <input id="cName" type="text" maxlength="14" value="${esc(name)}"
+              placeholder="e.g. SAM" autocapitalize="characters"></label>`}
+
+          <div class="opt"><span class="opt-lbl">SKIN</span><div class="sws">${swatches(C.skin, 'skin')}</div></div>
+          <div class="opt"><span class="opt-lbl">HAIR</span><div class="sws">${swatches(C.hair, 'hair')}</div></div>
+          <div class="opt"><span class="opt-lbl">STYLE</span><div class="sws wrap">
+            ${C.styles.map(st => `<button class="pill ${art.hairStyle === st.key ? 'on' : ''}" data-set="hairStyle" data-val="${st.key}">${st.label}</button>`).join('')}
+          </div></div>
+          <div class="opt"><span class="opt-lbl">SHIRT</span><div class="sws">${swatches(C.shirt, 'shirt')}</div></div>
+          <div class="opt"><span class="opt-lbl">EXTRAS</span><div class="sws wrap">
+            <button class="pill ${art.glasses ? 'on' : ''}" data-toggle="glasses">👓 Glasses</button>
+            <button class="pill ${art.headset ? 'on' : ''}" data-toggle="headset">🎧 Headset</button>
+            <button class="pill ${art.beard ? 'on' : ''}" data-toggle="beard">🧔 Beard</button>
+          </div></div>
+        </div>
+
+        <div class="gate-logo tight"><h1>YOUR STARTING PATH</h1>
+          <p>What kind of technician are you? This shapes your whole run — pick the one that sounds like you.</p></div>
+        <div class="spec-list">
+          ${C.specs.map(sp => `<button class="spec ${spec === sp.id ? 'on' : ''}" data-spec="${sp.id}">
+            <div class="spec-top"><span class="spec-ico">${sp.icon}</span>
+              <div><h3>${esc(sp.name)}</h3><div class="spec-tag">${esc(sp.tag)}</div></div>
+              <span class="spec-tick">${spec === sp.id ? '✓' : ''}</span></div>
+            <p class="spec-blurb">${esc(sp.blurb)}</p>
+            <div class="spec-pro">＋ ${esc(sp.strength)}</div>
+            <div class="spec-con">－ ${esc(sp.weakness)}</div>
+          </button>`).join('')}
+        </div>
+
+        <p class="gate-err" id="cErr"></p>
+        <button class="btn gold cta big" id="cGo">START YOUR FIRST SHIFT</button>
+        ${opts.back ? '<button class="btn ghost cta" data-act="back">BACK</button>' : ''}
+        <div style="height:20px"></div>
+      </div>`);
+
+      const preview = () => { $('#cPrev').innerHTML = Art.person(art, { id: 'cr' + Math.random().toString(36).slice(2, 6) }); };
+
+      gate().querySelectorAll('[data-set]').forEach(b => b.onclick = () => {
+        art[b.dataset.set] = b.dataset.val; sync(); render();
+      });
+      gate().querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+        art[b.dataset.toggle] = !art[b.dataset.toggle]; render();
+      });
+      gate().querySelectorAll('[data-spec]').forEach(b => b.onclick = () => { spec = b.dataset.spec; render(); });
+      const dice = gate().querySelector('[data-act="random"]');
+      if (dice) dice.onclick = () => {
+        art.skin = C.skin[Math.floor(Math.random() * C.skin.length)];
+        art.hair = C.hair[Math.floor(Math.random() * C.hair.length)];
+        art.shirt = C.shirt[Math.floor(Math.random() * C.shirt.length)];
+        art.hairStyle = C.styles[Math.floor(Math.random() * C.styles.length)].key;
+        art.glasses = Math.random() < .5; art.headset = Math.random() < .4; art.beard = Math.random() < .3;
+        sync(); render();
+      };
+      const back = gate().querySelector('[data-act="back"]');
+      if (back) back.onclick = opts.back;
+
+      const nameField = $('#cName');
+      if (nameField) nameField.oninput = e => { name = e.target.value.toUpperCase(); e.target.value = name; };
+      $('#cGo').onclick = () => {
+        const n = (nameField ? nameField.value : name || '').trim().toUpperCase();
+        if (n.length < 2) { $('#cErr').textContent = 'Give your technician a name first.'; return; }
+        $('#cGo').disabled = true; $('#cGo').textContent = 'CLOCKING IN…';
+        onDone({ name: n, art, spec });
+      };
+    }
+    render();
+  }
+
+  return { auth, creator, show, hide, gate };
 })();
 
 /* ============================================================
@@ -2613,8 +3146,15 @@ const UI = (() => {
       </div>
       <div class="row" style="margin-top:12px;gap:8px">
         <button class="btn sm" data-act="mute" style="flex:1">${muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
-        <button class="btn sm ghost" data-act="reset" style="flex:1;color:var(--alarm)">RESET GAME</button>
+        <button class="btn sm ghost" data-act="reset" style="flex:1;color:var(--alarm)">START OVER</button>
       </div>
+      ${Net.online ? `<div class="acct">
+        <div><div class="tiny muted">SIGNED IN AS</div><b>${esc(S.name)}</b>
+          <div class="tiny muted">Progress saves to the server automatically.</div></div>
+        <button class="btn sm ghost" data-act="signout">SIGN OUT</button>
+      </div>
+      <button class="btn ghost cta tiny" data-act="delete-account"
+        style="color:var(--muted);font-size:11px;padding:6px">Delete my account and all my progress</button>` : `<p class="tiny muted" style="text-align:center;margin-top:12px">Playing solo — this save lives in this browser only.</p>`}
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
 
@@ -2639,11 +3179,28 @@ const UI = (() => {
         case 'incident': return Game.incidentReady() ? openIncidentWarning() : toast('🚨', 'NO ACTIVE INCIDENT', 'The next one is already brewing somewhere.');
         case 'incident-go': return runIncident();
         case 'mute': muted = !muted; localStorage.setItem('ie-mute', muted ? '1' : '0'); UI.closeSheet(); return toast(muted ? '🔇' : '🔊', muted ? 'SOUND OFF' : 'SOUND ON', 'Changed your mind? The bell menu has it.');
-        case 'reset': return UI.sheet(`<span class="big-emoji">⚠️</span><h3>RESET EVERYTHING?</h3>
-          <p class="sub">This wipes the save completely. There is no undo.</p>
+        case 'signout': return UI.sheet(`<span class="big-emoji">👋</span><h3>SIGN OUT?</h3>
+          <p class="sub">Your progress is saved. Sign back in any time, on any device.</p>
+          <button class="btn gold cta" data-act="signout-yes">SIGN OUT</button>
+          <button class="btn ghost cta" data-close="1">STAY</button>`);
+        case 'signout-yes': window.IE_signOut(); return;
+        case 'delete-account': return UI.sheet(`<span class="big-emoji">🗑️</span><h3>DELETE YOUR ACCOUNT?</h3>
+          <p class="sub">${esc(Game.state.name)} disappears from the leaderboard and every level, employee and credit goes with it. This cannot be undone.</p>
+          <button class="btn cta" style="background:var(--alarm);color:#fff" data-act="delete-yes">DELETE EVERYTHING</button>
+          <button class="btn ghost cta" data-close="1">KEEP MY ACCOUNT</button>`);
+        case 'delete-yes': {
+          Net.deleteAccount().then(() => { Net.logout(); Game.wipe(); location.reload(); });
+          return;
+        }
+        case 'reset': return UI.sheet(`<span class="big-emoji">⚠️</span><h3>START OVER?</h3>
+          <p class="sub">Every level, employee and credit goes. You will build a new technician from scratch${Net.online ? ' under the same account' : ''}. There is no undo.</p>
           <button class="btn cta" style="background:var(--alarm);color:#fff" data-act="reset-yes">YES, WIPE IT</button>
           <button class="btn ghost cta" data-close="1">KEEP MY EMPIRE</button>`);
-        case 'reset-yes': Game.wipe(); location.reload(); return;
+        case 'reset-yes':
+          UI.closeSheet();
+          if (!Net.online) Game.wipe();
+          window.IE_startOver();
+          return;
         case 'reorg':
           if (!Game.reorgReady()) return toast('🔒', 'NOT YET', 'Reach level 30 before restructuring.');
           return UI.sheet(`<span class="big-emoji">🔄</span><h3>IT REORGANISATION</h3>
@@ -2720,24 +3277,105 @@ const UI = (() => {
   }
 
   /* ---------- BOOT ---------- */
-  const res = Game.load();
-  UI.buildStage();
-  UI.show('hq');
   Game.on('change', () => { if (!document.hidden) UI.renderTop(); });
 
-  if (res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
-  else if (res.fresh) setTimeout(() => UI.sheet(`
-      <span class="big-emoji">🧑‍💻</span>
+  let running = false;
+
+  function firstShift() {
+    const sp = DATA.spec(Game.state.hero.spec);
+    UI.sheet(`
+      <span class="big-emoji">${sp.icon}</span>
       <h3>DAY ONE ON THE HELPDESK</h3>
-      <p class="sub">One desk. One screwdriver. A queue that never ends.</p>
+      <p class="sub">${esc(Game.state.name)} · ${esc(sp.name)}</p>
       <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">RESOLVE TICKET</b> to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
       <p class="tiny" style="text-align:center;color:var(--crt)">Somewhere above you, there is a CTO chair with your name on it.</p>
-      <button class="btn gold cta" data-close="1">CLOCK IN</button>`), 350);
+      <button class="btn gold cta" data-close="1">CLOCK IN</button>`);
+  }
 
-  setInterval(Game.save, 10000);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) Game.save(); else { UI.refresh(); } });
-  window.addEventListener('beforeunload', Game.save);
-  requestAnimationFrame(loop);
+  const dropSplash = () => {
+    const sp = document.querySelector('#splash');
+    if (sp) { sp.classList.add('gone'); setTimeout(() => sp.remove(), 400); }
+  };
+
+  function startGame(res, opts = {}) {
+    Onboard.hide();
+    dropSplash();
+    UI.buildStage();
+    UI.show('hq');
+    if (res && res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
+    else if (opts.fresh) setTimeout(firstShift, 350);
+    if (!running) {
+      running = true;
+      setInterval(() => { Game.save(); if (Net.online) Net.flush(true); }, 10000);
+      requestAnimationFrame(loop);
+    }
+  }
+
+  function buildCharacter(opts) {
+    dropSplash();
+    Onboard.creator(profile => {
+      Game.newGame(null, profile);
+      Game.save();
+      if (Net.online) Net.flush(true);
+      startGame(null, { fresh: true });
+    }, opts || {});
+  }
+
+  function afterAuth(r) {
+    Game.setStore(Net.store);
+    if (r.state) {
+      const res = Game.loadFrom(r.state, r.now);
+      if (!res.needsCharacter) {
+        if (r.player && r.player.name) Game.state.name = r.player.name;
+        return startGame(res);
+      }
+    }
+    // A brand new account: they built their technician on the way in.
+    const name = (r.profile && r.profile.name) || (r.player && r.player.name) || 'JASON';
+    if (r.profile) {
+      Game.newGame(null, r.profile);
+      Game.save(); Net.flush(true);
+      return startGame(null, { fresh: true });
+    }
+    buildCharacter({ name: name.toUpperCase(), lockName: true });
+  }
+
+  async function boot() {
+    const online = await Net.probe();
+
+    if (!online) {                       // solo: this browser keeps the save
+      const saved = Game.localStore.read();
+      const res = saved ? Game.loadFrom(saved) : { needsCharacter: true };
+      if (res.needsCharacter) return buildCharacter();
+      return startGame(res);
+    }
+
+    Game.setStore(Net.store);
+    if (Net.token) {
+      const r = await Net.resume();
+      if (r.ok) return afterAuth(r);
+      Net.logout();
+    }
+    dropSplash();
+    Onboard.auth(afterAuth);
+  }
+
+  window.IE_startOver = () => buildCharacter(
+    Net.online ? { name: (Game.state.name || '').toUpperCase(), lockName: true } : {});
+
+  window.IE_signOut = () => {
+    Game.save(); Net.flushBeacon(); Net.logout();
+    location.reload();
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { Game.save(); if (Net.online) Net.flush(true); }
+    else if (running) UI.refresh();
+  });
+  window.addEventListener('pagehide', () => { Game.save(); Net.flushBeacon(); });
+  window.addEventListener('beforeunload', () => { Game.save(); Net.flushBeacon(); });
+
+  boot();
 })();
 
 </script>
