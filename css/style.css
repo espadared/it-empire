@@ -767,3 +767,11 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 }
 .fitbadge small{display:block;font-size:8px;letter-spacing:.06em}
 .fitbadge.good{color:var(--good)} .fitbadge.poor{color:var(--alarm)}
+
+/* a technician who has learned all the department can teach */
+.avatar .lv.max{background:linear-gradient(180deg,#FFC46A,#E68A26);color:#31190A;font-weight:700}
+.maxed{
+  margin-top:12px;text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;
+  letter-spacing:.04em;color:var(--lamp);border:1px solid var(--lamp-dim);border-radius:13px;
+  padding:12px;background:rgba(255,179,71,.08);
+}

@@ -24,6 +24,7 @@ const UI = (() => {
   /* Why the level-up button is not lit. An unexplained dead button reads as
      a bug; naming the missing piece turns it into a goal. */
   function levelBlocker(c) {
+    if (Game.atMaxLevel(c)) return { what: 'max', text: `fully qualified — level ${DATA.MAX_CHAR_LEVEL} is as far as anyone goes` };
     const need = Game.charXpNeed(c.level), cost = Game.levelCost(c);
     if (c.xp < need) return { what: 'xp', text: `${f(need - c.xp)} more XP` };
     if (Game.state.credits < cost) return { what: 'credits', text: `💰${f(cost - Game.state.credits)} short` };
@@ -366,7 +367,7 @@ const UI = (() => {
     const o = Game.staffOutput(c);
     return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
-        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv">L${c.level}</span></div>
+        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv${Game.atMaxLevel(c) ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
           <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
           <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
@@ -379,9 +380,9 @@ const UI = (() => {
       </div>
       <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
       <div class="row" style="margin-top:8px">
-        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
+        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
+        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${Game.atMaxLevel(c) ? 'MAX' : 'LV UP'}</button>
       </div>
       ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
     </div>`;
@@ -570,12 +571,14 @@ const UI = (() => {
       </div>
 
       <div class="row" style="margin-top:12px">
-        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${f(c.xp)}/${f(need)} XP</span>
+        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX LEVEL' : f(c.xp) + '/' + f(need) + ' XP'}</span>
       </div>
-      <button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
-        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
-      ${Game.canLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
+      ${Game.atMaxLevel(c)
+        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${DATA.MAX_CHAR_LEVEL}</div>`
+        : `<button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
+        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
+      ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>

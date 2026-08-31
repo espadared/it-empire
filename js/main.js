@@ -501,6 +501,10 @@
       else {
         UI.beep('fail');
         const c = Game.state.roster.find(x => x.uid === d.levelup);
+        if (c && Game.atMaxLevel(c)) {
+          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${DATA.MAX_CHAR_LEVEL} — as far as anyone goes.`);
+          return;
+        }
         const short = c && (c.xp < Game.charXpNeed(c.level)
           ? `${f(Game.charXpNeed(c.level) - c.xp)} more XP — they earn it from every ticket you work`
           : `${f(Game.levelCost(c) - Game.state.credits)} more credits`);

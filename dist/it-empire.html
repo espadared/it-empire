@@ -776,6 +776,14 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .fitbadge small{display:block;font-size:8px;letter-spacing:.06em}
 .fitbadge.good{color:var(--good)} .fitbadge.poor{color:var(--alarm)}
 
+/* a technician who has learned all the department can teach */
+.avatar .lv.max{background:linear-gradient(180deg,#FFC46A,#E68A26);color:#31190A;font-weight:700}
+.maxed{
+  margin-top:12px;text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;
+  letter-spacing:.04em;color:var(--lamp);border:1px solid var(--lamp-dim);border-radius:13px;
+  padding:12px;background:rgba(255,179,71,.08);
+}
+
 </style>
 <div id="app">
 
@@ -1044,6 +1052,10 @@ const DATA = (() => {
   const DIAGNOSE_MIN = 0.07;         // 1 in 14, when barely playing
   const DIAGNOSE_MAX = 0.17;         // 1 in 6, when in full flow
   const DIAGNOSE_PITY = 22;          // never go longer than this without one
+
+  /* How far a technician can be developed. Past this they are as good as the
+     department can make them — bring somebody else on instead. */
+  const MAX_CHAR_LEVEL = 80;
 
   /* Your hands-on allowance. You can personally work this many tickets an
      hour; the hour starts when you work your first one, and when it is up the
@@ -1561,6 +1573,7 @@ const DATA = (() => {
     { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 25 times.',        metric:'diagnosed', target:25,     rep:300 },
     { id:'a_deleg',    name:'THAT IS WHAT A TEAM IS FOR', desc:'Hand 100 tickets to colleagues.', metric:'delegated', target:100,   rep:200 },
     { id:'a_flow',     name:'IN THE ZONE',        desc:'Reach full momentum.',                  metric:'maxmomentum', target:100,  rep:150 },
+    { id:'a_maxed',    name:'FULLY QUALIFIED',    desc:'Take a colleague all the way to level 80.', metric:'maxedstaff', target:1,  rep:600 },
   ];
 
   /* ---------- LEGACY (PRESTIGE) UPGRADES ---------- */
@@ -1583,7 +1596,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();
@@ -2545,6 +2558,7 @@ const Game = (() => {
   function grantStaffXp(n) {
     if (n <= 0) return;
     S.roster.forEach(c => {
+      if (atMaxLevel(c)) { c.xp = charXpNeed(c.level); return; }   // done learning
       const d = def(c.defId);
       let g = n * (1 + (d.perks.xp || 0));
       if (c.uid !== S.activeId) g *= BENCH_XP_SHARE;
@@ -2552,7 +2566,10 @@ const Game = (() => {
     });
   }
 
-  function canLevel(c) { return c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c); }
+  const atMaxLevel = c => c.level >= DATA.MAX_CHAR_LEVEL;
+  function canLevel(c) {
+    return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
+  }
   function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
@@ -2677,7 +2694,7 @@ const Game = (() => {
   function hire(defId) {
     const d = def(defId); if (!canHire(d)) return null;
     S.credits -= hireCost(d);
-    const c = mkChar(defId, Math.max(1, Math.floor(S.level * 0.6)));
+    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, DATA.MAX_CHAR_LEVEL));
     S.roster.push(c); S.unlocked[defId] = true;
     checkAchievements(); emit('change');
     return c;
@@ -2801,6 +2818,7 @@ const Game = (() => {
     if (m === 'diagnosed') return L.diagnosed || 0;
     if (m === 'delegated') return L.delegated || 0;
     if (m === 'maxmomentum') return Math.round(L.maxMomentum || 0);
+    if (m === 'maxedstaff') return S.roster.filter(c => c.level >= DATA.MAX_CHAR_LEVEL).length;
     if (m === 'monday') return L.monday;
     if (m === 'reorgs') return L.reorgs;
     if (m.startsWith('cat_')) return L.cat[m.slice(4)] || 0;
@@ -2978,6 +2996,7 @@ const Game = (() => {
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
       refreshQuota();          // an hour away means a full allowance on arrival
+      S.roster.forEach(c => { if (c.level > DATA.MAX_CHAR_LEVEL) c.level = DATA.MAX_CHAR_LEVEL; });
 
       // Older saves fitted people out individually. Promote the best of what
       // anyone was carrying into the department standard, then retire the
@@ -3028,7 +3047,7 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
-    hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
+    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, scrapItem,
     build, buildCost, canBuild,
@@ -3064,6 +3083,7 @@ const UI = (() => {
   /* Why the level-up button is not lit. An unexplained dead button reads as
      a bug; naming the missing piece turns it into a goal. */
   function levelBlocker(c) {
+    if (Game.atMaxLevel(c)) return { what: 'max', text: `fully qualified — level ${DATA.MAX_CHAR_LEVEL} is as far as anyone goes` };
     const need = Game.charXpNeed(c.level), cost = Game.levelCost(c);
     if (c.xp < need) return { what: 'xp', text: `${f(need - c.xp)} more XP` };
     if (Game.state.credits < cost) return { what: 'credits', text: `💰${f(cost - Game.state.credits)} short` };
@@ -3406,7 +3426,7 @@ const UI = (() => {
     const o = Game.staffOutput(c);
     return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
-        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv">L${c.level}</span></div>
+        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv${Game.atMaxLevel(c) ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
           <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
           <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
@@ -3419,9 +3439,9 @@ const UI = (() => {
       </div>
       <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
       <div class="row" style="margin-top:8px">
-        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
+        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
+        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${Game.atMaxLevel(c) ? 'MAX' : 'LV UP'}</button>
       </div>
       ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
     </div>`;
@@ -3610,12 +3630,14 @@ const UI = (() => {
       </div>
 
       <div class="row" style="margin-top:12px">
-        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${f(c.xp)}/${f(need)} XP</span>
+        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX LEVEL' : f(c.xp) + '/' + f(need) + ' XP'}</span>
       </div>
-      <button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
-        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
-      ${Game.canLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
+      ${Game.atMaxLevel(c)
+        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${DATA.MAX_CHAR_LEVEL}</div>`
+        : `<button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
+        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
+      ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>
@@ -4579,6 +4601,10 @@ const Onboard = (() => {
       else {
         UI.beep('fail');
         const c = Game.state.roster.find(x => x.uid === d.levelup);
+        if (c && Game.atMaxLevel(c)) {
+          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${DATA.MAX_CHAR_LEVEL} — as far as anyone goes.`);
+          return;
+        }
         const short = c && (c.xp < Game.charXpNeed(c.level)
           ? `${f(Game.charXpNeed(c.level) - c.xp)} more XP — they earn it from every ticket you work`
           : `${f(Game.levelCost(c) - Game.state.credits)} more credits`);

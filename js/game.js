@@ -501,6 +501,7 @@ const Game = (() => {
   function grantStaffXp(n) {
     if (n <= 0) return;
     S.roster.forEach(c => {
+      if (atMaxLevel(c)) { c.xp = charXpNeed(c.level); return; }   // done learning
       const d = def(c.defId);
       let g = n * (1 + (d.perks.xp || 0));
       if (c.uid !== S.activeId) g *= BENCH_XP_SHARE;
@@ -508,7 +509,10 @@ const Game = (() => {
     });
   }
 
-  function canLevel(c) { return c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c); }
+  const atMaxLevel = c => c.level >= DATA.MAX_CHAR_LEVEL;
+  function canLevel(c) {
+    return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
+  }
   function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
@@ -633,7 +637,7 @@ const Game = (() => {
   function hire(defId) {
     const d = def(defId); if (!canHire(d)) return null;
     S.credits -= hireCost(d);
-    const c = mkChar(defId, Math.max(1, Math.floor(S.level * 0.6)));
+    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, DATA.MAX_CHAR_LEVEL));
     S.roster.push(c); S.unlocked[defId] = true;
     checkAchievements(); emit('change');
     return c;
@@ -757,6 +761,7 @@ const Game = (() => {
     if (m === 'diagnosed') return L.diagnosed || 0;
     if (m === 'delegated') return L.delegated || 0;
     if (m === 'maxmomentum') return Math.round(L.maxMomentum || 0);
+    if (m === 'maxedstaff') return S.roster.filter(c => c.level >= DATA.MAX_CHAR_LEVEL).length;
     if (m === 'monday') return L.monday;
     if (m === 'reorgs') return L.reorgs;
     if (m.startsWith('cat_')) return L.cat[m.slice(4)] || 0;
@@ -934,6 +939,7 @@ const Game = (() => {
       delete S.ticket;
       if (!Array.isArray(S.queue)) S.queue = [];
       refreshQuota();          // an hour away means a full allowance on arrival
+      S.roster.forEach(c => { if (c.level > DATA.MAX_CHAR_LEVEL) c.level = DATA.MAX_CHAR_LEVEL; });
 
       // Older saves fitted people out individually. Promote the best of what
       // anyone was carrying into the department standard, then retire the
@@ -984,7 +990,7 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
-    hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
+    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, scrapItem,
     build, buildCost, canBuild,

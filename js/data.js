@@ -209,6 +209,10 @@ const DATA = (() => {
   const DIAGNOSE_MAX = 0.17;         // 1 in 6, when in full flow
   const DIAGNOSE_PITY = 22;          // never go longer than this without one
 
+  /* How far a technician can be developed. Past this they are as good as the
+     department can make them — bring somebody else on instead. */
+  const MAX_CHAR_LEVEL = 80;
+
   /* Your hands-on allowance. You can personally work this many tickets an
      hour; the hour starts when you work your first one, and when it is up the
      allowance comes back in full. Your team keeps the automated queue running
@@ -725,6 +729,7 @@ const DATA = (() => {
     { id:'a_diag',     name:'IT IS ALWAYS DNS',   desc:'Name the right cause 25 times.',        metric:'diagnosed', target:25,     rep:300 },
     { id:'a_deleg',    name:'THAT IS WHAT A TEAM IS FOR', desc:'Hand 100 tickets to colleagues.', metric:'delegated', target:100,   rep:200 },
     { id:'a_flow',     name:'IN THE ZONE',        desc:'Reach full momentum.',                  metric:'maxmomentum', target:100,  rep:150 },
+    { id:'a_maxed',    name:'FULLY QUALIFIED',    desc:'Take a colleague all the way to level 80.', metric:'maxedstaff', target:1,  rep:600 },
   ];
 
   /* ---------- LEGACY (PRESTIGE) UPGRADES ---------- */
@@ -747,7 +752,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();
