@@ -36,9 +36,20 @@
   }
 
   /* ---------- WORKING THE QUEUE ---------- */
-  let busy = false;
+  /* One ticket at a time, not one queue at a time. A single shared flag meant
+     that fixing anything froze the whole board for a moment, so a second tap
+     on a *different* ticket was silently swallowed. */
+  const working = new Set();
 
   function cardOf(tuid) { return document.querySelector(`[data-tk="${tuid}"]`); }
+
+  function stopWorking(tuid) {
+    working.delete(tuid);
+    if (!working.size) {
+      const hero = $('#heroWrap');
+      hero && hero.classList.remove('working');
+    }
+  }
 
   function showResult(res, anchor) {
     const r = (anchor || document.body).getBoundingClientRect();
@@ -68,20 +79,26 @@
   }
 
   function doFix(tuid) {
-    if (busy) return;
+    if (working.has(tuid)) return;
     const t = Game.ticketBy(tuid); if (!t) return;
     if (Game.needsDiagnosis(t)) return openDiagnosis(tuid);
-    busy = true;
-    const card = cardOf(tuid), hero = $('#heroWrap');
+    working.add(tuid);
+    const hero = $('#heroWrap');
     hero && hero.classList.add('working');
+    const card = cardOf(tuid);
     card && card.classList.add('going');
     UI.beep('tap');
     setTimeout(() => {
-      hero && hero.classList.remove('working');
-      const res = Game.resolveTicket(tuid);
-      busy = false;
-      if (res) showResult(res, card);
-    }, 260);
+      try {
+        // another ticket resolving may have re-rendered the queue underneath
+        // us, so find the card again rather than trusting the old node
+        const live = cardOf(tuid) || card;
+        const res = Game.resolveTicket(tuid);
+        if (res) showResult(res, live);
+      } finally {
+        stopWorking(tuid);
+      }
+    }, 180);
   }
 
   /* The diagnosis. The ticket's clock keeps running while you think — that
@@ -103,11 +120,13 @@
       <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.04em">SO WHAT IS ACTUALLY WRONG?</p>
       ${opts.map((o, i) => `<button class="diag-opt" data-diag="${tuid}" data-ok="${o.ok ? 1 : 0}" data-i="${i}">${esc(o.t)}</button>`).join('')}
       <p class="diag-timer" style="margin-top:12px">The clock is still running · <b id="diagLeft">${Math.ceil(t.left)}s</b></p>
-    `, { dismiss: false, grab: false, live: true });
+      <button class="btn ghost cta" data-close="1">BACK TO THE QUEUE</button>
+    `, { grab: false, live: true });
   }
 
   function answerDiagnosis(tuid, ok, idx) {
-    if (busy) return; busy = true;
+    if (working.has(tuid)) return;
+    working.add(tuid);
     const btn = document.querySelector(`[data-diag="${tuid}"][data-i="${idx}"]`);
     document.querySelectorAll('[data-diag]').forEach(b => {
       if (b.dataset.ok === '1') b.classList.add('ok');
@@ -116,12 +135,15 @@
     UI.beep(ok ? 'great' : 'fail');
     if (!ok) UI.shake();
     setTimeout(() => {
-      UI.closeSheet();
-      const card = cardOf(tuid);
-      const res = Game.resolveTicket(tuid, { diag: ok ? 1 : 0 });
-      busy = false;
-      if (res) showResult(res, card);
-    }, 760);
+      try {
+        UI.closeSheet();
+        const card = cardOf(tuid);
+        const res = Game.resolveTicket(tuid, { diag: ok ? 1 : 0 });
+        if (res) showResult(res, card);
+      } finally {
+        stopWorking(tuid);
+      }
+    }, 700);
   }
 
   /* Hand it over. Costs you nothing but the reward and their availability. */
@@ -341,10 +363,14 @@
     if (d.fix) return doFix(d.fix);
     if (d.delegate) return openDelegate(d.delegate);
     if (d.deleGo) {
-      UI.closeSheet();
-      const card = cardOf(d.deleGo);
-      const res = Game.delegate(d.deleGo, d.who);
-      if (res) showResult(res, card); else UI.beep('fail');
+      if (working.has(d.deleGo)) return;
+      working.add(d.deleGo);
+      try {
+        UI.closeSheet();
+        const card = cardOf(d.deleGo);
+        const res = Game.delegate(d.deleGo, d.who);
+        if (res) showResult(res, card); else UI.beep('fail');
+      } finally { stopWorking(d.deleGo); }
       return;
     }
     if (d.escalate) return doEscalate(d.escalate);
