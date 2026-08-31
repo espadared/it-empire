@@ -112,7 +112,10 @@ def page(q, p_table, a_table):
     active_today = len(by_day.get(today.isoformat(), {}).get("players", set()))
     active_week = len({pid for d in week for pid in by_day.get(d, {}).get("players", set())})
     returners = sum(1 for v in by_player.values() if len(v["days"]) > 1)
-    stuck = sum(1 for v in by_player.values() if v["seconds"] < 300)
+    hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    stuck = sum(1 for pid, _n, _l, _r, _t, _s, _a, created, _u, _st in players
+                if by_player.get(pid, {}).get("seconds", 0) < 300
+                and (_ts(created) or hour_ago) < hour_ago)
 
     # --- rows
     rows = []
@@ -121,6 +124,7 @@ def page(q, p_table, a_table):
         a = by_player.get(pid, {"seconds": 0, "days": set(), "sessions": 0})
         last = _ts(updated)
         first = _ts(created)
+        visits = max(a["sessions"], 1 if a["seconds"] > 0 else 0)
         life = _life(state)
         breaches = int(life.get("breaches") or 0)
         total_breaches += breaches
@@ -137,7 +141,7 @@ def page(q, p_table, a_table):
           <td class="n">{_num(tickets)}</td>
           <td class="n hi">{_dur(a['seconds'])}</td>
           <td class="n">{len(a['days'])}</td>
-          <td class="n">{a['sessions']}</td>
+          <td class="n">{visits}</td>
           <td class="n {'warn' if rate > 25 else ''}">{_num(breaches)}{f' <span class="sub">{rate:.0f}%</span>' if breaches else ''}</td>
           <td class="sub">{_ago(first)}</td>
           <td class="sub">{_ago(last)}</td>
@@ -171,15 +175,19 @@ def page(q, p_table, a_table):
     feed = []
     for pid, name, level, rep, tickets, spec, art, created, updated, state in players[:8]:
         a = by_player.get(pid, {"seconds": 0, "days": set(), "sessions": 0})
+        who = html.escape(str(name))
+        visits = max(a["sessions"], 1 if a["seconds"] > 0 else 0)
+        days = len(a["days"])
         if a["seconds"] < 60:
-            feed.append(f"<li><b>{html.escape(str(name))}</b> signed up "
-                        f"{_ago(_ts(created))} but has barely played — under a minute so far.</li>")
+            feed.append(f"<li><b>{who}</b> signed up {_ago(_ts(created))} and has barely "
+                        f"played — under a minute so far.</li>")
         else:
+            spread = (f" over {days} days and {visits} visits" if days > 1
+                      else f" in {visits} visit{'s' if visits != 1 else ''}")
             feed.append(
-                f"<li><b>{html.escape(str(name))}</b> has played {_dur(a['seconds'])} "
-                f"across {a['sessions']} visit{'s' if a['sessions'] != 1 else ''} on "
-                f"{len(a['days'])} day{'s' if len(a['days']) != 1 else ''}, reached level "
-                f"{_num(level)} and resolved {_num(tickets)} tickets. Last seen {_ago(_ts(updated))}.</li>")
+                f"<li><b>{who}</b> has played {_dur(a['seconds'])}{spread}, reached level "
+                f"{_num(level)} and resolved {_num(tickets)} tickets. "
+                f"Last seen {_ago(_ts(updated))}.</li>")
 
     return f"""<!doctype html>
 <html lang="en"><head>
