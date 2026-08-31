@@ -1,0 +1,2743 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E1220">
+<title>IT Empire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ============================================================
+   IT EMPIRE — a helpdesk at dusk.
+   Single committed visual world (dark office). Every colour explicit.
+   ============================================================ */
+
+:root{
+  --ink:#0E1220; --ink-2:#0A0E1A;
+  --panel:#1A2136; --panel-2:#232C46; --panel-3:#2C3552;
+  --line:#333D5E;
+  --lamp:#FFB347; --lamp-dim:#8A6230;
+  --crt:#4FD6C9; --crt-dim:#2C6E68;
+  --alarm:#FF5A5F; --rep:#C08BFF; --good:#5FD37A;
+  --text:#E8ECF7; --muted:#8A93AD; 
+  --faint:#5C6480;
+  --r-common:#8A93AD; --r-uncommon:#5FD37A; --r-rare:#4FA8FF;
+  --r-epic:#B67CFF; --r-legendary:#FFB347; --r-mythic:#FF5A9E;
+  --shadow:0 8px 24px rgba(0,0,0,.45);
+  --disp:'Baloo 2',system-ui,sans-serif;
+  --body:'Nunito',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink-2); color:var(--text);
+  font-family:var(--body); font-size:15px; line-height:1.45;
+  overscroll-behavior:none; -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outline-offset:2px;border-radius:8px}
+
+/* ---------- SHELL ---------- */
+#app{
+  position:relative; width:100%; max-width:480px; margin:0 auto;
+  height:100dvh; max-height:100dvh;
+  background:var(--ink); display:flex; flex-direction:column; overflow:hidden;
+}
+@media (min-width:520px){
+  body{background:radial-gradient(1200px 700px at 50% -10%,#1B2138,#06080F 70%)}
+  #app{box-shadow:0 0 0 1px var(--line),0 30px 80px rgba(0,0,0,.6)}
+}
+
+/* ---------- TOP BAR ---------- */
+#topbar{
+  position:sticky; top:0; z-index:40; flex:0 0 auto;
+  background:linear-gradient(180deg,#1C2340 0%,rgba(20,26,45,.96) 100%);
+  border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 9px;
+  backdrop-filter:blur(8px);
+}
+.tb-row1{display:flex;align-items:center;gap:10px}
+.lvl-badge{
+  flex:0 0 auto;width:46px;height:46px;border-radius:14px;
+  background:linear-gradient(160deg,var(--lamp),#E07C2B);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 3px 0 #8A4E17, inset 0 1px 0 rgba(255,255,255,.4);
+  color:#2A1704;
+}
+.lvl-badge b{font-family:var(--disp);font-size:19px;line-height:.95;font-weight:800}
+.lvl-badge span{font-size:8px;font-weight:800;letter-spacing:.1em}
+.tb-name{flex:1 1 auto;min-width:0}
+.tb-name h1{
+  font-family:var(--disp);font-weight:800;font-size:17px;margin:0;line-height:1.1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tb-name p{margin:1px 0 0;font-size:11px;color:var(--lamp);font-weight:700;letter-spacing:.02em}
+.tb-rank{font-size:10px;color:var(--muted);letter-spacing:.04em}
+.bell{
+  position:relative;width:38px;height:38px;border-radius:12px;background:var(--panel-2);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:16px;flex:0 0 auto;
+}
+.bell .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--alarm);box-shadow:0 0 0 2px var(--panel-2)}
+
+.tb-res{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.res{
+  display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;padding:5px 8px;min-width:0;
+}
+.res i{font-style:normal;font-size:13px;flex:0 0 auto}
+.res .v{font-family:var(--mono);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res.credits .v{color:var(--lamp)} .res.rep .v{color:var(--rep)}
+.bar{position:relative;flex:1 1 auto;height:9px;border-radius:5px;background:#0E1322;overflow:hidden;border:1px solid #0A0E1A}
+.bar>span{display:block;height:100%;border-radius:5px;transition:width .45s cubic-bezier(.2,.9,.3,1)}
+.bar.xp>span{background:linear-gradient(90deg,#3FA9C9,var(--crt))}
+.bar.energy>span{background:linear-gradient(90deg,#C98A2B,#FFD37A)}
+.res .lbl{font-family:var(--mono);font-size:10px;color:var(--muted);flex:0 0 auto;font-variant-numeric:tabular-nums}
+
+/* ---------- SCREENS ---------- */
+#screens{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.screen{display:none;animation:fadeIn .22s ease both}
+.screen.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.sec-head{display:flex;align-items:baseline;gap:8px;padding:16px 14px 6px}
+.sec-head h2{font-family:var(--disp);font-weight:800;font-size:16px;margin:0;letter-spacing:.02em}
+.sec-head span{font-size:11px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+
+/* ---------- HQ STAGE ---------- */
+.stage{position:relative;isolation:isolate;overflow:hidden;background:var(--ink-2);
+  height:clamp(148px,27dvh,216px)}
+.office-svg{display:block;width:100%;height:100%}
+.stage::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 30%,transparent 40%,rgba(6,9,17,.75) 100%);
+}
+.hero-wrap{
+  position:absolute;left:52%;bottom:14px;transform:translateX(-50%);
+  height:70%;z-index:2;filter:drop-shadow(0 14px 18px rgba(0,0,0,.55));
+}
+.hero-svg{display:block;height:100%;width:auto}
+.hero-shadow{
+  position:absolute;left:52%;bottom:11px;transform:translateX(-50%);
+  width:34%;height:15px;background:radial-gradient(closest-side,rgba(0,0,0,.65),transparent);z-index:1;
+}
+.hero-name{
+  position:absolute;left:10px;bottom:32px;z-index:3;max-width:42%;
+}
+.hero-name .n{font-family:var(--disp);font-weight:800;font-size:18px;line-height:1;text-shadow:0 2px 6px #000}
+.hero-name .r{font-size:10.5px;color:var(--lamp);font-weight:700;text-shadow:0 1px 4px #000}
+.hero-name .p{
+  display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-family:var(--mono);font-size:10px;
+  background:rgba(10,14,26,.8);border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:var(--crt);
+}
+.hero-say{
+  position:absolute;right:8px;bottom:34px;z-index:3;max-width:44%;
+  background:rgba(232,236,247,.94);color:#141A2B;border-radius:12px 12px 12px 3px;
+  padding:6px 9px;font-size:11px;font-weight:700;line-height:1.25;box-shadow:var(--shadow);
+}
+.stage-chip{
+  position:absolute;top:8px;left:8px;z-index:3;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 16px);
+}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;background:rgba(12,16,29,.85);border:1px solid var(--line);
+  border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;letter-spacing:.03em;backdrop-filter:blur(4px);
+}
+.chip.live{border-color:var(--crt);color:var(--crt)}
+.chip.event{border-color:var(--lamp);color:var(--lamp);animation:pulseGlow 1.8s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,179,71,.35)}50%{box-shadow:0 0 0 6px rgba(255,179,71,0)}}
+
+/* ---------- TICKET CARD ---------- */
+.ticket{
+  margin:-26px 12px 0;position:relative;z-index:5;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:var(--shadow);
+}
+.ticket.crit{border-color:var(--alarm);box-shadow:0 0 0 1px var(--alarm),0 10px 30px rgba(255,90,95,.25)}
+.tk-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tk-id{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.04em}
+.tk-stars{margin-left:auto;font-size:11px;letter-spacing:1px;color:var(--lamp)}
+.tk-main{display:flex;gap:10px;align-items:flex-start}
+.tk-icon{
+  width:46px;height:46px;flex:0 0 auto;border-radius:13px;display:grid;place-items:center;font-size:23px;
+  background:var(--ink-2);border:1px solid var(--line);
+}
+.tk-body{min-width:0;flex:1}
+.tk-name{font-family:var(--disp);font-weight:800;font-size:16px;line-height:1.15;margin:0}
+.tk-flav{font-size:11.5px;color:var(--muted);margin:3px 0 0;line-height:1.3}
+.tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tag{
+  font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:7px;padding:2px 6px;color:var(--muted);background:var(--ink-2);
+}
+.tag.stat{color:var(--crt);border-color:var(--crt-dim)}
+.tag.odds{color:var(--lamp);border-color:var(--lamp-dim)}
+.tk-rewards{display:flex;gap:10px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);font-family:var(--mono);font-size:11px}
+.tk-rewards b{font-weight:600}
+.rw-c{color:var(--lamp)} .rw-x{color:var(--crt)} .rw-r{color:var(--rep)}
+
+/* ---------- BIG ACTION ---------- */
+.dock{padding:12px 12px 4px}
+.resolve{
+  width:100%;border-radius:20px;padding:16px 14px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#FFC46A,#F0912C 60%,#D9741B);
+  color:#31190A;font-family:var(--disp);font-weight:800;font-size:20px;letter-spacing:.02em;
+  box-shadow:0 6px 0 #A9560F, 0 12px 26px rgba(240,145,44,.32), inset 0 1px 0 rgba(255,255,255,.5);
+  transition:transform .09s ease, box-shadow .09s ease;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+}
+.resolve:active{transform:translateY(5px);box-shadow:0 1px 0 #A9560F,0 4px 12px rgba(240,145,44,.3),inset 0 1px 0 rgba(255,255,255,.4)}
+.resolve .sub{display:block;font-family:var(--mono);font-size:10px;font-weight:600;opacity:.75;letter-spacing:.06em}
+.resolve::after{
+  content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:sheen 3.4s ease-in-out infinite;
+}
+@keyframes sheen{0%,60%{left:-60%}100%{left:130%}}
+.resolve.tired{background:linear-gradient(180deg,#8C93A8,#5F677E);box-shadow:0 6px 0 #3B4257}
+.resolve.tired{box-shadow:0 6px 0 #3B4257,0 10px 20px rgba(0,0,0,.3)}
+.mini-row{display:flex;gap:8px;margin-top:9px}
+.mini{
+  flex:1;border-radius:14px;padding:9px 6px;background:var(--panel);border:1px solid var(--line);
+  font-family:var(--disp);font-weight:700;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:transform .08s ease,border-color .15s;
+}
+.mini:active{transform:scale(.96)}
+.mini i{font-style:normal;font-size:17px}
+.mini small{font-family:var(--mono);font-size:9px;color:var(--muted);font-weight:600}
+.mini.hot{border-color:var(--alarm);color:var(--alarm);animation:pulseRed 1.4s infinite}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,.4)}50%{box-shadow:0 0 0 7px rgba(255,90,95,0)}}
+.mini.ready{border-color:var(--good);color:var(--good)}
+
+/* ---------- IDLE STRIP ---------- */
+.idle-strip{
+  margin:12px 12px 0;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(135deg,#1D2740,#161C2E);padding:11px 12px;
+}
+.idle-head{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-weight:800;font-size:13px}
+.idle-head .live-dot{width:7px;height:7px;border-radius:50%;background:var(--good);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.idle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:9px}
+.idle-cell{background:var(--ink-2);border:1px solid var(--line);border-radius:11px;padding:7px;text-align:center}
+.idle-cell b{display:block;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.idle-cell span{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.idle-note{margin-top:8px;font-size:11px;color:var(--muted)}
+.collect{
+  width:100%;margin-top:9px;border-radius:13px;padding:11px;font-family:var(--disp);font-weight:800;font-size:14px;
+  background:linear-gradient(180deg,#63E08D,#2FA45E);color:#08210F;box-shadow:0 4px 0 #1D7442;
+  transition:transform .08s ease;
+}
+.collect:active{transform:translateY(3px);box-shadow:0 1px 0 #1D7442}
+
+/* ---------- GENERIC PANELS / CARDS ---------- */
+.list{padding:0 12px;display:flex;flex-direction:column;gap:9px}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:11px;
+  display:flex;gap:10px;align-items:center;
+}
+.card.col{flex-direction:column;align-items:stretch}
+.avatar{
+  width:56px;height:56px;flex:0 0 auto;border-radius:15px;overflow:hidden;position:relative;
+  background:radial-gradient(circle at 50% 20%,#2C3552,#161C2E);border:2px solid var(--line);
+}
+.avatar .portrait-svg{width:100%;height:100%;display:block}
+.avatar.lg{width:74px;height:74px}
+.avatar .lv{
+  position:absolute;bottom:0;right:0;background:var(--ink-2);border-top-left-radius:8px;
+  font-family:var(--mono);font-size:9px;padding:1px 4px;border-left:1px solid var(--line);border-top:1px solid var(--line);
+}
+.who{min-width:0;flex:1}
+.who h3{font-family:var(--disp);font-weight:800;font-size:14.5px;margin:0;line-height:1.15}
+.who .role{font-size:11px;color:var(--muted)}
+.rar{
+  display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.09em;
+  padding:1.5px 6px;border-radius:6px;margin-top:4px;
+}
+.pw{font-family:var(--mono);font-size:11px;color:var(--lamp);font-variant-numeric:tabular-nums}
+.btn{
+  border-radius:12px;padding:9px 13px;font-family:var(--disp);font-weight:800;font-size:13px;
+  background:var(--panel-3);border:1px solid var(--line);transition:transform .08s ease,filter .15s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.95)}
+.btn.gold{background:linear-gradient(180deg,#FFC46A,#E68A26);color:#31190A;border:0;box-shadow:0 3px 0 #A9560F}
+.btn.gold:active{transform:translateY(2px);box-shadow:0 1px 0 #A9560F}
+.btn.teal{background:linear-gradient(180deg,#5FE4D6,#2A9C92);color:#062421;border:0;box-shadow:0 3px 0 #1B6A63}
+.btn.ghost{background:transparent}
+.btn:disabled,.btn.off{opacity:.42;filter:grayscale(.5)}
+.btn.sm{padding:6px 10px;font-size:11.5px;border-radius:10px}
+.row{display:flex;gap:8px;align-items:center}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:var(--muted)} .tiny{font-size:11px} .mono{font-family:var(--mono)}
+.pbar{height:7px;border-radius:4px;background:#0E1322;overflow:hidden;border:1px solid #0A0E1A}
+.pbar>span{display:block;height:100%;background:linear-gradient(90deg,#3FA9C9,var(--crt));transition:width .4s}
+.pbar.gold>span{background:linear-gradient(90deg,#C98A2B,var(--lamp))}
+.statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px;margin-top:8px}
+.statrow{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px}
+.statrow b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+.statrow .nm{color:var(--muted);font-size:9.5px;letter-spacing:.03em}
+
+.empty{padding:26px 16px;text-align:center;color:var(--muted);font-size:12.5px}
+.empty .big{font-size:34px;display:block;margin-bottom:8px;opacity:.6}
+
+/* ---------- MISSIONS / ACHIEVEMENTS ---------- */
+.mrow{display:flex;gap:10px;align-items:center}
+.mrow .ico{width:38px;height:38px;border-radius:11px;background:var(--ink-2);border:1px solid var(--line);display:grid;place-items:center;font-size:18px;flex:0 0 auto}
+.mrow .txt{flex:1;min-width:0}
+.mrow .txt h4{margin:0;font-family:var(--disp);font-weight:700;font-size:13px}
+.mrow .prog{display:flex;align-items:center;gap:7px;margin-top:5px}
+.mrow .prog .pbar{flex:1}
+.mrow .prog span{font-family:var(--mono);font-size:9.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rewrow{display:flex;gap:8px;margin-top:6px;font-family:var(--mono);font-size:10px;flex-wrap:wrap}
+.ach{opacity:.45}
+.ach.got{opacity:1;border-color:var(--lamp-dim)}
+
+/* ---------- BOTTOM NAV ---------- */
+#nav{
+  position:sticky;bottom:0;z-index:40;flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);
+  background:linear-gradient(180deg,rgba(20,26,45,.97),#141A2D);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);
+  backdrop-filter:blur(8px);
+}
+#nav button{
+  padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;
+  font-family:var(--disp);font-weight:700;font-size:9px;letter-spacing:.03em;color:var(--muted);
+  transition:color .15s,transform .1s;
+}
+#nav button i{font-style:normal;font-size:19px;transition:transform .18s cubic-bezier(.3,1.4,.5,1);filter:grayscale(.6) opacity(.75)}
+#nav button.on{color:var(--lamp)}
+#nav button.on i{transform:translateY(-2px) scale(1.16);filter:none}
+#nav button.on::before{content:'';position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 4px 4px;background:var(--lamp)}
+#nav button .badge{
+  position:absolute;top:4px;right:calc(50% - 20px);min-width:15px;height:15px;border-radius:8px;background:var(--alarm);
+  color:#fff;font-family:var(--mono);font-size:9px;display:grid;place-items:center;padding:0 3px;box-shadow:0 0 0 2px #141A2D;
+}
+
+/* ---------- FX LAYER ---------- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.float{
+  position:absolute;font-family:var(--disp);font-weight:800;font-size:17px;white-space:nowrap;
+  text-shadow:0 2px 5px rgba(0,0,0,.7);animation:floatUp 1.15s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes floatUp{
+  0%{opacity:0;transform:translate(-50%,0) scale(.6)}
+  18%{opacity:1;transform:translate(-50%,-14px) scale(1.12)}
+  100%{opacity:0;transform:translate(-50%,-78px) scale(.95)}
+}
+.coin{position:absolute;width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#FFE9A8,var(--lamp) 55%,#C9772A);
+  box-shadow:0 0 8px rgba(255,179,71,.6)}
+.spark{position:absolute;width:7px;height:7px;border-radius:2px;animation:sparkOut .7s ease-out forwards}
+@keyframes sparkOut{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2) rotate(220deg)}}
+.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+.pop{animation:pop .32s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+/* ---------- MODALS ---------- */
+#modal{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(4,7,14,.72);backdrop-filter:blur(3px);padding:0}
+#modal.on{display:flex}
+.sheet{
+  width:100%;max-width:480px;background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:16px 14px calc(18px + env(safe-area-inset-bottom,0px));
+  max-height:88dvh;overflow-y:auto;animation:slideUp .28s cubic-bezier(.2,.9,.3,1);box-shadow:0 -18px 50px rgba(0,0,0,.6);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet h3{font-family:var(--disp);font-weight:800;font-size:19px;margin:0 0 3px;text-align:center}
+.sheet .sub{text-align:center;color:var(--muted);font-size:12px;margin:0 0 12px}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sheet .cta{width:100%;margin-top:12px}
+.reward-line{display:flex;justify-content:center;gap:14px;font-family:var(--mono);font-size:14px;margin:12px 0;flex-wrap:wrap}
+.big-emoji{font-size:46px;text-align:center;display:block;margin-bottom:4px;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
+
+/* incident */
+.inc-timer{height:8px;border-radius:4px;background:#0E1322;overflow:hidden;margin:10px 0}
+.inc-timer>span{display:block;height:100%;background:linear-gradient(90deg,var(--alarm),#FF9A5F);transition:width .25s linear}
+.inc-chance{font-family:var(--mono);font-size:12px;text-align:center;margin-bottom:10px}
+.inc-opt{
+  width:100%;text-align:left;border-radius:13px;padding:12px;margin-top:8px;
+  background:var(--ink-2);border:1px solid var(--line);font-family:var(--disp);font-weight:700;font-size:14px;
+  transition:transform .08s,border-color .15s;
+}
+.inc-opt:active{transform:scale(.98)}
+.inc-opt.ok{border-color:var(--good);color:var(--good)}
+.inc-opt.bad{border-color:var(--alarm);color:var(--alarm)}
+.inc-steps{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.inc-steps i{width:22px;height:4px;border-radius:2px;background:var(--line);font-style:normal}
+.inc-steps i.ok{background:var(--good)} .inc-steps i.bad{background:var(--alarm)}
+
+/* slot grid */
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.slot{
+  border-radius:13px;border:1px dashed var(--line);background:var(--ink-2);padding:8px 6px;text-align:center;
+  transition:border-color .15s;
+}
+.slot.filled{border-style:solid}
+.slot .si{font-size:19px} 
+.slot .sn{font-family:var(--mono);font-size:8.5px;color:var(--muted);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* world */
+.loc{display:flex;gap:10px;align-items:center;opacity:.5}
+.loc.open{opacity:1}
+.loc .flag{font-size:26px;width:44px;height:44px;display:grid;place-items:center;background:var(--ink-2);border-radius:13px;border:1px solid var(--line)}
+
+/* ambient svg animation */
+.led{animation:ledBlink 1.9s steps(1,end) infinite}
+@keyframes ledBlink{0%,55%{opacity:1}56%,100%{opacity:.18}}
+.lamp{animation:lampPulse 4.5s ease-in-out infinite}
+@keyframes lampPulse{0%,100%{opacity:.9}50%{opacity:1}}
+.scan{animation:scanMove 3.2s linear infinite}
+@keyframes scanMove{0%{transform:translateY(0)}100%{transform:translateY(18px)}}
+.steam{animation:steamRise 3s ease-in-out infinite}
+@keyframes steamRise{0%{opacity:0;transform:translateY(2px)}40%{opacity:.6}100%{opacity:0;transform:translateY(-8px)}}
+.head-bob{animation:bob 3.4s ease-in-out infinite;transform-origin:80px 88px}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(.8deg)}}
+.eyes{animation:blinkEyes 5.6s infinite}
+@keyframes blinkEyes{0%,96%,100%{transform:scaleY(1)}98%{transform:scaleY(.1)}}
+.eyes{transform-origin:80px 61px}
+.arm-idle-r{animation:armIdle 3.4s ease-in-out infinite}
+.arm-idle-l{animation:armIdle 3.4s ease-in-out infinite reverse}
+@keyframes armIdle{0%,100%{transform:rotate(0)}50%{transform:rotate(3deg)}}
+.arm-work-r{animation:armWork .26s ease-in-out infinite}
+.arm-work-l{animation:armWork .26s ease-in-out infinite reverse}
+@keyframes armWork{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(10deg)}}
+.hero-wrap.working{animation:workBounce .26s ease-in-out infinite}
+@keyframes workBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::after,*::before{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+
+/* working pose overrides (applied while a ticket is being resolved) */
+.hero-wrap.working .arm-idle-r,.hero-wrap.working .arm-work-r{animation:armWork .24s ease-in-out infinite}
+.hero-wrap.working .arm-idle-l,.hero-wrap.working .arm-work-l{animation:armWork .24s ease-in-out infinite reverse}
+.hero-wrap.working .head-bob{animation:bob .5s ease-in-out infinite}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:65;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--lamp);
+  border-radius:14px;padding:9px 14px;box-shadow:var(--shadow);display:flex;gap:9px;align-items:center;
+  max-width:min(420px,92vw);animation:toastIn .35s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%)}}
+.toast .t1{font-family:var(--disp);font-weight:800;font-size:13px}
+.toast .t2{font-size:11px;color:var(--muted)}
+
+</style>
+<div id="app">
+
+  <header id="topbar">
+    <div class="tb-row1">
+      <div class="lvl-badge"><b id="lvlNum">1</b><span>LEVEL</span></div>
+      <div class="tb-name">
+        <h1 id="pName">JASON</h1>
+        <p id="pTitle">JUNIOR IT TECHNICIAN</p>
+        <div class="tb-rank" id="pRank">Nobody Knows You</div>
+      </div>
+      <button class="bell" id="bell" aria-label="Notifications">🔔<span class="dot" id="bellDot" style="display:none"></span></button>
+    </div>
+    <div class="tb-res">
+      <div class="res credits"><i>💰</i><span class="v" id="resCredits">0</span></div>
+      <div class="res rep"><i>🏆</i><span class="v" id="resRep">0</span></div>
+      <div class="res"><i>⭐</i><div class="bar xp"><span id="xpFill" style="width:0%"></span></div><span class="lbl" id="xpLbl">0/0</span></div>
+      <div class="res"><i>⚡</i><div class="bar energy"><span id="enFill" style="width:100%"></span></div><span class="lbl" id="enLbl">0/0</span></div>
+    </div>
+  </header>
+
+  <main id="screens">
+
+    <!-- ========== HQ ========== -->
+    <section class="screen on" id="screen-hq">
+      <div class="stage" id="stage"></div>
+      <div class="ticket" id="ticketCard"></div>
+      <div class="dock">
+        <button class="resolve" id="btnResolve">🔧 RESOLVE TICKET</button>
+        <div class="mini-row" id="miniRow"></div>
+      </div>
+      <div class="idle-strip" id="idleStrip"></div>
+      <div class="sec-head"><h2>THE OFFICE</h2><span>UPGRADES</span></div>
+      <div class="list" id="buildList"></div>
+      <div style="height:14px"></div>
+    </section>
+
+    <section class="screen" id="screen-staff"></section>
+    <section class="screen" id="screen-gear"></section>
+    <section class="screen" id="screen-missions"></section>
+    <section class="screen" id="screen-rank"></section>
+    <section class="screen" id="screen-world"></section>
+
+  </main>
+
+  <nav id="nav">
+    <button data-screen="hq" class="on"><i>🏢</i>HQ</button>
+    <button data-screen="staff"><i>👥</i>STAFF</button>
+    <button data-screen="gear"><i>🎒</i>GEAR</button>
+    <button data-screen="missions"><i>📋</i>MISSIONS<span class="badge" id="navBadge" style="display:none">0</span></button>
+    <button data-screen="rank"><i>🏆</i>RANKING</button>
+    <button data-screen="world"><i>🌐</i>WORLD</button>
+  </nav>
+
+</div>
+
+<div id="fx"></div>
+<div id="modal"></div>
+<script>
+/* ============================================================
+   IT EMPIRE — DATA LAYER
+   Pure content. No logic. Add rows here to extend the game.
+   ============================================================ */
+const DATA = (() => {
+
+  /* ---------- RARITY ---------- */
+  const RARITY = {
+    COMMON:    { key:'COMMON',    label:'COMMON',    mult:1.00, color:'#8A93AD', order:0 },
+    UNCOMMON:  { key:'UNCOMMON',  label:'UNCOMMON',  mult:1.15, color:'#5FD37A', order:1 },
+    RARE:      { key:'RARE',      label:'RARE',      mult:1.35, color:'#4FA8FF', order:2 },
+    EPIC:      { key:'EPIC',      label:'EPIC',      mult:1.60, color:'#B67CFF', order:3 },
+    LEGENDARY: { key:'LEGENDARY', label:'LEGENDARY', mult:2.00, color:'#FFB347', order:4 },
+    MYTHIC:    { key:'MYTHIC',    label:'MYTHIC',    mult:2.60, color:'#FF5A9E', order:5 },
+  };
+
+  /* ---------- STATS ---------- */
+  const STATS = ['TECHNICAL','SPEED','COMMUNICATION','INVESTIGATION','PATIENCE','AUTOMATION','MANAGEMENT'];
+  const STAT_ICON = {
+    TECHNICAL:'🔧', SPEED:'⚡', COMMUNICATION:'💬', INVESTIGATION:'🔍',
+    PATIENCE:'🧘', AUTOMATION:'🤖', MANAGEMENT:'📊'
+  };
+
+  /* ---------- CAREER TITLES ---------- */
+  const TITLES = [
+    { level:1,  name:'Junior IT Technician' },
+    { level:5,  name:'IT Support Technician' },
+    { level:12, name:'Senior Technician' },
+    { level:20, name:'Team Lead' },
+    { level:30, name:'IT Manager' },
+    { level:42, name:'Regional IT Manager' },
+    { level:55, name:'Global IT Director' },
+    { level:70, name:'Chief Technology Officer' },
+  ];
+
+  /* ---------- REPUTATION RANKS ---------- */
+  const RANKS = [
+    { at:0,      name:'Nobody Knows You',        blurb:'People still ask you where the printer is.' },
+    { at:100,    name:'Reliable Technician',     blurb:'Your name is written on a sticky note somewhere.' },
+    { at:500,    name:'IT Hero',                 blurb:'Managers say your name in meetings. Fondly.' },
+    { at:2000,   name:'Office Legend',           blurb:'People queue at your desk with snacks.' },
+    { at:10000,  name:'The One Who Fixes Everything', blurb:'You are the escalation path. All of it.' },
+    { at:100000, name:'IT God',                  blurb:'Servers reboot themselves out of respect.' },
+  ];
+
+  /* ---------- TICKETS ----------
+     cat: hardware | display | network | software | access | security | vip
+     stat: the stat that decides technical success                       */
+  const TICKETS = {
+    EASY: [
+      { name:'Printer Offline',            cat:'hardware', stat:'PATIENCE',      icon:'🖨️', user:'Reception' },
+      { name:'Wi-Fi Not Connected',        cat:'network',  stat:'TECHNICAL',     icon:'📶', user:'Sales' },
+      { name:'No Audio In Headset',        cat:'hardware', stat:'INVESTIGATION', icon:'🎧', user:'Support' },
+      { name:'Monitor Not Detected',       cat:'display',  stat:'TECHNICAL',     icon:'🖥️', user:'Finance' },
+      { name:'Keyboard Not Working',       cat:'hardware', stat:'PATIENCE',      icon:'⌨️', user:'HR' },
+      { name:'Password Expired',           cat:'access',   stat:'COMMUNICATION', icon:'🔑', user:'Marketing' },
+      { name:'Screen Is Upside Down',      cat:'display',  stat:'COMMUNICATION', icon:'🙃', user:'Legal' },
+      { name:'Laptop "Very Slow"',         cat:'software', stat:'PATIENCE',      icon:'🐌', user:'Ops' },
+      { name:'Mouse Battery Mystery',      cat:'hardware', stat:'INVESTIGATION', icon:'🖱️', user:'Design' },
+      { name:'Cannot Find The Desktop',    cat:'software', stat:'COMMUNICATION', icon:'🗂️', user:'Reception' },
+    ],
+    MEDIUM: [
+      { name:'VPN Failure',                cat:'network',  stat:'TECHNICAL',     icon:'🔐', user:'Remote Team' },
+      { name:'Outlook Sync Problem',       cat:'software', stat:'INVESTIGATION', icon:'📧', user:'Sales' },
+      { name:'Certificate Error',          cat:'security', stat:'TECHNICAL',     icon:'📜', user:'Finance' },
+      { name:'BitLocker Recovery',         cat:'security', stat:'PATIENCE',      icon:'🔒', user:'Field Staff' },
+      { name:'External Display Failure',   cat:'display',  stat:'TECHNICAL',     icon:'📺', user:'Meeting Rm 3' },
+      { name:'Software Install Failure',   cat:'software', stat:'INVESTIGATION', icon:'💿', user:'Engineering' },
+      { name:'Shared Drive Vanished',      cat:'network',  stat:'INVESTIGATION', icon:'📁', user:'Accounts' },
+      { name:'MFA Device Lost',            cat:'access',   stat:'COMMUNICATION', icon:'📱', user:'New Joiner' },
+      { name:'Ghost Audio In Meetings',    cat:'software', stat:'SPEED',         icon:'👻', user:'Product' },
+      { name:'Docking Station Rebellion',  cat:'hardware', stat:'TECHNICAL',     icon:'🔌', user:'Consulting' },
+    ],
+    HARD: [
+      { name:'Network Outage — Floor 4',   cat:'network',  stat:'INVESTIGATION', icon:'🌐', user:'Floor 4' },
+      { name:'Server Failure',             cat:'network',  stat:'TECHNICAL',     icon:'🖴', user:'Infrastructure' },
+      { name:'Cloud Service Failure',      cat:'network',  stat:'AUTOMATION',    icon:'☁️', user:'Everyone' },
+      { name:'Security Incident',          cat:'security', stat:'INVESTIGATION', icon:'🛡️', user:'SecOps' },
+      { name:'Executive Laptop Failure',   cat:'vip',      stat:'SPEED',         icon:'💼', user:'The CFO' },
+      { name:'Meeting Room AV Meltdown',   cat:'vip',      stat:'SPEED',         icon:'📽️', user:'Board Room' },
+      { name:'Domain Controller Down',     cat:'network',  stat:'TECHNICAL',     icon:'🏛️', user:'All Sites' },
+      { name:'Suspicious Email Campaign',  cat:'security', stat:'MANAGEMENT',    icon:'🎣', user:'Whole Company' },
+    ],
+  };
+
+  /* Flavour lines shown while the ticket sits in the queue */
+  const TICKET_FLAVOUR = [
+    'User says it "worked yesterday".',
+    'Ticket description is one word: "broken".',
+    'User has already tried turning it off and on. Allegedly.',
+    'Screenshot attached. It is a photo of the screen. Taken at an angle.',
+    'User cc\'d the entire department.',
+    'Marked URGENT by the user. Everything is urgent.',
+    'User is standing behind you right now.',
+    'Reported by someone who "knows a bit about computers".',
+    'Third time this month. Same user. Same cable.',
+    'User closed the ticket, then reopened it, then called.',
+  ];
+
+  /* Reasons a technically perfect fix still upsets the user */
+  const SAT_FAILS = [
+    'Technician told the user to restart the computer.',
+    'Technician sighed audibly.',
+    'Fix took 8 seconds. User feels their problem was not respected.',
+    'Technician used the word "obviously".',
+    'User wanted a new laptop, not a working one.',
+    'Technician fixed it remotely. User wanted a visit and a chat.',
+    'Ticket closed without a heartfelt apology.',
+    'Technician explained the cause. In detail. For nine minutes.',
+    'User was hoping the problem would justify going home early.',
+  ];
+  const SAT_WINS = [
+    'Technician explained it kindly and drew a diagram.',
+    'User was called by name. User was delighted.',
+    'Technician pretended it was a hard problem. User felt important.',
+    'Follow-up message sent. Unheard of.',
+    'Technician also cleaned the sticky keyboard. Hero.',
+    'User learned something and told their whole floor.',
+  ];
+
+  /* ---------- CRITICAL INCIDENTS ---------- */
+  const INCIDENTS = [
+    {
+      id:'global_outage', title:'GLOBAL NETWORK OUTAGE', icon:'🌐',
+      brief:'Every office just dropped off the network at once. The phones are already ringing.',
+      time:30,
+      steps:[
+        { q:'First move?',            opts:[{t:'CHECK CORE SWITCH',ok:1},{t:'REBOOT A USER PC',ok:0},{t:'EMAIL EVERYONE',ok:0}] },
+        { q:'Switch is up. Next?',    opts:[{t:'BUY A NEW ROUTER',ok:0},{t:'CHECK ISP UPLINK',ok:1},{t:'BLAME THE INTERN',ok:0}] },
+        { q:'Uplink is flapping.',    opts:[{t:'CLEAR BROWSER CACHE',ok:0},{t:'CHECK DHCP SCOPE',ok:1},{t:'RESTART THE PRINTER',ok:0}] },
+        { q:'Scope exhausted. Then?', opts:[{t:'CHECK VLAN CONFIG',ok:1},{t:'DEFRAG THE SERVER',ok:0},{t:'OPEN A VENDOR CASE',ok:0}] },
+        { q:'Bring it home.',         opts:[{t:'WAIT AND HOPE',ok:0},{t:'FAILOVER + RESTORE NETWORK',ok:1},{t:'GO FOR COFFEE',ok:0}] },
+      ]
+    },
+    {
+      id:'ceo_board', title:'CEO CANNOT JOIN BOARD MEETING', icon:'🚨',
+      brief:'The board is seated. The CEO is staring at a spinning circle. You have minutes.',
+      time:25,
+      steps:[
+        { q:'They are in the room already.', opts:[{t:'CALL THE CEO CALMLY',ok:1},{t:'ASK FOR A TICKET',ok:0},{t:'REMOTE IN UNANNOUNCED',ok:0}] },
+        { q:'Camera works, no audio.',       opts:[{t:'REINSTALL WINDOWS',ok:0},{t:'CHECK AUDIO DEVICE',ok:1},{t:'SUGGEST DIAL-IN LATER',ok:0}] },
+        { q:'Wrong output selected.',        opts:[{t:'SWITCH TO ROOM SPEAKER',ok:1},{t:'TURN VOLUME TO 100',ok:0},{t:'RESTART LAPTOP NOW',ok:0}] },
+        { q:'Audio is back. Finish it.',     opts:[{t:'LEAVE SILENTLY',ok:0},{t:'STAY ON MUTE UNTIL STABLE',ok:1},{t:'EXPLAIN THE ROOT CAUSE',ok:0}] },
+      ]
+    },
+    {
+      id:'ransom', title:'RANSOMWARE ALERT — FINANCE', icon:'🛡️',
+      brief:'A finance workstation is encrypting shared folders. Every second counts.',
+      time:26,
+      steps:[
+        { q:'Immediate action?',        opts:[{t:'ISOLATE THE MACHINE',ok:1},{t:'RUN A FULL SCAN',ok:0},{t:'ASK THE USER FIRST',ok:0}] },
+        { q:'Machine isolated.',        opts:[{t:'DISABLE THE ACCOUNT',ok:1},{t:'DELETE THE FILES',ok:0},{t:'REBOOT THE SERVER',ok:0}] },
+        { q:'Spread check.',            opts:[{t:'PAY NOTHING, PULL LOGS',ok:1},{t:'NEGOTIATE',ok:0},{t:'WAIT FOR MONDAY',ok:0}] },
+        { q:'Recovery.',                opts:[{t:'RESTORE FROM BACKUP',ok:1},{t:'HOPE FOR A DECRYPTOR',ok:0},{t:'REBUILD BY HAND',ok:0}] },
+        { q:'After action.',            opts:[{t:'BRIEF THE BUSINESS',ok:1},{t:'SAY NOTHING',ok:0},{t:'BLAME FINANCE',ok:0}] },
+      ]
+    },
+    {
+      id:'payday', title:'PAYROLL SERVER DOWN ON PAYDAY', icon:'💸',
+      brief:'Payroll runs in 40 minutes. The server disagrees. HR is walking towards you.',
+      time:24,
+      steps:[
+        { q:'Where do you start?',   opts:[{t:'CHECK DISK SPACE',ok:1},{t:'REINSTALL PAYROLL',ok:0},{t:'CALL THE VENDOR',ok:0}] },
+        { q:'Disk full of logs.',    opts:[{t:'DELETE EVERYTHING',ok:0},{t:'ARCHIVE OLD LOGS',ok:1},{t:'ADD A SECOND SERVER',ok:0}] },
+        { q:'Service still stopped.',opts:[{t:'RESTART THE SERVICE',ok:1},{t:'RESTART THE BUILDING',ok:0},{t:'ESCALATE AND WAIT',ok:0}] },
+        { q:'Confirm payroll runs.', opts:[{t:'RUN A TEST BATCH',ok:1},{t:'ASSUME IT IS FINE',ok:0},{t:'CLOSE THE TICKET',ok:0}] },
+      ]
+    },
+    {
+      id:'overheat', title:'SERVER ROOM OVERHEATING', icon:'🔥',
+      brief:'The server room is 41°C and climbing. The AC unit has opinions.',
+      time:22,
+      steps:[
+        { q:'First response.',   opts:[{t:'PROP THE DOOR + FANS',ok:1},{t:'SHUT DOWN EVERYTHING',ok:0},{t:'IGNORE THE ALARM',ok:0}] },
+        { q:'Load management.',  opts:[{t:'SHED NON-CRITICAL LOAD',ok:1},{t:'START A BACKUP JOB',ok:0},{t:'RUN MORE VMs',ok:0}] },
+        { q:'Root cause.',       opts:[{t:'CHECK AC CONDENSER',ok:1},{t:'CHECK THE FIREWALL',ok:0},{t:'CHECK EMAIL',ok:0}] },
+        { q:'Long term.',        opts:[{t:'RAISE A FACILITIES CASE',ok:1},{t:'BUY A DESK FAN',ok:0},{t:'DO NOTHING',ok:0}] },
+      ]
+    },
+  ];
+
+  /* ---------- RANDOM EVENTS ---------- */
+  const EVENTS = [
+    { id:'monday',  title:'MONDAY MORNING',        icon:'☕', dur:60,
+      desc:'Every password expired over the weekend. Ticket rewards +200%.',
+      mods:{ reward:3.0 } },
+    { id:'coffee',  title:'COFFEE MACHINE FAILURE', icon:'🫖', dur:45,
+      desc:'Productivity down 30% until someone brave fixes it. Idle output reduced.',
+      mods:{ idle:0.7 } },
+    { id:'deploy',  title:'NEW SOFTWARE ROLLOUT',   icon:'📦', dur:50,
+      desc:'Everything is briefly worse. XP gain +150% while you learn it.',
+      mods:{ xp:2.5 } },
+    { id:'vip',     title:'VIP FLOOR VISIT',        icon:'🕴️', dur:40,
+      desc:'Executives are watching the helpdesk. Reputation gain doubled.',
+      mods:{ rep:2.0 } },
+    { id:'quiet',   title:'SUSPICIOUSLY QUIET DAY', icon:'🌙', dur:45,
+      desc:'Nobody has called in an hour. Idle output +80%. Enjoy it while it lasts.',
+      mods:{ idle:1.8 } },
+    { id:'audit',   title:'SURPRISE IT AUDIT',      icon:'📋', dur:40,
+      desc:'Document everything. Credits +150%, satisfaction is harder to earn.',
+      mods:{ credit:2.5, sat:0.8 } },
+  ];
+
+  /* ---------- CHARACTERS ---------- */
+  /* base: stats at level 1. growth: gain per level. */
+  const CHARACTERS = [
+    {
+      id:'hero', name:'JASON', role:'You', rarity:'RARE', icon:'🧑‍💻',
+      strength:'Learns from every single ticket',
+      weakness:'Cannot be assigned to idle work — you do the tapping',
+      personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
+      quotes:['"I have a good feeling about this cable."','"It is always DNS. Always."','"Let me just check one thing..."'],
+      base:{TECHNICAL:12,SPEED:10,COMMUNICATION:8,INVESTIGATION:10,PATIENCE:9,AUTOMATION:5,MANAGEMENT:5},
+      growth:{TECHNICAL:2.2,SPEED:1.8,COMMUNICATION:1.6,INVESTIGATION:1.9,PATIENCE:1.7,AUTOMATION:1.1,MANAGEMENT:1.2},
+      perks:{}, art:{ skin:'#F1C398', hair:'#3A2A22', hairStyle:'short', shirt:'#3D6FE0', accent:'#2B4EA8', glasses:true, headset:false, beard:false },
+      cost:0, repReq:0, hireable:false
+    },
+    {
+      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', icon:'🔧',
+      strength:'+25% hardware ticket resolution',
+      weakness:'-10% automation efficiency',
+      personality:'Has been here longer than the building. Owns a screwdriver older than the intern.',
+      quotes:['"We used to image these by hand. Uphill."','"That is not a fault, that is a feature from 2009."','"Do not touch that rack."'],
+      base:{TECHNICAL:16,SPEED:7,COMMUNICATION:6,INVESTIGATION:13,PATIENCE:14,AUTOMATION:3,MANAGEMENT:8},
+      growth:{TECHNICAL:2.6,SPEED:1.0,COMMUNICATION:1.0,INVESTIGATION:2.1,PATIENCE:2.2,AUTOMATION:0.5,MANAGEMENT:1.3},
+      perks:{ cat_hardware:0.25, automation:-0.10 },
+      art:{ skin:'#E8B888', hair:'#B9BFCB', hairStyle:'short', shirt:'#7A6B4F', accent:'#5C5039', glasses:false, headset:false, beard:true },
+      cost:1200, repReq:0, hireable:true
+    },
+    {
+      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', icon:'💬',
+      strength:'+30% user satisfaction on every ticket',
+      weakness:'Lower raw technical power',
+      personality:'Remembers everyone\'s birthday and their laptop asset tag. Users request them by name.',
+      quotes:['"How is your morning going, honestly?"','"That sounds really frustrating. Let us fix it."','"I will walk over. Kettle is on."'],
+      base:{TECHNICAL:6,SPEED:9,COMMUNICATION:18,INVESTIGATION:8,PATIENCE:15,AUTOMATION:4,MANAGEMENT:10},
+      growth:{TECHNICAL:0.9,SPEED:1.4,COMMUNICATION:2.8,INVESTIGATION:1.2,PATIENCE:2.4,AUTOMATION:0.7,MANAGEMENT:1.7},
+      perks:{ sat:0.30, power:-0.10 },
+      art:{ skin:'#8D5A3B', hair:'#241A18', hairStyle:'bun', shirt:'#E0715F', accent:'#B4503F', glasses:false, headset:true, beard:false },
+      cost:900, repReq:0, hireable:true
+    },
+    {
+      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', icon:'🤖',
+      strength:'+40% idle ticket resolution',
+      weakness:'-15% user satisfaction — the script does not say hello',
+      personality:'Has not manually closed a ticket since 2021 and considers that a personality.',
+      quotes:['"I automated it. Then I automated the automation."','"Why click twice?"','"The script already fixed it. You are welcome."'],
+      base:{TECHNICAL:12,SPEED:11,COMMUNICATION:4,INVESTIGATION:11,PATIENCE:6,AUTOMATION:20,MANAGEMENT:7},
+      growth:{TECHNICAL:1.7,SPEED:1.6,COMMUNICATION:0.6,INVESTIGATION:1.7,PATIENCE:0.9,AUTOMATION:3.1,MANAGEMENT:1.1},
+      perks:{ idle:0.40, sat:-0.15 },
+      art:{ skin:'#F3D2AE', hair:'#5B4EE0', hairStyle:'spiky', shirt:'#2F3A57', accent:'#4FD6C9', glasses:true, headset:true, beard:false },
+      cost:4500, repReq:250, hireable:true
+    },
+    {
+      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', icon:'🚒',
+      strength:'+50% critical incident rewards',
+      weakness:'Burns energy fast — high energy consumption',
+      personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
+      quotes:['"Everyone breathe. I have got this."','"Sev-1? Finally."','"Stop typing. Tell me what changed."'],
+      base:{TECHNICAL:14,SPEED:18,COMMUNICATION:10,INVESTIGATION:15,PATIENCE:5,AUTOMATION:6,MANAGEMENT:11},
+      growth:{TECHNICAL:2.1,SPEED:2.9,COMMUNICATION:1.4,INVESTIGATION:2.4,PATIENCE:0.7,AUTOMATION:0.9,MANAGEMENT:1.6},
+      perks:{ incident:0.50, energy:0.35 },
+      art:{ skin:'#C98A5E', hair:'#1E1A19', hairStyle:'fade', shirt:'#E04F4F', accent:'#8E2F2F', glasses:false, headset:true, beard:false },
+      cost:6000, repReq:500, hireable:true
+    },
+    {
+      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', icon:'🐣',
+      strength:'Gains 60% more XP from everything',
+      weakness:'Low starting stats. Very low.',
+      personality:'Enthusiastic. Asks "why" until you question your career. Will be terrifying in two years.',
+      quotes:['"Should I write a knowledge base article about this?"','"Wait, why do we do it that way?"','"I fixed it! ...I think I fixed it."'],
+      base:{TECHNICAL:5,SPEED:8,COMMUNICATION:9,INVESTIGATION:7,PATIENCE:11,AUTOMATION:5,MANAGEMENT:3},
+      growth:{TECHNICAL:1.6,SPEED:1.5,COMMUNICATION:1.6,INVESTIGATION:1.5,PATIENCE:1.6,AUTOMATION:1.4,MANAGEMENT:0.9},
+      perks:{ xp:0.60 },
+      art:{ skin:'#F6D6B8', hair:'#C87F3A', hairStyle:'cap', shirt:'#5FD37A', accent:'#3E9455', glasses:true, headset:false, beard:false },
+      cost:300, repReq:0, hireable:true
+    },
+    {
+      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', icon:'🦉',
+      strength:'+35% idle credits — does the maintenance window nobody wants',
+      weakness:'-20% on active tickets before 11am',
+      personality:'Communicates entirely in change tickets. Has never been seen in daylight.',
+      quotes:['"Change window is 02:00. See you never."','"It is stable. Do not look at it."','"Morning is a social construct."'],
+      base:{TECHNICAL:15,SPEED:8,COMMUNICATION:3,INVESTIGATION:14,PATIENCE:12,AUTOMATION:13,MANAGEMENT:6},
+      growth:{TECHNICAL:2.4,SPEED:1.1,COMMUNICATION:0.5,INVESTIGATION:2.2,PATIENCE:1.8,AUTOMATION:2.1,MANAGEMENT:1.0},
+      perks:{ idleCredit:0.35, power:-0.08 },
+      art:{ skin:'#D9A97E', hair:'#2C2438', hairStyle:'long', shirt:'#3B3357', accent:'#6B5FA8', glasses:true, headset:true, beard:false },
+      cost:3200, repReq:150, hireable:true
+    },
+    {
+      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', icon:'🦅',
+      strength:'+60% on security tickets, +25% incident success',
+      weakness:'Blocks things. Constantly. -10% satisfaction.',
+      personality:'Trusts nobody, including you, including this sentence. Loves a good log file.',
+      quotes:['"That attachment is a crime scene."','"Who approved this? Nobody? Correct."','"I have already revoked it."'],
+      base:{TECHNICAL:18,SPEED:12,COMMUNICATION:7,INVESTIGATION:20,PATIENCE:10,AUTOMATION:11,MANAGEMENT:12},
+      growth:{TECHNICAL:2.8,SPEED:1.8,COMMUNICATION:1.0,INVESTIGATION:3.2,PATIENCE:1.5,AUTOMATION:1.8,MANAGEMENT:1.9},
+      perks:{ cat_security:0.60, incidentSuccess:0.25, sat:-0.10 },
+      art:{ skin:'#6E4630', hair:'#141414', hairStyle:'fade', shirt:'#1F2A44', accent:'#4FD6C9', glasses:true, headset:false, beard:true },
+      cost:18000, repReq:2000, hireable:true
+    },
+    {
+      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', icon:'🔮',
+      strength:'+25% to absolutely everything',
+      weakness:'Costs a fortune and answers only in riddles',
+      personality:'Nobody knows their job title. Nobody knows their manager. The outage stops when they arrive.',
+      quotes:['"It was DNS. It was always DNS."','"Check the thing you did not check."','"I already fixed it. Yesterday."'],
+      base:{TECHNICAL:22,SPEED:18,COMMUNICATION:16,INVESTIGATION:22,PATIENCE:18,AUTOMATION:20,MANAGEMENT:20},
+      growth:{TECHNICAL:3.2,SPEED:2.6,COMMUNICATION:2.4,INVESTIGATION:3.2,PATIENCE:2.6,AUTOMATION:3.0,MANAGEMENT:3.0},
+      perks:{ all:0.25 },
+      art:{ skin:'#EBC49A', hair:'#E8ECF7', hairStyle:'long', shirt:'#4A2E70', accent:'#C08BFF', glasses:false, headset:false, beard:true },
+      cost:90000, repReq:10000, hireable:true
+    },
+  ];
+
+  /* ---------- EQUIPMENT ---------- */
+  const SLOTS = [
+    { key:'laptop',   label:'Laptop',    icon:'💻' },
+    { key:'monitor',  label:'Monitor',   icon:'🖥️' },
+    { key:'keyboard', label:'Keyboard',  icon:'⌨️' },
+    { key:'mouse',    label:'Mouse',     icon:'🖱️' },
+    { key:'headset',  label:'Headset',   icon:'🎧' },
+    { key:'toolkit',  label:'IT Toolkit',icon:'🧰' },
+    { key:'nettools', label:'Net Tools', icon:'🔌' },
+    { key:'badge',    label:'Badge',     icon:'🪪' },
+    { key:'backpack', label:'Backpack',  icon:'🎒' },
+  ];
+
+  const EQUIPMENT = [
+    { id:'lap_basic',  slot:'laptop',   name:'Refurbished Fleet Laptop', rarity:'COMMON',
+      stats:{TECHNICAL:3,SPEED:1}, effect:'Boots in under four minutes on a good day.' },
+    { id:'lap_think',  slot:'laptop',   name:'ThinkBrick T-5000', rarity:'RARE',
+      stats:{TECHNICAL:9,SPEED:5,PATIENCE:3}, effect:'Survived a coffee incident and a stairwell.' },
+    { id:'lap_dev',    slot:'laptop',   name:'Unapproved Developer Laptop', rarity:'EPIC',
+      stats:{TECHNICAL:16,SPEED:12,AUTOMATION:8}, effect:'+8% credits. Security does not know about it.', perks:{credit:0.08} },
+    { id:'mon_ultra',  slot:'monitor',  name:'Ultrawide of Wisdom', rarity:'EPIC',
+      stats:{INVESTIGATION:14,TECHNICAL:6}, effect:'+10% XP. You can see the whole log at last.', perks:{xp:0.10} },
+    { id:'mon_old',    slot:'monitor',  name:'The 2011 Spare Monitor', rarity:'COMMON',
+      stats:{INVESTIGATION:3}, effect:'Slight green tint. Everyone looks unwell.' },
+    { id:'kb_mech',    slot:'keyboard', name:'Mechanical Keyboard of Mild Aggression', rarity:'RARE',
+      stats:{SPEED:10,PATIENCE:-2,TECHNICAL:3}, effect:'Open plan colleagues have filed a complaint.' },
+    { id:'kb_sticky',  slot:'keyboard', name:'Keyboard With A Sticky G', rarity:'COMMON',
+      stats:{SPEED:2}, effect:'You have learned to type around it.' },
+    { id:'mou_ergo',   slot:'mouse',    name:'Ergonomic Mouse of Wrist Salvation', rarity:'UNCOMMON',
+      stats:{SPEED:5,PATIENCE:5}, effect:'Your future self says thank you.' },
+    { id:'head_anc',   slot:'headset',  name:'Noise-Cancelling Sanity Preserver', rarity:'EPIC',
+      stats:{PATIENCE:14,COMMUNICATION:8}, effect:'+12% user satisfaction. You can actually hear them.', perks:{sat:0.12} },
+    { id:'head_cheap', slot:'headset',  name:'Reception Spare Headset', rarity:'COMMON',
+      stats:{COMMUNICATION:3}, effect:'One ear works. It is enough.' },
+    { id:'tool_dongle',slot:'toolkit',  name:'The Dongle of Destiny', rarity:'LEGENDARY',
+      stats:{TECHNICAL:18,INVESTIGATION:10,SPEED:8},
+      effect:'"Have you tried unplugging it?" Auto-resolves 12% of display tickets instantly.', perks:{autoDisplay:0.12, cat_display:0.50} },
+    { id:'tool_screw', slot:'toolkit',  name:'Screwdriver of Last Resort', rarity:'UNCOMMON',
+      stats:{TECHNICAL:6,PATIENCE:4}, effect:'Also a lever, a chisel and a letter opener.' },
+    { id:'tool_usb',   slot:'toolkit',  name:'The Sacred USB Stick', rarity:'RARE',
+      stats:{TECHNICAL:8,AUTOMATION:7}, effect:'Contains every installer ever made. Do not lose it.' },
+    { id:'net_crimp',  slot:'nettools', name:'Crimping Tool of Doom', rarity:'RARE',
+      stats:{TECHNICAL:9,INVESTIGATION:6}, effect:'+15% on network tickets.', perks:{cat_network:0.15} },
+    { id:'net_tester', slot:'nettools', name:'Cable Tester That Actually Works', rarity:'EPIC',
+      stats:{INVESTIGATION:15,TECHNICAL:7}, effect:'+25% on network tickets. Ends every argument.', perks:{cat_network:0.25} },
+    { id:'badge_all',  slot:'badge',    name:'The Badge That Opens Every Door', rarity:'LEGENDARY',
+      stats:{SPEED:16,MANAGEMENT:10}, effect:'+20% on VIP and executive tickets. Nobody has revoked it.', perks:{cat_vip:0.20} },
+    { id:'badge_temp', slot:'badge',    name:'Temporary Visitor Badge', rarity:'COMMON',
+      stats:{SPEED:2}, effect:'Expired in 2023. Still scans. Nobody asks.' },
+    { id:'bag_cables', slot:'backpack', name:'Backpack of Infinite Cables', rarity:'EPIC',
+      stats:{TECHNICAL:8,PATIENCE:10,INVESTIGATION:6}, effect:'+10% hardware tickets. It has the adapter. It always has the adapter.', perks:{cat_hardware:0.10} },
+    { id:'bag_basic',  slot:'backpack', name:'Conference Freebie Bag', rarity:'COMMON',
+      stats:{PATIENCE:3}, effect:'Branded by a vendor that no longer exists.' },
+    { id:'mou_gaming', slot:'mouse',    name:'Twelve-Button Gaming Mouse', rarity:'RARE',
+      stats:{SPEED:11,AUTOMATION:5}, effect:'Eleven buttons are unbound. One opens the calculator.' },
+    { id:'kb_ergo',    slot:'keyboard', name:'Split Ergonomic Keyboard', rarity:'EPIC',
+      stats:{SPEED:13,PATIENCE:9,COMMUNICATION:4}, effect:'Nobody else can use your desk. That is the feature.' },
+    { id:'mon_curve',  slot:'monitor',  name:'Curved Executive Reject Monitor', rarity:'RARE',
+      stats:{INVESTIGATION:8,MANAGEMENT:5}, effect:'Rescued from a director\'s desk during a refresh.' },
+  ];
+
+  /* ---------- OFFICE / BUILDINGS ---------- */
+  const BUILDINGS = [
+    { id:'helpdesk',   name:'Helpdesk Counter',        icon:'🛎️', base:150,   growth:1.55, max:20, repReq:0,
+      effect:'+8% ticket resolution rewards per level', key:'reward', per:0.08 },
+    { id:'knowledge',  name:'Knowledge Base',          icon:'📚', base:400,   growth:1.58, max:20, repReq:0,
+      effect:'+6% XP generation per level',            key:'xp', per:0.06 },
+    { id:'hardware',   name:'Hardware Room',           icon:'🧰', base:900,   growth:1.60, max:15, repReq:100,
+      effect:'+10% hardware ticket rewards per level', key:'cat_hardware', per:0.10 },
+    { id:'break',      name:'Break Room',              icon:'☕', base:1400,  growth:1.62, max:15, repReq:150,
+      effect:'+15% energy recovery per level',         key:'energyRegen', per:0.15 },
+    { id:'training',   name:'Training Room',           icon:'🎓', base:2600,  growth:1.64, max:15, repReq:300,
+      effect:'+10% employee XP per level',             key:'staffXp', per:0.10 },
+    { id:'meeting',    name:'Meeting Room',            icon:'📽️', base:5000,  growth:1.66, max:12, repReq:500,
+      effect:'+12% reputation gain per level',         key:'rep', per:0.12 },
+    { id:'server',     name:'Server Room',             icon:'🖴', base:11000, growth:1.68, max:12, repReq:800,
+      effect:'+20% automation power per level',        key:'automation', per:0.20 },
+    { id:'noc',        name:'Network Operations Centre',icon:'📡', base:26000, growth:1.70, max:12, repReq:1500,
+      effect:'+18% idle income per level',             key:'idle', per:0.18 },
+    { id:'soc',        name:'Security Operations Centre',icon:'🛡️',base:60000, growth:1.72, max:10, repReq:3000,
+      effect:'+20% incident rewards per level',        key:'incident', per:0.20 },
+    { id:'autolab',    name:'Automation Lab',          icon:'⚙️', base:140000,growth:1.74, max:10, repReq:6000,
+      effect:'+25% idle income and +1h offline cap per level', key:'idle', per:0.25 },
+    { id:'aicentre',   name:'AI Support Centre',       icon:'🧠', base:320000,growth:1.76, max:10, repReq:12000,
+      effect:'+30% to all credits per level',          key:'credit', per:0.30 },
+    { id:'reghq',      name:'Regional Headquarters',   icon:'🏙️', base:750000,growth:1.80, max:8,  repReq:25000,
+      effect:'+25% to everything per level',           key:'all', per:0.25 },
+  ];
+
+  /* ---------- DEPARTMENTS (assignment targets) ---------- */
+  const DEPARTMENTS = [
+    { id:'support',  name:'IT Support',     icon:'🛎️', cats:['hardware','display','access'], repReq:0,    bonus:'Front line. Steady credits.' },
+    { id:'infra',    name:'Infrastructure', icon:'🖴', cats:['network'],                     repReq:400,  bonus:'+20% idle credits for assigned staff.' },
+    { id:'security', name:'Cybersecurity',  icon:'🛡️', cats:['security'],                    repReq:1200, bonus:'+25% incident contribution.' },
+    { id:'auto',     name:'Automation',     icon:'🤖', cats:['software'],                    repReq:2500, bonus:'+35% idle ticket throughput.' },
+  ];
+
+  /* ---------- MISSIONS ---------- */
+  const MISSION_POOL = [
+    { id:'m_tickets',  text:'Resolve {n} tickets',                 metric:'tickets',    base:20, icon:'🎫' },
+    { id:'m_hardware', text:'Resolve {n} hardware tickets',        metric:'cat_hardware',base:8, icon:'🧰' },
+    { id:'m_network',  text:'Resolve {n} network tickets',         metric:'cat_network', base:6, icon:'📶' },
+    { id:'m_credits',  text:'Earn {n} IT Credits',                 metric:'credits',    base:1500,icon:'💰' },
+    { id:'m_xp',       text:'Earn {n} XP',                         metric:'xp',         base:900, icon:'⭐' },
+    { id:'m_incident', text:'Complete {n} critical incidents',     metric:'incidents',  base:1,  icon:'🚨' },
+    { id:'m_upgrade',  text:'Upgrade an employee {n} times',       metric:'levelups',   base:2,  icon:'📈' },
+    { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
+    { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
+    { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
+  ];
+
+  /* ---------- ACHIEVEMENTS ---------- */
+  const ACHIEVEMENTS = [
+    { id:'a_first',    name:'FIRST TICKET',       desc:'Resolve your first ticket.',            metric:'tickets',   target:1,      rep:10 },
+    { id:'a_hundred',  name:'CENTURION',          desc:'Resolve 100 tickets.',                  metric:'tickets',   target:100,    rep:50 },
+    { id:'a_printer',  name:'PRINTER WHISPERER',  desc:'Resolve 100 hardware tickets.',         metric:'cat_hardware',target:100,  rep:80 },
+    { id:'a_monitor',  name:'MONITOR WIZARD',     desc:'Resolve 100 display issues.',           metric:'cat_display',target:100,   rep:80 },
+    { id:'a_monday',   name:'MONDAY SURVIVOR',    desc:'Live through a Monday Morning event.',  metric:'monday',    target:1,      rep:60 },
+    { id:'a_incident', name:'CRISIS MANAGER',     desc:'Win 10 critical incidents.',            metric:'incidents', target:10,     rep:200 },
+    { id:'a_legend',   name:'IT LEGEND',          desc:'Reach 10,000 reputation.',              metric:'rep',       target:10000,  rep:500 },
+    { id:'a_army',     name:'ONE MAN ARMY',       desc:'Resolve 10,000 tickets.',               metric:'tickets',   target:10000,  rep:1000 },
+    { id:'a_auto',     name:'AUTOMATION ADDICT',  desc:'Have 6 employees working the idle queue.',metric:'staff',   target:6,      rep:250 },
+    { id:'a_rich',     name:'BUDGET APPROVED',    desc:'Hold 1,000,000 IT Credits at once.',    metric:'peak',      target:1000000,rep:400 },
+    { id:'a_reorg',    name:'REORGANISED',        desc:'Complete your first IT Reorganisation.',metric:'reorgs',    target:1,      rep:1000 },
+    { id:'a_gear',     name:'FULLY EQUIPPED',     desc:'Own 12 pieces of equipment.',           metric:'gear',      target:12,     rep:120 },
+  ];
+
+  /* ---------- LEGACY (PRESTIGE) UPGRADES ---------- */
+  const LEGACY = [
+    { id:'l_xp',    name:'Institutional Memory', icon:'🧠', desc:'+10% XP generation per point',        per:0.10, max:20 },
+    { id:'l_cred',  name:'Budget Authority',     icon:'💰', desc:'+10% ticket credits per point',       per:0.10, max:20 },
+    { id:'l_idle',  name:'Runbook Library',      icon:'📗', desc:'+15% idle efficiency per point',      per:0.15, max:20 },
+    { id:'l_growth',name:'Talent Pipeline',      icon:'🌱', desc:'+8% employee growth per point',       per:0.08, max:20 },
+    { id:'l_auto',  name:'Self-Healing Systems', icon:'🤖', desc:'+12% automation per point',           per:0.12, max:20 },
+  ];
+
+  /* ---------- WORLD ---------- */
+  const WORLD = [
+    { id:'sg', name:'Singapore',      icon:'🇸🇬', repReq:0,      note:'Home office. Humid server room. Excellent food court.' },
+    { id:'tk', name:'Tokyo',          icon:'🇯🇵', repReq:5000,   note:'Immaculate cable management. Zero tolerance for downtime.' },
+    { id:'ln', name:'London',         icon:'🇬🇧', repReq:15000,  note:'Legacy systems from every decade, all still running.' },
+    { id:'ny', name:'New York',       icon:'🇺🇸', repReq:40000,  note:'Trading floor. Every ticket is a Sev-1.' },
+    { id:'sy', name:'Sydney',         icon:'🇦🇺', repReq:90000,  note:'On-call rota that ruins your timezone.' },
+    { id:'db', name:'Dubai',          icon:'🇦🇪', repReq:200000, note:'Executive floor. Marble. Gold-plated dongles.' },
+    { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
+  ];
+
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+           INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
+           MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
+})();
+
+/* ============================================================
+   IT EMPIRE — ART LAYER
+   Hand-built SVG: the office diorama and the illustrated staff.
+   ============================================================ */
+const Art = (() => {
+
+  const shade = (hex, amt) => {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    r = Math.max(0, Math.min(255, Math.round(r + amt)));
+    g = Math.max(0, Math.min(255, Math.round(g + amt)));
+    b = Math.max(0, Math.min(255, Math.round(b + amt)));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  };
+
+  /* ---------------- HAIR ---------------- */
+  function hair(style, c) {
+    const d = shade(c, -28), l = shade(c, 26);
+    switch (style) {
+      case 'bun': return `
+        <circle cx="80" cy="24" r="13" fill="${d}"/>
+        <path d="M52 60c-2-24 12-34 28-34s30 10 28 34c-3-13-9-19-15-21-8 5-27 6-33 1-4 4-6 11-8 20z" fill="${c}"/>
+        <path d="M56 40c8-9 22-12 34-8" stroke="${l}" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>`;
+      case 'spiky': return `
+        <path d="M52 58c-4-20 8-34 28-34s32 14 28 34c-4-8-6-14-10-16l-2 9-6-12-6 11-6-13-7 12-5-9c-5 3-8 10-14 18z" fill="${c}"/>
+        <path d="M62 34l4 8 5-9" stroke="${l}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".8"/>`;
+      case 'fade': return `
+        <path d="M53 54c0-20 12-30 27-30s27 10 27 30c-4-6-6-9-9-11-9 4-31 4-38-1-3 3-5 6-7 12z" fill="${c}"/>
+        <path d="M53 54c1-6 3-9 5-12 8 5 30 5 38 1 3 2 5 5 9 11" stroke="${d}" stroke-width="2" fill="none" opacity=".8"/>`;
+      case 'long': return `
+        <path d="M48 96c-4-16-3-32 0-44 4-18 16-28 32-28s28 10 32 28c3 12 4 28 0 44-4-4-7-14-8-26-10 6-38 6-48 0-1 12-4 22-8 26z" fill="${c}"/>
+        <path d="M60 36c8-8 24-10 34-4" stroke="${l}" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/>`;
+      case 'cap': return `
+        <path d="M52 46c0-16 12-24 28-24s28 8 28 24z" fill="${c}"/>
+        <path d="M52 46h56v6H52z" fill="${d}"/>
+        <path d="M106 46c14 0 22 4 24 9-10 3-20 3-24 1z" fill="${d}"/>
+        <circle cx="80" cy="26" r="3" fill="${l}"/>`;
+      default: return `
+        <path d="M52 56c0-22 12-32 28-32s28 10 28 32c-4-8-6-12-9-14-9 5-31 5-39 0-3 2-5 6-8 14z" fill="${c}"/>
+        <path d="M60 34c9-7 24-8 33-2" stroke="${l}" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".65"/>`;
+    }
+  }
+
+  /* ---------------- PERSON ---------------- */
+  /* a = art config; opts.pose = 'idle' | 'work'; opts.id for unique gradient ids */
+  function person(a, opts = {}) {
+    const id = opts.id || ('p' + Math.random().toString(36).slice(2, 7));
+    const skinD = shade(a.skin, -34), skinL = shade(a.skin, 20);
+    const shirtD = shade(a.shirt, -34), shirtL = shade(a.shirt, 22);
+    const work = opts.pose === 'work';
+
+    return `
+    <defs>
+      <linearGradient id="sh_${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${shirtL}"/><stop offset="1" stop-color="${shirtD}"/>
+      </linearGradient>
+      <radialGradient id="fc_${id}" cx=".4" cy=".35" r=".8">
+        <stop offset="0" stop-color="${skinL}"/><stop offset="1" stop-color="${a.skin}"/>
+      </radialGradient>
+    </defs>
+
+    <!-- legs -->
+    <g>
+      <path d="M64 162h14v72c0 4-2 6-7 6s-7-2-7-6z" fill="#2A3149"/>
+      <path d="M82 162h14v72c0 4-2 6-7 6s-7-2-7-6z" fill="#232941"/>
+      <rect x="60" y="238" width="22" height="10" rx="5" fill="#171C2E"/>
+      <rect x="80" y="238" width="22" height="10" rx="5" fill="#121726"/>
+    </g>
+
+    <!-- torso -->
+    <path d="M80 88c-16 0-26 5-31 12-4 6-6 20-7 36-1 12-1 22 0 30h76c1-8 1-18 0-30-1-16-3-30-7-36-5-7-15-12-31-12z" fill="url(#sh_${id})"/>
+    <path d="M66 90l14 16 14-16c-4-3-8-4-14-4s-10 1-14 4z" fill="${shade(a.skin,-6)}"/>
+    <path d="M66 90l14 16-6 8-12-22z" fill="${shirtD}" opacity=".55"/>
+    <path d="M94 90L80 106l6 8 12-22z" fill="${shirtD}" opacity=".55"/>
+    <!-- lanyard + badge -->
+    <path d="M68 92c4 18 8 26 12 30" stroke="${a.accent}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M92 92c-4 18-8 26-12 30" stroke="${a.accent}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <rect x="72" y="120" width="16" height="21" rx="3" fill="#EDF1FB" stroke="${shade(a.accent,-30)}" stroke-width="1.5"/>
+    <rect x="75" y="124" width="10" height="6" rx="1.5" fill="${a.accent}" opacity=".65"/>
+    <rect x="75" y="133" width="10" height="2" rx="1" fill="#9AA4BE"/>
+
+    <!-- arms -->
+    <g class="${work ? 'arm-work-l' : 'arm-idle-l'}" style="transform-origin:48px 100px">
+      <path d="M50 92c-9 3-13 12-14 24-1 10-1 20 1 28 1 5 8 5 9 0 2-9 2-18 3-26 1-9 4-16 9-20z" fill="${a.shirt}"/>
+      <circle cx="41" cy="146" r="8" fill="url(#fc_${id})"/>
+    </g>
+    <g class="${work ? 'arm-work-r' : 'arm-idle-r'}" style="transform-origin:112px 100px">
+      <path d="M110 92c9 3 13 12 14 24 1 10 1 20-1 28-1 5-8 5-9 0-2-9-2-18-3-26-1-9-4-16-9-20z" fill="${a.shirt}"/>
+      <circle cx="119" cy="146" r="8" fill="url(#fc_${id})"/>
+    </g>
+
+    <!-- neck -->
+    <path d="M71 74h18v18c0 4-18 4-18 0z" fill="${skinD}"/>
+
+    <!-- head -->
+    <g class="head-bob">
+      <ellipse cx="80" cy="58" rx="26" ry="29" fill="url(#fc_${id})"/>
+      <ellipse cx="54" cy="60" rx="4.5" ry="6" fill="${a.skin}"/>
+      <ellipse cx="106" cy="60" rx="4.5" ry="6" fill="${a.skin}"/>
+      ${hair(a.hairStyle, a.hair)}
+      <!-- brows -->
+      <path d="M63 52c4-3 10-3 13 0" stroke="${shade(a.hair,-20)}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M84 52c3-3 9-3 13 0" stroke="${shade(a.hair,-20)}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <!-- eyes -->
+      <g class="eyes">
+        <ellipse cx="70" cy="61" rx="4.2" ry="4.6" fill="#FFFFFF"/>
+        <ellipse cx="90" cy="61" rx="4.2" ry="4.6" fill="#FFFFFF"/>
+        <circle cx="70.8" cy="61.6" r="2.4" fill="#1B2033"/>
+        <circle cx="90.8" cy="61.6" r="2.4" fill="#1B2033"/>
+        <circle cx="69.8" cy="60.4" r=".9" fill="#fff"/>
+        <circle cx="89.8" cy="60.4" r=".9" fill="#fff"/>
+      </g>
+      <!-- nose + mouth -->
+      <path d="M80 63c1.5 4 1.5 6-1 7" stroke="${skinD}" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M73 74c4 4 10 4 14 0" stroke="#8C4A44" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      ${a.beard ? `<path d="M56 60c1 16 10 27 24 27s23-11 24-27c2 12-2 30-24 30S54 72 56 60z" fill="${shade(a.hair,10)}" opacity=".92"/>
+        <path d="M73 74c4 4 10 4 14 0" stroke="#7A3E39" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : ''}
+      ${a.glasses ? `<g fill="none" stroke="#20263C" stroke-width="2.4" opacity=".92">
+        <rect x="62" y="54.5" width="17" height="14" rx="6"/>
+        <rect x="81" y="54.5" width="17" height="14" rx="6"/>
+        <path d="M79 60h2"/><path d="M62 58l-7-2"/><path d="M98 58l7-2"/>
+        </g><rect x="63.5" y="56" width="14" height="11" rx="5" fill="#8FD9FF" opacity=".2"/>
+        <rect x="82.5" y="56" width="14" height="11" rx="5" fill="#8FD9FF" opacity=".2"/>` : ''}
+      ${a.headset ? `<path d="M52 58c0-18 12-30 28-30s28 12 28 30" stroke="#20263C" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <rect x="45" y="52" width="12" height="19" rx="6" fill="#2C3550"/>
+        <rect x="103" y="52" width="12" height="19" rx="6" fill="#2C3550"/>
+        <path d="M105 68c-6 6-12 8-18 8" stroke="#2C3550" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <circle cx="86" cy="76" r="3" fill="${a.accent}"/>` : ''}
+    </g>`;
+  }
+
+  const hero = (a, pose) =>
+    `<svg class="hero-svg" viewBox="0 0 160 250" xmlns="http://www.w3.org/2000/svg">${person(a, { pose, id: 'hero' })}</svg>`;
+
+  const portrait = (a, id) =>
+    `<svg class="portrait-svg" viewBox="30 22 100 92" xmlns="http://www.w3.org/2000/svg">${person(a, { id: 'pt' + id })}</svg>`;
+
+  /* ---------------- OFFICE DIORAMA ---------------- */
+  function office() {
+    const led = (x, y, c, d) => `<rect class="led" style="animation-delay:${d}s" x="${x}" y="${y}" width="3" height="2.4" rx="1" fill="${c}"/>`;
+    let leds = '';
+    const cols = ['#5FD37A', '#4FD6C9', '#FFB347', '#5FD37A', '#4FA8FF'];
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 3; c++)
+      leds += led(20 + c * 6, 78 + r * 11, cols[(r + c) % 5], ((r * 3 + c) % 11) * 0.31);
+
+    let skyline = '';
+    const bl = [[236, 96, 16, 60], [254, 78, 22, 78], [280, 104, 14, 52], [297, 88, 20, 68], [320, 110, 16, 46], [339, 92, 18, 64]];
+    bl.forEach((b, i) => {
+      skyline += `<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" rx="1.5" fill="#2A2E52" opacity=".9"/>`;
+      for (let wy = b[1] + 5; wy < b[1] + b[3] - 4; wy += 8)
+        for (let wx = b[0] + 3; wx < b[0] + b[2] - 3; wx += 6)
+          if ((wx + wy + i) % 3) skyline += `<rect x="${wx}" y="${wy}" width="2.6" height="3.4" fill="#FFC97A" opacity="${0.25 + ((wx + wy) % 4) * 0.16}"/>`;
+    });
+
+    return `
+<svg class="office-svg" viewBox="0 0 400 230" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232B47"/><stop offset="1" stop-color="#161C31"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B2138"/><stop offset="1" stop-color="#0D1120"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A2E63"/><stop offset=".55" stop-color="#6B3E63"/><stop offset="1" stop-color="#D97A4E"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC97A" stop-opacity=".30"/><stop offset="1" stop-color="#FFC97A" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="scr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4FD6C9"/><stop offset="1" stop-color="#2E7FA8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFC97A" stop-opacity=".55"/><stop offset="1" stop-color="#FFC97A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="400" height="230" fill="url(#wall)"/>
+  <rect y="150" width="400" height="80" fill="url(#floor)"/>
+  <path d="M0 150h400v3H0z" fill="#0A0E1A" opacity=".7"/>
+
+  <!-- window -->
+  <rect x="228" y="52" width="136" height="92" rx="4" fill="#141A2E"/>
+  <rect x="232" y="56" width="128" height="84" fill="url(#sky)"/>
+  ${skyline}
+  <rect x="232" y="56" width="128" height="84" fill="none" stroke="#0E1220" stroke-width="0"/>
+  <path d="M296 56v84M232 98h128" stroke="#141A2E" stroke-width="5"/>
+  <rect x="228" y="52" width="136" height="92" rx="4" fill="none" stroke="#2E3757" stroke-width="4"/>
+  <path d="M232 56h128v84z" fill="#FFD9A0" opacity=".07"/>
+
+  <!-- ceiling lamps + beams -->
+  <g>
+    <path d="M96 0v16" stroke="#39415F" stroke-width="2"/>
+    <ellipse cx="96" cy="20" rx="18" ry="6" fill="#39415F"/>
+    <ellipse class="lamp" cx="96" cy="24" rx="14" ry="4" fill="#FFD9A0"/>
+    <path d="M82 24L58 150h76L110 24z" fill="url(#beam)"/>
+    <path d="M186 0v10" stroke="#39415F" stroke-width="2"/>
+    <ellipse cx="186" cy="14" rx="14" ry="5" fill="#39415F"/>
+    <ellipse class="lamp" style="animation-delay:1.4s" cx="186" cy="17" rx="11" ry="3.4" fill="#FFD9A0"/>
+    <path d="M175 17L157 150h58L197 17z" fill="url(#beam)" opacity=".7"/>
+  </g>
+
+  <!-- server rack -->
+  <g>
+    <rect x="10" y="60" width="40" height="94" rx="4" fill="#20273F" stroke="#38415F" stroke-width="2"/>
+    <rect x="14" y="64" width="32" height="86" rx="2" fill="#151B2D"/>
+    ${Array.from({ length: 9 }, (_, r) => `<rect x="15" y="${75 + r * 11}" width="30" height="9" rx="1.5" fill="#252D48"/>`).join('')}
+    ${leds}
+    <ellipse cx="30" cy="66" rx="26" ry="12" fill="url(#glow)" opacity=".5"/>
+  </g>
+
+  <!-- back desk with monitors -->
+  <g>
+    <rect x="60" y="112" width="92" height="6" rx="2" fill="#3B3327"/>
+    <rect x="66" y="118" width="5" height="32" fill="#2A3149"/>
+    <rect x="141" y="118" width="5" height="32" fill="#2A3149"/>
+    <g>
+      <rect x="72" y="82" width="40" height="27" rx="3" fill="#161C2E" stroke="#39415F" stroke-width="2"/>
+      <rect x="75" y="85" width="34" height="21" rx="1.5" fill="url(#scr)" opacity=".85"/>
+      <g fill="#0E1220" opacity=".45">
+        <rect x="78" y="88" width="18" height="2"/><rect x="78" y="92" width="26" height="2"/>
+        <rect x="78" y="96" width="14" height="2"/><rect x="78" y="100" width="22" height="2"/>
+      </g>
+      <rect class="scan" x="75" y="85" width="34" height="4" fill="#DFFCF7" opacity=".18"/>
+      <rect x="88" y="109" width="8" height="4" fill="#39415F"/>
+    </g>
+    <g>
+      <rect x="114" y="86" width="34" height="23" rx="3" fill="#161C2E" stroke="#39415F" stroke-width="2"/>
+      <rect x="117" y="89" width="28" height="17" rx="1.5" fill="#2B6E5F"/>
+      <g fill="#7BF0D8" opacity=".65">
+        <rect x="119" y="92" width="14" height="1.6"/><rect x="119" y="96" width="20" height="1.6"/>
+        <rect x="119" y="100" width="10" height="1.6"/>
+      </g>
+      <rect x="127" y="109" width="8" height="4" fill="#39415F"/>
+    </g>
+    <rect x="80" y="113" width="30" height="3" rx="1.5" fill="#4A5372"/>
+  </g>
+
+  <!-- foreground desk (right) -->
+  <g>
+    <rect x="240" y="150" width="150" height="8" rx="3" fill="#4A3E2C"/>
+    <rect x="246" y="158" width="6" height="40" fill="#2A3149"/>
+    <rect x="378" y="158" width="6" height="40" fill="#2A3149"/>
+    <rect x="262" y="118" width="46" height="30" rx="3" fill="#161C2E" stroke="#39415F" stroke-width="2"/>
+    <rect x="265" y="121" width="40" height="24" rx="1.5" fill="#26496E"/>
+    <g fill="#8FD9FF" opacity=".7">
+      <rect x="268" y="124" width="20" height="2"/><rect x="268" y="129" width="30" height="2"/>
+      <rect x="268" y="134" width="16" height="2"/><rect x="268" y="139" width="26" height="2"/>
+    </g>
+    <rect class="scan" style="animation-delay:1.1s" x="265" y="121" width="40" height="5" fill="#DFFCF7" opacity=".14"/>
+    <rect x="280" y="148" width="10" height="4" fill="#39415F"/>
+    <!-- laptop -->
+    <path d="M320 128h40v20h-40z" fill="#232B45" stroke="#39415F" stroke-width="1.5"/>
+    <rect x="323" y="131" width="34" height="14" fill="#3E7C8F" opacity=".8"/>
+    <path d="M314 148h52l4 6h-60z" fill="#2E3853"/>
+    <!-- mug -->
+    <rect x="252" y="138" width="9" height="11" rx="2" fill="#E0715F"/>
+    <path d="M261 141c4 0 4 5 0 5" stroke="#E0715F" stroke-width="2" fill="none"/>
+    <path class="steam" d="M256 136c-2-3 2-4 0-7" stroke="#C9D2EA" stroke-width="1.4" fill="none" opacity=".5" stroke-linecap="round"/>
+  </g>
+
+  <!-- printer -->
+  <g>
+    <rect x="160" y="122" width="42" height="28" rx="3" fill="#2C3450" stroke="#404A6B" stroke-width="2"/>
+    <rect x="166" y="116" width="30" height="8" rx="2" fill="#39415F"/>
+    <rect x="166" y="140" width="30" height="7" rx="1" fill="#E8ECF7" opacity=".85"/>
+    <circle class="led" cx="196" cy="128" r="2" fill="#FF5A5F"/>
+  </g>
+
+  <!-- plant -->
+  <g>
+    <path d="M366 176h20l-3 22h-14z" fill="#A0562F"/>
+    <path d="M376 176c-12-4-18-16-14-28 10 2 15 12 14 28z" fill="#3E8F5C"/>
+    <path d="M376 176c12-6 16-18 11-29-9 3-13 13-11 29z" fill="#4FA86B"/>
+    <path d="M376 176c-2-14 2-26 10-32 3 12-1 24-10 32z" fill="#357A4E"/>
+  </g>
+
+  <!-- cable spaghetti -->
+  <path d="M60 150c20 8 40-6 60 4s30 0 44 6" stroke="#151A2B" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>
+  <path d="M240 158c-18 6-30 0-44 6" stroke="#151A2B" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+
+  <!-- floor pools of light -->
+  <ellipse cx="96" cy="176" rx="70" ry="16" fill="url(#glow)" opacity=".38"/>
+  <ellipse cx="196" cy="196" rx="60" ry="14" fill="url(#glow)" opacity=".22"/>
+</svg>`;
+  }
+
+  return { office, hero, portrait, person, shade };
+})();
+
+/* ============================================================
+   IT EMPIRE — GAME LAYER
+   State, economy, ticket loop, idle engine, save/load.
+   No DOM here. UI subscribes via Game.on().
+   ============================================================ */
+const Game = (() => {
+
+  const SAVE_KEY = 'it-empire-save-v1';
+  const listeners = {};
+  const on = (evt, fn) => (listeners[evt] = listeners[evt] || []).push(fn);
+  const emit = (evt, payload) => (listeners[evt] || []).forEach(f => f(payload));
+
+  let S = null;                       // the state object
+  let uidSeq = 1;
+  const uid = () => 'u' + (uidSeq++) + Math.random().toString(36).slice(2, 5);
+
+  /* ---------------- HELPERS ---------------- */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const def = id => DATA.CHARACTERS.find(c => c.id === id);
+  const eqDef = id => DATA.EQUIPMENT.find(e => e.id === id);
+  const bDef = id => DATA.BUILDINGS.find(b => b.id === id);
+
+  function fmt(n) {
+    n = Math.floor(n);
+    if (n < 1000) return '' + n;
+    if (n < 1e6) return (n / 1e3).toFixed(n < 1e4 ? 1 : 0).replace(/\.0$/, '') + 'K';
+    if (n < 1e9) return (n / 1e6).toFixed(n < 1e7 ? 2 : 1).replace(/\.0$/, '') + 'M';
+    if (n < 1e12) return (n / 1e9).toFixed(2).replace(/\.00$/, '') + 'B';
+    return (n / 1e12).toFixed(2) + 'T';
+  }
+  const fmtTime = s => {
+    s = Math.max(0, Math.floor(s));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return h ? `${h}h ${m}m` : m ? `${m}m ${x}s` : `${x}s`;
+  };
+
+  const xpNeed = lvl => Math.floor(70 * Math.pow(lvl, 1.62) + 45 * lvl);
+  const charXpNeed = lvl => Math.floor(45 * Math.pow(lvl, 1.55) + 30 * lvl);
+
+  const title = lvl => { let t = DATA.TITLES[0].name; DATA.TITLES.forEach(x => { if (lvl >= x.level) t = x.name; }); return t; };
+  const rank = rep => { let r = DATA.RANKS[0]; DATA.RANKS.forEach(x => { if (rep >= x.at) r = x; }); return r; };
+  const nextRank = rep => DATA.RANKS.find(x => rep < x.at) || null;
+
+  /* ---------------- NEW GAME ---------------- */
+  function newGame(keep) {
+    const hero = mkChar('hero', 1);
+    S = {
+      v: 1,
+      name: 'JASON',
+      level: 1, xp: 0,
+      credits: 120, reputation: 0,
+      energy: 100, energyMax: 100, energyAcc: 0,
+      roster: [hero], activeId: hero.uid,
+      inventory: [mkItem('lap_basic'), mkItem('kb_sticky')],
+      buildings: { helpdesk: 1 },
+      dept: {},
+      ticket: null, streak: 0,
+      idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
+      event: null, eventAt: Date.now() + 150000,
+      incident: null, incidentAt: Date.now() + 180000,
+      missions: null, missionsAt: 0,
+      md: {},                                  // daily mission counters
+      lifetime: { tickets: 0, credits: 0, xp: 0, incidents: 0, happy: 0, levelups: 0, builds: 0, monday: 0, reorgs: 0, peak: 0, streak: 0, cat: {} },
+      achievements: {},
+      legacy: keep ? keep.legacy : 0,
+      legacySpent: keep ? keep.legacySpent : {},
+      unlocked: keep ? keep.unlocked : { hero: true },
+      reorgs: keep ? keep.reorgs : 0,
+      lastTick: Date.now(), started: Date.now(),
+    };
+    if (keep) { S.lifetime.reorgs = keep.reorgs; S.achievements = keep.achievements; S.lifetime.tickets = keep.tickets; }
+    rollMissions();
+    newTicket();
+    return S;
+  }
+
+  function mkChar(defId, lvl) {
+    const d = def(defId);
+    return { uid: uid(), defId, level: lvl || 1, xp: 0, rarity: d.rarity, equip: {}, dept: null };
+  }
+  function mkItem(eid, lvl) {
+    return { uid: uid(), eid, level: lvl || 1, on: null };
+  }
+
+  /* ---------------- CHARACTER MATH ---------------- */
+  function charStats(c) {
+    const d = def(c.defId), out = {};
+    const growthBonus = 1 + legacyVal('l_growth');
+    DATA.STATS.forEach(s => {
+      out[s] = Math.round((d.base[s] + d.growth[s] * (c.level - 1) * growthBonus) * DATA.RARITY[c.rarity].mult);
+    });
+    Object.values(c.equip).forEach(iuid => {
+      const it = S.inventory.find(i => i.uid === iuid); if (!it) return;
+      const e = eqDef(it.eid); if (!e.stats) return;
+      Object.entries(e.stats).forEach(([k, v]) => { out[k] = (out[k] || 0) + Math.round(v * (1 + (it.level - 1) * 0.25)); });
+    });
+    return out;
+  }
+  function charPower(c) {
+    const st = charStats(c);
+    let p = 0;
+    DATA.STATS.forEach(s => p += st[s]);
+    p = p * 6 + c.level * 12;
+    const d = def(c.defId);
+    if (d.perks.power) p *= (1 + d.perks.power);
+    if (d.perks.all) p *= (1 + d.perks.all);
+    return Math.round(p);
+  }
+  const active = () => S.roster.find(c => c.uid === S.activeId) || S.roster[0];
+  const staff = () => S.roster.filter(c => c.uid !== S.activeId);
+  const teamPower = () => S.roster.reduce((a, c) => a + charPower(c), 0);
+
+  /* ---------------- BONUS AGGREGATION ---------------- */
+  function legacyVal(id) {
+    const l = DATA.LEGACY.find(x => x.id === id);
+    return (S.legacySpent[id] || 0) * l.per;
+  }
+  function bonus(key) {
+    let b = 1;
+    // buildings
+    DATA.BUILDINGS.forEach(bd => {
+      const lv = S.buildings[bd.id] || 0; if (!lv) return;
+      if (bd.key === key) b += bd.per * lv;
+      if (bd.key === 'all') b += bd.per * lv;
+    });
+    // staff perks (everyone you employ helps)
+    S.roster.forEach(c => {
+      const p = def(c.defId).perks || {};
+      if (p[key]) b += p[key];
+      if (p.all && key !== 'energy') b += p.all;
+    });
+    // equipment perks
+    S.inventory.forEach(it => {
+      if (!it.on) return;
+      const p = eqDef(it.eid).perks; if (p && p[key]) b += p[key];
+    });
+    // event modifiers
+    if (S.event && S.event.mods[key] != null) b *= S.event.mods[key];
+    // legacy
+    if (key === 'xp') b += legacyVal('l_xp');
+    if (key === 'credit') b += legacyVal('l_cred');
+    if (key === 'idle') b += legacyVal('l_idle');
+    if (key === 'automation') b += legacyVal('l_auto');
+    return Math.max(0.05, b);
+  }
+
+  /* ---------------- TICKETS ---------------- */
+  const TIER = {
+    EASY:   { n: 1, stars: 1, credits: 14,  xp: 22,  rep: 1,  energy: 2, time: 45 },
+    MEDIUM: { n: 2, stars: 3, credits: 48,  xp: 62,  rep: 3,  energy: 4, time: 90 },
+    HARD:   { n: 3, stars: 5, credits: 170, xp: 190, rep: 9,  energy: 7, time: 180 },
+  };
+
+  function tierRoll() {
+    const l = S.level;
+    const wHard = l < 6 ? 0 : Math.min(0.30, (l - 5) * 0.022);
+    const wMed = l < 3 ? 0 : Math.min(0.45, (l - 2) * 0.05);
+    const r = Math.random();
+    if (r < wHard) return 'HARD';
+    if (r < wHard + wMed) return 'MEDIUM';
+    return 'EASY';
+  }
+
+  function newTicket() {
+    const tier = tierRoll();
+    const t = pick(DATA.TICKETS[tier]);
+    S.ticket = {
+      id: 'INC' + (100000 + Math.floor(Math.random() * 899999)),
+      tier, ...t,
+      flavour: pick(DATA.TICKET_FLAVOUR),
+      born: Date.now(),
+    };
+    return S.ticket;
+  }
+
+  function requirement(tier) { return TIER[tier].n * (7 + S.level * 1.25); }
+
+  function odds() {
+    const t = S.ticket; if (!t) return { tech: 0, sat: 0 };
+    const c = active(), st = charStats(c);
+    const req = requirement(t.tier);
+    const catB = bonus('cat_' + t.cat) - 1;
+    const tech = clamp(0.57 + ((st[t.stat] - req) / req) * 0.42 + catB * 0.25, 0.12, 0.985);
+    const sat = clamp(0.40 + (st.COMMUNICATION / (req * 1.2)) * 0.35 + (bonus('sat') - 1) * 0.9, 0.05, 0.97);
+    return { tech, sat, req };
+  }
+
+  function resolveTicket() {
+    if (!S.ticket) newTicket();
+    const t = S.ticket, T = TIER[t.tier], c = active();
+    const cost = Math.round(T.energy * bonus('energy'));
+    const tired = S.energy < cost;
+    S.energy = Math.max(0, S.energy - cost);
+
+    const o = odds();
+    let techOk = Math.random() < o.tech;
+    let auto = false;
+    if (!techOk && t.cat === 'display' && Math.random() < (bonus('autoDisplay') - 1)) { techOk = true; auto = true; }
+    const satOk = techOk && Math.random() < o.sat;
+
+    const tiredMul = tired ? 0.35 : 1;
+    const failMul = techOk ? 1 : 0.25;
+    const satMul = satOk ? 1.25 : 1;
+
+    let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit') * bonus('cat_' + t.cat) * tiredMul * failMul * satMul;
+    let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul;
+    let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) : -1;
+
+    credits = Math.round(credits); xpv = Math.round(xpv); rep = Math.round(rep);
+
+    S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
+    addXp(xpv);
+    grantStaffXp(Math.round(xpv * 0.35 * bonus('staffXp')));
+
+    // counters
+    S.lifetime.tickets++; S.lifetime.credits += credits; S.lifetime.xp += xpv;
+    S.lifetime.cat[t.cat] = (S.lifetime.cat[t.cat] || 0) + 1;
+    S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
+    if (satOk) S.lifetime.happy++;
+    S.streak = techOk ? S.streak + 1 : 0;
+    S.lifetime.streak = Math.max(S.lifetime.streak, S.streak);
+    bump('tickets', 1); bump('cat_' + t.cat, 1); bump('credits', credits); bump('xp', xpv);
+    if (satOk) bump('happy', 1);
+    bumpSet('streak', S.streak);
+
+    const result = {
+      ticket: t, techOk, satOk, auto, tired, credits, xp: xpv, rep,
+      satReason: techOk ? (satOk ? pick(DATA.SAT_WINS) : pick(DATA.SAT_FAILS)) : 'Ticket escalated. User is now on first-name terms with your manager.',
+      tech: techOk ? 100 : 0,
+      satPct: techOk ? (satOk ? 60 + Math.floor(Math.random() * 40) : 15 + Math.floor(Math.random() * 40)) : 5,
+    };
+
+    // equipment drop
+    if (Math.random() < (t.tier === 'HARD' ? 0.16 : t.tier === 'MEDIUM' ? 0.07 : 0.03)) {
+      result.drop = dropItem(t.tier);
+    }
+    checkAchievements();
+    newTicket();
+    emit('resolved', result);
+    emit('change');
+    return result;
+  }
+
+  function dropItem(tier) {
+    const pool = DATA.EQUIPMENT.filter(e => {
+      const o = DATA.RARITY[e.rarity].order;
+      if (tier === 'EASY') return o <= 1;
+      if (tier === 'MEDIUM') return o <= 2 || (o === 3 && Math.random() < 0.25);
+      return o >= 1 || Math.random() < 0.3;
+    });
+    const e = pick(pool.length ? pool : DATA.EQUIPMENT);
+    const it = mkItem(e.id);
+    S.inventory.push(it);
+    return it;
+  }
+
+  /* ---------------- XP / LEVELS ---------------- */
+  function addXp(n) {
+    S.xp += n;
+    let ups = 0;
+    while (S.xp >= xpNeed(S.level)) {
+      S.xp -= xpNeed(S.level); S.level++; ups++;
+      S.energyMax = 100 + (S.buildings.break || 0) * 10 + Math.floor(S.level / 5) * 5;
+      S.energy = S.energyMax;
+    }
+    if (ups) emit('levelup', { level: S.level, title: title(S.level) });
+  }
+
+  function grantStaffXp(n) {
+    if (n <= 0) return;
+    S.roster.forEach(c => {
+      const d = def(c.defId);
+      let g = n * (1 + (d.perks.xp || 0));
+      if (c.uid !== S.activeId) g *= 0.6;
+      c.xp += g;
+    });
+  }
+
+  function canLevel(c) { return c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c); }
+  function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
+  function levelUpChar(uidc) {
+    const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
+    S.credits -= levelCost(c); c.xp -= charXpNeed(c.level); c.level++;
+    S.lifetime.levelups++; bump('levelups', 1);
+    checkAchievements(); emit('change');
+    return true;
+  }
+
+  /* ---------------- IDLE ENGINE ---------------- */
+  function staffRate(c) {
+    const st = charStats(c), d = def(c.defId);
+    let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
+    if (d.perks.idle) r *= (1 + d.perks.idle);
+    if (d.perks.all) r *= (1 + d.perks.all);
+    if (c.dept === 'auto') r *= 1.35;
+    return r;
+  }
+  function idleRate() {                                   // tickets per minute
+    const base = staff().reduce((a, c) => a + staffRate(c), 0);
+    return base * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+  }
+  function idleCreditsPerTicket() {
+    return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit') * bonus('reward');
+  }
+  function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
+  function idlePerSec() {
+    const tpm = idleRate();
+    return { t: tpm / 60, c: (tpm / 60) * idleCreditsPerTicket(), x: (tpm / 60) * idleXpPerTicket(), r: (tpm / 60) * 0.035 * bonus('rep') };
+  }
+  const offlineCapHours = () => 8 + (S.buildings.autolab || 0) + (S.buildings.noc || 0) * 0.5;
+
+  function accrue(seconds, offline) {
+    if (!staff().length || seconds <= 0) return null;
+    const p = idlePerSec();
+    const mul = offline ? 0.75 : 1;
+    const a = S.idleAcc;
+    a.t += p.t * seconds * mul; a.c += p.c * seconds * mul;
+    a.x += p.x * seconds * mul; a.r += p.r * seconds * mul;
+    if (offline) {
+      a.gear += Math.min(6, Math.floor(seconds / 3600 * 0.8));
+      a.inc += Math.floor(seconds / 5400);
+    }
+    return a;
+  }
+
+  function collectIdle() {
+    const a = S.idleAcc;
+    const c = Math.floor(a.c), x = Math.floor(a.x), r = Math.floor(a.r), t = Math.floor(a.t);
+    const gear = [];
+    for (let i = 0; i < a.gear; i++) gear.push(dropItem(Math.random() < 0.3 ? 'HARD' : 'MEDIUM'));
+    const incBonus = Math.round(a.inc * 420 * (1 + S.level * 0.3) * bonus('incident'));
+    S.lifetime.incidents += a.inc; if (a.inc) bump('incidents', a.inc);
+    S.credits += c + incBonus; S.reputation += r; addXp(x);
+    S.lifetime.tickets += t; S.lifetime.credits += c; S.lifetime.xp += x;
+    S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
+    bump('tickets', t); bump('credits', c); bump('xp', x);
+    grantStaffXp(Math.round(x * 0.5 * bonus('staffXp')));
+    S.idleAcc = { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
+    checkAchievements(); emit('change');
+    return { t, c: c + incBonus, x, r, gear, inc: a.inc };
+  }
+
+  /* ---------------- HIRING ---------------- */
+  function hireCost(d) {
+    const owned = S.roster.filter(c => c.defId === d.id).length;
+    return Math.floor(d.cost * Math.pow(2.4, owned));
+  }
+  function canHire(d) {
+    return d.hireable && S.reputation >= d.repReq && S.credits >= hireCost(d);
+  }
+  function hire(defId) {
+    const d = def(defId); if (!canHire(d)) return null;
+    S.credits -= hireCost(d);
+    const c = mkChar(defId, Math.max(1, Math.floor(S.level * 0.6)));
+    S.roster.push(c); S.unlocked[defId] = true;
+    checkAchievements(); emit('change');
+    return c;
+  }
+
+  /* ---------------- EQUIPMENT ---------------- */
+  function equip(itemUid, charUid) {
+    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return;
+    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
+    const slot = eqDef(it.eid).slot;
+    const prev = c.equip[slot];
+    if (prev) { const p = S.inventory.find(i => i.uid === prev); if (p) p.on = null; }
+    S.inventory.forEach(i => { if (i.on === charUid && eqDef(i.eid).slot === slot) i.on = null; });
+    it.on = charUid; c.equip[slot] = it.uid;
+    emit('change');
+  }
+  function unequip(charUid, slot) {
+    const c = S.roster.find(x => x.uid === charUid); if (!c) return;
+    const iu = c.equip[slot]; if (!iu) return;
+    const it = S.inventory.find(i => i.uid === iu); if (it) it.on = null;
+    delete c.equip[slot]; emit('change');
+  }
+  function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
+  function upgradeItem(itemUid) {
+    const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
+    const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
+    S.credits -= cost; it.level++; emit('change'); return true;
+  }
+  function scrapItem(itemUid) {
+    const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return;
+    const it = S.inventory[i];
+    if (it.on) unequip(it.on, eqDef(it.eid).slot);
+    S.credits += Math.floor(upgradeCost(it) * 0.4);
+    S.inventory.splice(i, 1); emit('change');
+  }
+
+  /* ---------------- BUILDINGS ---------------- */
+  function buildCost(b) { return Math.floor(b.base * Math.pow(b.growth, S.buildings[b.id] || 0)); }
+  function canBuild(b) {
+    const lv = S.buildings[b.id] || 0;
+    return S.reputation >= b.repReq && lv < b.max && S.credits >= buildCost(b);
+  }
+  function build(id) {
+    const b = bDef(id); if (!canBuild(b)) return false;
+    S.credits -= buildCost(b);
+    S.buildings[id] = (S.buildings[id] || 0) + 1;
+    if (id === 'break') S.energyMax = 100 + S.buildings.break * 10 + Math.floor(S.level / 5) * 5;
+    S.lifetime.builds++; bump('builds', 1);
+    checkAchievements(); emit('change'); emit('built', b);
+    return true;
+  }
+
+  /* ---------------- MISSIONS ---------------- */
+  function rollMissions() {
+    const pool = [...DATA.MISSION_POOL].sort(() => Math.random() - 0.5).slice(0, 4);
+    const scale = 1 + S.level * 0.22;
+    S.missions = pool.map(m => ({
+      id: m.id, icon: m.icon, metric: m.metric,
+      target: Math.max(1, Math.round(m.base * scale)),
+      text: (t => t === 1
+        ? m.text.replace('{n}', '1').replace(/(ticket|incident|time|user|employee)s\b/g, '$1')
+        : m.text.replace('{n}', fmt(t)))(Math.max(1, Math.round(m.base * scale))),
+      done: false, claimed: false,
+      reward: {
+        credits: Math.round(400 * scale * (1 + Math.random() * 0.6)),
+        xp: Math.round(280 * scale),
+        rep: Math.round(12 * scale),
+        energy: 25,
+      }
+    }));
+    S.md = {};
+    S.missionsAt = Date.now() + 24 * 3600 * 1000;
+  }
+  function bump(metric, n) {
+    S.md[metric] = (S.md[metric] || 0) + n;
+    updateMissions();
+  }
+  function bumpSet(metric, n) { S.md[metric] = Math.max(S.md[metric] || 0, n); updateMissions(); }
+  function updateMissions() {
+    if (!S.missions) return;
+    S.missions.forEach(m => { if (!m.done && (S.md[m.metric] || 0) >= m.target) { m.done = true; emit('missiondone', m); } });
+  }
+  function claimMission(id) {
+    const m = S.missions.find(x => x.id === id);
+    if (!m || !m.done || m.claimed) return null;
+    m.claimed = true;
+    S.credits += m.reward.credits; S.reputation += m.reward.rep;
+    S.energy = Math.min(S.energyMax, S.energy + m.reward.energy);
+    addXp(m.reward.xp);
+    checkAchievements(); emit('change');
+    return m.reward;
+  }
+
+  /* ---------------- ACHIEVEMENTS ---------------- */
+  function metricValue(m) {
+    const L = S.lifetime;
+    if (m === 'tickets') return L.tickets;
+    if (m === 'incidents') return L.incidents;
+    if (m === 'rep') return S.reputation;
+    if (m === 'staff') return staff().length;
+    if (m === 'peak') return L.peak;
+    if (m === 'gear') return S.inventory.length;
+    if (m === 'monday') return L.monday;
+    if (m === 'reorgs') return L.reorgs;
+    if (m.startsWith('cat_')) return L.cat[m.slice(4)] || 0;
+    return 0;
+  }
+  function checkAchievements() {
+    DATA.ACHIEVEMENTS.forEach(a => {
+      if (S.achievements[a.id]) return;
+      if (metricValue(a.metric) >= a.target) {
+        S.achievements[a.id] = Date.now();
+        S.reputation += a.rep;
+        emit('achievement', a);
+      }
+    });
+  }
+
+  /* ---------------- EVENTS ---------------- */
+  function maybeEvent(now) {
+    if (S.event && now > S.event.until) { S.event = null; S.eventAt = now + (120 + Math.random() * 180) * 1000; emit('change'); }
+    if (!S.event && now > S.eventAt && S.level >= 2) {
+      const e = pick(DATA.EVENTS);
+      S.event = { ...e, until: now + e.dur * 1000 };
+      if (e.id === 'monday') { S.lifetime.monday++; checkAchievements(); }
+      emit('event', S.event); emit('change');
+    }
+  }
+
+  /* ---------------- CRITICAL INCIDENTS ---------------- */
+  const incidentReady = () => S.level >= 3 && !S.incident && Date.now() > S.incidentAt;
+  function startIncident() {
+    const d = pick(DATA.INCIDENTS);
+    S.incident = {
+      ...d, step: 0, chance: 0.34 + (bonus('incidentSuccess') - 1),
+      endsAt: Date.now() + d.time * 1000, log: [],
+    };
+    emit('incident', S.incident);
+    return S.incident;
+  }
+  function incidentAnswer(i) {
+    const inc = S.incident; if (!inc) return null;
+    const step = inc.steps[inc.step];
+    const ok = !!step.opts[i].ok;
+    inc.chance = clamp(inc.chance + (ok ? 0.17 : -0.13), 0.02, 0.99);
+    inc.log.push({ t: step.opts[i].t, ok });
+    inc.step++;
+    return { ok, done: inc.step >= inc.steps.length };
+  }
+  function incidentFinish(forceFail) {
+    const inc = S.incident; if (!inc) return null;
+    const win = !forceFail && Math.random() < inc.chance;
+    const mul = bonus('incident') * (win ? 1 : 0.2);
+    const credits = Math.round(950 * (1 + S.level * 0.34) * mul * bonus('credit'));
+    const xpv = Math.round(430 * (1 + S.level * 0.2) * mul * bonus('xp'));
+    const rep = Math.round(65 * mul * bonus('rep'));
+    S.credits += credits; S.reputation += rep; addXp(xpv);
+    grantStaffXp(Math.round(xpv * 0.4 * bonus('staffXp')));
+    if (win) { S.lifetime.incidents++; bump('incidents', 1); }
+    S.lifetime.credits += credits;
+    S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
+    const drop = win && Math.random() < 0.55 ? dropItem('HARD') : null;
+    S.incident = null;
+    S.incidentAt = Date.now() + (150 + Math.random() * 180) * 1000;
+    checkAchievements(); emit('change');
+    return { win, credits, xp: xpv, rep, drop };
+  }
+
+  /* ---------------- REORGANISATION (PRESTIGE) ---------------- */
+  const reorgReady = () => S.level >= 30;
+  function reorgGain() {
+    if (S.level < 30) return 0;
+    return Math.max(1, Math.floor(Math.sqrt(S.reputation / 400) + (S.level - 25) / 6));
+  }
+  function reorg() {
+    if (!reorgReady()) return 0;
+    const gain = reorgGain();
+    const keep = {
+      legacy: S.legacy + gain, legacySpent: S.legacySpent, unlocked: S.unlocked,
+      reorgs: S.reorgs + 1, achievements: S.achievements, tickets: S.lifetime.tickets,
+    };
+    newGame(keep);
+    S.lifetime.reorgs = keep.reorgs;
+    S.reorgs = keep.reorgs;
+    checkAchievements(); save(); emit('change');
+    return gain;
+  }
+  function spendLegacy(id) {
+    const l = DATA.LEGACY.find(x => x.id === id);
+    const cur = S.legacySpent[id] || 0;
+    if (cur >= l.max || S.legacy < 1) return false;
+    S.legacy--; S.legacySpent[id] = cur + 1; emit('change'); return true;
+  }
+
+  /* ---------------- MAIN TICK ---------------- */
+  function tick() {
+    const now = Date.now();
+    const dt = Math.min(5, (now - S.lastTick) / 1000);
+    S.lastTick = now;
+    // energy
+    S.energyAcc += dt * (1 / 7) * bonus('energyRegen');
+    if (S.energyAcc >= 1) { const g = Math.floor(S.energyAcc); S.energyAcc -= g; S.energy = Math.min(S.energyMax, S.energy + g); }
+    accrue(dt, false);
+    maybeEvent(now);
+    if (S.incident && now > S.incident.endsAt) emit('incidenttimeout');
+    return dt;
+  }
+
+  /* ---------------- SAVE / LOAD ---------------- */
+  function save() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...S, savedAt: Date.now() })); } catch (e) { }
+  }
+  function load() {
+    let raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { }
+    if (!raw) { newGame(); return { fresh: true }; }
+    try {
+      const s = JSON.parse(raw);
+      S = s;
+      S.md = S.md || {}; S.idleAcc = S.idleAcc || { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 };
+      S.lifetime.cat = S.lifetime.cat || {};
+      S.incident = null;
+      uidSeq = Date.now() % 100000;
+      if (!S.ticket) newTicket();
+      if (!S.missions || Date.now() > S.missionsAt) rollMissions();
+      const away = Math.max(0, (Date.now() - (s.savedAt || s.lastTick || Date.now())) / 1000);
+      const capped = Math.min(away, offlineCapHours() * 3600);
+      S.lastTick = Date.now();
+      if (capped > 60 && staff().length) { accrue(capped, true); return { away: capped, offline: true }; }
+      return { away: capped };
+    } catch (e) { newGame(); return { fresh: true }; }
+  }
+  function wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }
+
+  return {
+    on, emit, get state() { return S; },
+    newGame, load, save, wipe, tick,
+    fmt, fmtTime, xpNeed, charXpNeed, title, rank, nextRank,
+    def, eqDef, bDef, charStats, charPower, active, staff, teamPower, bonus, legacyVal,
+    newTicket, resolveTicket, odds, TIER, requirement,
+    idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate,
+    hire, hireCost, canHire, canLevel, levelCost, levelUpChar,
+    equip, unequip, upgradeItem, upgradeCost, scrapItem,
+    build, buildCost, canBuild,
+    rollMissions, claimMission, checkAchievements, metricValue,
+    incidentReady, startIncident, incidentAnswer, incidentFinish,
+    reorgReady, reorgGain, reorg, spendLegacy, mkItem,
+  };
+})();
+
+/* ============================================================
+   IT EMPIRE — UI LAYER
+   Screen rendering, sheets, and all the juice.
+   ============================================================ */
+const UI = (() => {
+  const $ = s => document.querySelector(s);
+  const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const f = Game.fmt;
+  let screen = 'hq';
+  let sayTimer = null;
+
+  const rarColor = r => DATA.RARITY[r].color;
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+  /* ================= FX ================= */
+  function floatText(x, y, text, color, size) {
+    const n = el('div', 'float', esc(text));
+    n.style.cssText = `left:${x}px;top:${y}px;color:${color};font-size:${size || 17}px`;
+    $('#fx').appendChild(n);
+    setTimeout(() => n.remove(), 1250);
+  }
+  function burstFloats(x, y, lines) {
+    lines.forEach((l, i) => setTimeout(() => floatText(x + (i % 2 ? 34 : -34), y - i * 6, l.t, l.c, l.s), i * 110));
+  }
+  function coins(fromEl, n) {
+    const tgt = $('#resCredits'); if (!fromEl || !tgt) return;
+    const a = fromEl.getBoundingClientRect(), b = tgt.getBoundingClientRect();
+    for (let i = 0; i < n; i++) {
+      const c = el('div', 'coin');
+      const sx = a.left + a.width / 2 + (Math.random() - .5) * a.width * .7;
+      const sy = a.top + a.height / 2;
+      c.style.cssText = `left:${sx}px;top:${sy}px`;
+      $('#fx').appendChild(c);
+      c.animate([
+        { transform: 'translate(0,0) scale(.5)', opacity: 0 },
+        { transform: `translate(${(Math.random() - .5) * 90}px,${-40 - Math.random() * 50}px) scale(1.15)`, opacity: 1, offset: .3 },
+        { transform: `translate(${b.left - sx + 10}px,${b.top - sy + 8}px) scale(.35)`, opacity: .9 }
+      ], { duration: 620 + i * 40, easing: 'cubic-bezier(.4,0,.5,1)' }).onfinish = () => c.remove();
+    }
+  }
+  function sparks(x, y, color, n) {
+    for (let i = 0; i < (n || 10); i++) {
+      const s = el('div', 'spark');
+      const ang = Math.random() * Math.PI * 2, d = 30 + Math.random() * 60;
+      s.style.cssText = `left:${x}px;top:${y}px;background:${color};--dx:${Math.cos(ang) * d}px;--dy:${Math.sin(ang) * d}px`;
+      $('#fx').appendChild(s);
+      setTimeout(() => s.remove(), 750);
+    }
+  }
+  const shake = () => { const a = $('#app'); a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake'); setTimeout(() => a.classList.remove('shake'), 460); };
+  function beep(kind) {                             // sound-effect hook (WebAudio, no assets)
+    if (!window.SFX) return; try { window.SFX(kind); } catch (e) { }
+  }
+
+  /* ================= MODAL ================= */
+  let modalStack = [];
+  function sheet(html, opts = {}) {
+    const m = $('#modal');
+    m.innerHTML = `<div class="sheet">${opts.grab === false ? '' : '<div class="grab"></div>'}${html}</div>`;
+    m.classList.add('on');
+    m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
+    return m.querySelector('.sheet');
+  }
+  function closeSheet() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+
+  /* ================= TOP BAR ================= */
+  function renderTop() {
+    const S = Game.state, r = Game.rank(S.reputation);
+    const need = Game.xpNeed(S.level);
+    $('#lvlNum').textContent = S.level;
+    $('#pName').textContent = S.name;
+    $('#pTitle').textContent = Game.title(S.level).toUpperCase();
+    $('#pRank').textContent = r.name;
+    $('#resCredits').textContent = f(S.credits);
+    $('#resRep').textContent = f(S.reputation);
+    $('#xpFill').style.width = Math.min(100, S.xp / need * 100) + '%';
+    $('#xpLbl').textContent = f(S.xp) + '/' + f(need);
+    $('#enFill').style.width = Math.min(100, S.energy / S.energyMax * 100) + '%';
+    $('#enLbl').textContent = Math.floor(S.energy) + '/' + S.energyMax;
+    const alerts = (S.missions || []).filter(m => m.done && !m.claimed).length + (Game.incidentReady() ? 1 : 0);
+    $('#bellDot').style.display = alerts ? 'block' : 'none';
+    const nb = $('#navBadge');
+    const mc = (S.missions || []).filter(m => m.done && !m.claimed).length;
+    nb.style.display = mc ? 'grid' : 'none'; nb.textContent = mc;
+  }
+
+  /* ================= HQ ================= */
+  function buildStage() {
+    const c = Game.active(), d = Game.def(c.defId);
+    $('#stage').innerHTML = Art.office() +
+      `<div class="stage-chip" id="stageChips"></div>
+       <div class="hero-shadow"></div>
+       <div class="hero-wrap" id="heroWrap">${Art.hero(d.art, 'idle')}</div>
+       <div class="hero-name" id="heroName"></div>
+       <div class="hero-say" id="heroSay"></div>`;
+    updateHero();
+  }
+  function updateHero() {
+    const S = Game.state, c = Game.active(), d = Game.def(c.defId);
+    $('#heroName').innerHTML =
+      `<div class="n">${esc(c.defId === 'hero' ? S.name : d.name)}</div>
+       <div class="r">${esc(c.defId === 'hero' ? Game.title(S.level) : d.role)} · LV.${c.level}</div>
+       <div class="p">⚡ POWER ${f(Game.charPower(c))}</div>`;
+    const rate = Game.idleRate();
+    $('#heroSay').textContent = rate > 0
+      ? `"The team is on it. ${rate.toFixed(1)} tickets a minute."`
+      : `"Right. Who is first in the queue?"`;
+    updateChips();
+  }
+  function say(t) {
+    const n = $('#heroSay'); if (!n) return;
+    n.textContent = t; n.classList.remove('pop'); void n.offsetWidth; n.classList.add('pop');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(updateHero, 3800);
+  }
+  function updateChips() {
+    const S = Game.state, box = $('#stageChips'); if (!box) return;
+    let h = `<span class="chip live">● HELPDESK LIVE</span>`;
+    if (S.event) h += `<span class="chip event">${S.event.icon} ${esc(S.event.title)} · ${Game.fmtTime((S.event.until - Date.now()) / 1000)}</span>`;
+    box.innerHTML = h;
+  }
+
+  function updateTicket() {
+    const S = Game.state, t = S.ticket; if (!t) return;
+    const T = Game.TIER[t.tier], o = Game.odds();
+    const cr = Math.round(T.credits * (1 + S.level * 0.17) * Game.bonus('reward') * Game.bonus('credit') * Game.bonus('cat_' + t.cat));
+    const xp = Math.round(T.xp * (1 + S.level * 0.11) * Game.bonus('xp'));
+    const rp = Math.round(T.rep * Game.bonus('rep'));
+    $('#ticketCard').className = 'ticket' + (t.tier === 'HARD' ? ' crit' : '');
+    $('#ticketCard').innerHTML = `
+      <div class="tk-top">
+        <span class="tag" style="color:${t.tier === 'HARD' ? 'var(--alarm)' : t.tier === 'MEDIUM' ? 'var(--lamp)' : 'var(--good)'}">${t.tier}</span>
+        <span class="tk-id">#${t.id} · ${esc(t.user)}</span>
+        <span class="tk-stars">${stars(T.stars)}</span>
+      </div>
+      <div class="tk-main">
+        <div class="tk-icon">${t.icon}</div>
+        <div class="tk-body">
+          <h3 class="tk-name">${esc(t.name)}</h3>
+          <p class="tk-flav">${esc(t.flavour)}</p>
+          <div class="tk-meta">
+            <span class="tag stat">${DATA.STAT_ICON[t.stat]} ${t.stat}</span>
+            <span class="tag">${t.cat}</span>
+            <span class="tag odds">${Math.round(o.tech * 100)}% SUCCESS</span>
+          </div>
+        </div>
+      </div>
+      <div class="tk-rewards">
+        <b class="rw-c">+${f(cr)} CR</b><b class="rw-x">+${f(xp)} XP</b><b class="rw-r">+${rp} REP</b>
+        <b class="muted" style="margin-left:auto">−${Math.round(T.energy * Game.bonus('energy'))} ⚡</b>
+      </div>`;
+    const cost = Math.round(T.energy * Game.bonus('energy'));
+    const tired = S.energy < cost;
+    const btn = $('#btnResolve');
+    btn.className = 'resolve' + (tired ? ' tired' : '');
+    btn.innerHTML = `🔧 RESOLVE TICKET<span class="sub">${tired ? 'RUNNING ON FUMES · 35% REWARDS' : t.tier + ' · ' + Math.round(o.tech * 100) + '% SUCCESS'}</span>`;
+  }
+
+  function updateMini() {
+    const S = Game.state;
+    const ready = Game.incidentReady();
+    $('#miniRow').innerHTML = `
+      <button class="mini ${ready ? 'hot' : ''}" data-act="incident">
+        <i>🚨</i>INCIDENT<small>${ready ? 'ACTIVE NOW' : 'STANDBY ' + Game.fmtTime((S.incidentAt - Date.now()) / 1000)}</small></button>
+      <button class="mini" data-act="go-staff"><i>👥</i>TEAM<small>${S.roster.length} ON SHIFT</small></button>
+      <button class="mini" data-act="go-missions"><i>📋</i>MISSIONS<small>${(S.missions || []).filter(m => m.done && !m.claimed).length} READY</small></button>`;
+  }
+
+  function updateIdle() {
+    const S = Game.state, per = Game.idlePerSec(), a = S.idleAcc, n = Game.staff().length;
+    $('#idleStrip').innerHTML = n === 0 ? `
+      <div class="idle-head"><span>🤖</span> AUTOMATED QUEUE</div>
+      <p class="idle-note">Nobody is working the queue but you. Hire your first colleague on the <b>STAFF</b> tab and tickets keep closing while you are away.</p>
+      <button class="btn teal" style="width:100%;margin-top:9px" data-act="go-staff">HIRE SOMEONE</button>` : `
+      <div class="idle-head"><span class="live-dot"></span> AUTOMATED QUEUE · ${n} WORKING</div>
+      <div class="idle-grid">
+        <div class="idle-cell"><b>${Game.idleRate().toFixed(1)}</b><span>tickets/min</span></div>
+        <div class="idle-cell"><b style="color:var(--lamp)">${f(per.c * 60)}</b><span>credits/min</span></div>
+        <div class="idle-cell"><b style="color:var(--crt)">${f(per.x * 60)}</b><span>xp/min</span></div>
+      </div>
+      <p class="idle-note">Waiting for you: <b class="mono">${f(a.t)}</b> tickets · <b class="mono" style="color:var(--lamp)">${f(a.c)}</b> CR · <b class="mono" style="color:var(--crt)">${f(a.x)}</b> XP</p>
+      <button class="collect" data-act="collect" ${a.c < 1 ? 'style="opacity:.5"' : ''}>COLLECT ${f(a.c)} CREDITS</button>`;
+  }
+
+  function updateBuildings() {
+    const S = Game.state;
+    $('#buildList').innerHTML = DATA.BUILDINGS.map(b => {
+      const lv = S.buildings[b.id] || 0;
+      const locked = S.reputation < b.repReq;
+      const cost = Game.buildCost(b);
+      const maxed = lv >= b.max;
+      return `<div class="card" style="${locked ? 'opacity:.5' : ''}">
+        <div class="avatar" style="display:grid;place-items:center;font-size:24px;background:var(--ink-2)">${b.icon}</div>
+        <div class="who">
+          <h3>${esc(b.name)} ${lv ? `<span class="mono" style="color:var(--lamp);font-size:11px">LV.${lv}</span>` : ''}</h3>
+          <div class="role">${esc(b.effect)}</div>
+          <div class="tiny mono" style="color:${locked ? 'var(--alarm)' : 'var(--muted)'};margin-top:3px">
+            ${locked ? `🔒 NEEDS ${f(b.repReq)} REPUTATION` : maxed ? 'MAX LEVEL' : `💰 ${f(cost)}`}
+          </div>
+        </div>
+        ${locked || maxed ? '' : `<button class="btn gold sm ${S.credits < cost ? 'off' : ''}" data-build="${b.id}">${lv ? 'UPGRADE' : 'BUILD'}</button>`}
+      </div>`;
+    }).join('');
+  }
+
+  const renderHQ = () => { updateTicket(); updateMini(); updateIdle(); updateBuildings(); updateChips(); };
+
+  /* ================= STAFF ================= */
+  function renderStaff() {
+    const S = Game.state;
+    const cards = S.roster.map(c => {
+      const d = Game.def(c.defId), isActive = c.uid === S.activeId;
+      const need = Game.charXpNeed(c.level), can = Game.canLevel(c);
+      return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
+        <div class="row">
+          <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv">L${c.level}</span></div>
+          <div class="who">
+            <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+            <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : c.dept ? ' · ' + esc(DATA.DEPARTMENTS.find(x => x.id === c.dept).name) : ''}</div>
+            <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          </div>
+          <div style="text-align:right">
+            <div class="pw">⚡ ${f(Game.charPower(c))}</div>
+            <div class="tiny muted mono">${isActive ? 'ACTIVE' : Game.staffRate(c).toFixed(1) + '/min'}</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
+          <span class="tiny mono muted">${f(c.xp)}/${f(need)}</span>
+          <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">LV UP</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const hireable = DATA.CHARACTERS.filter(d => d.hireable).map(d => {
+      const cost = Game.hireCost(d), locked = S.reputation < d.repReq, owned = S.roster.filter(c => c.defId === d.id).length;
+      return `<div class="card" style="${locked ? 'opacity:.55' : ''}">
+        <div class="avatar">${Art.portrait(d.art, 'h' + d.id)}</div>
+        <div class="who">
+          <h3>${esc(d.name)}</h3>
+          <div class="role">${esc(d.role)}${owned ? ` · <span class="mono tiny">×${owned} hired</span>` : ''}</div>
+          <div class="tiny" style="color:var(--good);margin-top:3px">＋ ${esc(d.strength)}</div>
+          <div class="tiny" style="color:var(--alarm)">－ ${esc(d.weakness)}</div>
+          <span class="rar" style="color:${rarColor(d.rarity)};border:1px solid ${rarColor(d.rarity)}33;background:${rarColor(d.rarity)}18">${d.rarity}</span>
+        </div>
+        <div style="text-align:right">
+          ${locked ? `<div class="tiny mono" style="color:var(--alarm)">🔒 ${f(d.repReq)} REP</div>`
+          : `<button class="btn gold sm ${S.credits < cost ? 'off' : ''}" data-hire="${d.id}">💰 ${f(cost)}</button>`}
+        </div>
+      </div>`;
+    }).join('');
+
+    $('#screen-staff').innerHTML = `
+      <div class="sec-head"><h2>YOUR TEAM</h2><span>${S.roster.length} EMPLOYEES · ⚡${f(Game.teamPower())}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Tap anyone to open their file, fit them out and assign a department. Whoever is <b style="color:var(--lamp)">ON DUTY</b> resolves your tapped tickets — everyone else works the automated queue.</p>
+      <div class="list">${cards}</div>
+      <div class="sec-head"><h2>RECRUITMENT</h2><span>REP ${f(S.reputation)}</span></div>
+      <div class="list">${hireable}</div>
+      <div style="height:14px"></div>`;
+  }
+
+  function charSheet(uid) {
+    const S = Game.state, c = S.roster.find(x => x.uid === uid); if (!c) return;
+    const d = Game.def(c.defId), st = Game.charStats(c), need = Game.charXpNeed(c.level);
+    const slotHtml = DATA.SLOTS.map(s => {
+      const iu = c.equip[s.key], it = iu && S.inventory.find(i => i.uid === iu);
+      const e = it && Game.eqDef(it.eid);
+      return `<button class="slot ${it ? 'filled' : ''}" data-slot="${s.key}" data-for="${c.uid}"
+        style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
+        <div class="si">${e ? '🔧' : s.icon}</div>
+        <div class="sn" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name.split(' ').slice(0, 2).join(' ')) : s.label}</div>
+      </button>`;
+    }).join('');
+    const deptHtml = DATA.DEPARTMENTS.map(dp => {
+      const locked = S.reputation < dp.repReq;
+      return `<button class="btn sm ${c.dept === dp.id ? 'teal' : ''} ${locked ? 'off' : ''}" data-dept="${dp.id}" data-for="${c.uid}"
+        style="flex:1;min-width:calc(50% - 4px)">${dp.icon} ${esc(dp.name)}${locked ? ' 🔒' : ''}</button>`;
+    }).join('');
+
+    sheet(`
+      <div class="row" style="align-items:flex-start">
+        <div class="avatar lg">${Art.portrait(d.art, 'sh' + c.uid)}<span class="lv">L${c.level}</span></div>
+        <div class="who">
+          <h3 style="font-size:18px;text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <div class="role">${esc(d.role)}</div>
+          <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          <div class="pw" style="margin-top:4px">⚡ POWER ${f(Game.charPower(c))}</div>
+        </div>
+      </div>
+      <p class="tiny muted" style="margin:10px 0 0;font-style:italic">${esc(d.personality)}</p>
+      <p class="tiny" style="color:var(--crt);margin:6px 0 0">${esc(d.quotes[Math.floor(Math.random() * d.quotes.length)])}</p>
+      <div class="row" style="margin-top:10px;gap:6px">
+        <div class="tiny" style="color:var(--good);flex:1">＋ ${esc(d.strength)}</div>
+      </div>
+      <div class="tiny" style="color:var(--alarm)">－ ${esc(d.weakness)}</div>
+
+      <div class="statgrid">
+        ${DATA.STATS.map(s => `<div class="statrow"><span>${DATA.STAT_ICON[s]}</span><span class="nm">${s}</span><b>${st[s]}</b></div>`).join('')}
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="pbar" style="flex:1"><span style="width:${Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${f(c.xp)}/${f(need)} XP</span>
+      </div>
+      <button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
+        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>
+      ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
+
+      <div class="sec-head" style="padding:14px 0 4px"><h2>EQUIPMENT</h2></div>
+      <div class="slots">${slotHtml}</div>
+
+      <div class="sec-head" style="padding:14px 0 4px"><h2>DEPARTMENT</h2></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">${deptHtml}</div>
+      <button class="btn ghost cta" data-close="1">CLOSE</button>
+    `);
+  }
+
+  function pickItemSheet(charUid, slot) {
+    const S = Game.state;
+    const items = S.inventory.filter(i => Game.eqDef(i.eid).slot === slot);
+    const c = S.roster.find(x => x.uid === charUid);
+    const cur = c.equip[slot];
+    sheet(`
+      <h3>${DATA.SLOTS.find(s => s.key === slot).label.toUpperCase()}</h3>
+      <p class="sub">Fitting out ${esc(c.defId === 'hero' ? S.name : Game.def(c.defId).name)}</p>
+      ${cur ? `<button class="btn ghost cta" data-unequip="${slot}" data-for="${charUid}">REMOVE CURRENT</button>` : ''}
+      <div class="list" style="padding:0;margin-top:10px">
+        ${items.length ? items.map(i => {
+      const e = Game.eqDef(i.eid);
+      return `<div class="card col" data-equip="${i.uid}" data-for="${charUid}" style="border-color:${rarColor(e.rarity)}55">
+            <div class="spread">
+              <div><h3 style="font-family:var(--disp);font-size:14px;margin:0">${esc(e.name)}</h3>
+              <span class="rar" style="color:${rarColor(e.rarity)}">${e.rarity} · LV.${i.level}</span></div>
+              ${i.on === charUid ? '<span class="tiny" style="color:var(--good)">EQUIPPED</span>' : '<button class="btn teal sm">EQUIP</button>'}
+            </div>
+            <div class="tiny mono" style="margin-top:6px">${Object.entries(e.stats || {}).map(([k, v]) => `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ')}</div>
+            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+          </div>`;
+    }).join('') : `<div class="empty"><span class="big">🎒</span>No ${DATA.SLOTS.find(s => s.key === slot).label.toLowerCase()} in the store cupboard yet. Resolve tickets — gear drops.</div>`}
+      </div>
+      <button class="btn ghost cta" data-back="${charUid}">BACK</button>`);
+  }
+
+  /* ================= EQUIPMENT SCREEN ================= */
+  function renderGear() {
+    const S = Game.state;
+    const sorted = [...S.inventory].sort((a, b) =>
+      DATA.RARITY[Game.eqDef(b.eid).rarity].order - DATA.RARITY[Game.eqDef(a.eid).rarity].order || b.level - a.level);
+    $('#screen-gear').innerHTML = `
+      <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Gear drops from tickets and incidents. Upgrade it with credits, or scrap what you will never use.</p>
+      <div class="list">${sorted.length ? sorted.map(i => {
+      const e = Game.eqDef(i.eid), owner = i.on && S.roster.find(c => c.uid === i.on);
+      const up = Game.upgradeCost(i);
+      return `<div class="card col" style="border-color:${rarColor(e.rarity)}44">
+          <div class="spread">
+            <div style="min-width:0">
+              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s => s.key === e.slot).icon} ${esc(e.name)}</h3>
+              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
+              ${owner ? `<span class="tiny" style="color:var(--good);margin-left:6px">worn by ${esc(owner.defId === 'hero' ? S.name : Game.def(owner.defId).name)}</span>` : ''}
+            </div>
+          </div>
+          <div class="tiny mono" style="margin-top:6px">${Object.entries(e.stats || {}).map(([k, v]) => `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${Math.round(v * (1 + (i.level - 1) * .25))} ${k}</span>`).join(' · ')}</div>
+          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+            <button class="btn sm ghost" data-scrap="${i.uid}" style="margin-left:auto">SCRAP</button>
+          </div>
+        </div>`;
+    }).join('') : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets and gear will turn up — the harder the ticket, the better the drop.</div>`}</div>
+      <div style="height:14px"></div>`;
+  }
+
+  /* ================= MISSIONS ================= */
+  function renderMissions() {
+    const S = Game.state;
+    const ms = (S.missions || []).map(m => {
+      const cur = Math.min(m.target, S.md[m.metric] || 0);
+      return `<div class="card col ${m.claimed ? 'ach' : ''}">
+        <div class="mrow">
+          <div class="ico">${m.icon}</div>
+          <div class="txt">
+            <h4>${esc(m.text)}</h4>
+            <div class="prog"><div class="pbar ${m.done ? 'gold' : ''}"><span style="width:${cur / m.target * 100}%"></span></div>
+              <span>${f(cur)}/${f(m.target)}</span></div>
+          </div>
+          ${m.claimed ? '<span class="tiny muted">DONE</span>'
+          : m.done ? `<button class="btn gold sm" data-claim="${m.id}">CLAIM</button>`
+            : '<span class="tiny muted mono">…</span>'}
+        </div>
+        <div class="rewrow">
+          <span class="rw-c">+${f(m.reward.credits)} CR</span><span class="rw-x">+${f(m.reward.xp)} XP</span>
+          <span class="rw-r">+${m.reward.rep} REP</span><span style="color:var(--lamp)">+${m.reward.energy} ⚡</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    const ach = DATA.ACHIEVEMENTS.map(a => {
+      const got = !!S.achievements[a.id], v = Game.metricValue(a.metric);
+      return `<div class="card ach ${got ? 'got' : ''}">
+        <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">${got ? '🏅' : '🔒'}</div>
+        <div class="who"><h3>${esc(a.name)}</h3><div class="role">${esc(a.desc)}</div>
+          <div class="prog" style="display:flex;align-items:center;gap:7px;margin-top:5px">
+            <div class="pbar gold" style="flex:1"><span style="width:${Math.min(100, v / a.target * 100)}%"></span></div>
+            <span class="tiny mono muted">${f(Math.min(v, a.target))}/${f(a.target)}</span></div>
+        </div>
+        <div class="tiny mono" style="color:var(--rep)">+${a.rep}</div>
+      </div>`;
+    }).join('');
+
+    $('#screen-missions').innerHTML = `
+      <div class="sec-head"><h2>DAILY MISSIONS</h2><span>RESETS IN ${Game.fmtTime((S.missionsAt - Date.now()) / 1000)}</span></div>
+      <div class="list">${ms}</div>
+      <div class="sec-head"><h2>ACHIEVEMENTS</h2><span>${Object.keys(S.achievements).length}/${DATA.ACHIEVEMENTS.length}</span></div>
+      <div class="list">${ach}</div>
+      <div style="height:14px"></div>`;
+  }
+
+  /* ================= RANKING ================= */
+  function renderRanking() {
+    const S = Game.state, r = Game.rank(S.reputation), nx = Game.nextRank(S.reputation);
+    const L = S.lifetime;
+    const ranks = DATA.RANKS.map(x => {
+      const got = S.reputation >= x.at;
+      return `<div class="card" style="${got ? '' : 'opacity:.5'}">
+        <div class="avatar" style="display:grid;place-items:center;font-size:20px;background:var(--ink-2);border-color:${got ? 'var(--rep)' : 'var(--line)'}">${got ? '🏆' : '🔒'}</div>
+        <div class="who"><h3>${esc(x.name)}</h3><div class="role">${esc(x.blurb)}</div></div>
+        <div class="mono tiny" style="color:var(--rep)">${f(x.at)}</div>
+      </div>`;
+    }).join('');
+    const titles = DATA.TITLES.map(t => `<div class="row" style="gap:8px;padding:5px 0">
+      <span style="width:9px;height:9px;border-radius:50%;background:${S.level >= t.level ? 'var(--lamp)' : 'var(--line)'}"></span>
+      <span class="tiny" style="color:${S.level >= t.level ? 'var(--text)' : 'var(--muted)'}">${esc(t.name)}</span>
+      <span class="tiny mono muted" style="margin-left:auto">LV.${t.level}</span></div>`).join('');
+
+    const legacy = DATA.LEGACY.map(l => {
+      const cur = S.legacySpent[l.id] || 0;
+      return `<div class="card">
+        <div class="avatar" style="display:grid;place-items:center;font-size:20px;background:var(--ink-2)">${l.icon}</div>
+        <div class="who"><h3>${esc(l.name)}</h3><div class="role">${esc(l.desc)}</div>
+          <div class="tiny mono" style="color:var(--rep)">${cur}/${l.max}</div></div>
+        <button class="btn sm ${S.legacy > 0 && cur < l.max ? 'teal' : 'off'}" data-legacy="${l.id}">+1</button>
+      </div>`;
+    }).join('');
+
+    $('#screen-rank').innerHTML = `
+      <div class="sec-head"><h2>REPUTATION</h2><span>${f(S.reputation)} REP</span></div>
+      <div class="list"><div class="card col">
+        <div class="spread"><h3 style="font-family:var(--disp);font-size:17px;margin:0;color:var(--rep)">${esc(r.name)}</h3>
+        <span class="tiny mono muted">${nx ? 'NEXT ' + f(nx.at) : 'MAXIMUM'}</span></div>
+        <p class="tiny muted" style="margin:4px 0 8px">${esc(r.blurb)}</p>
+        <div class="pbar gold"><span style="width:${nx ? Math.min(100, (S.reputation - r.at) / (nx.at - r.at) * 100) : 100}%"></span></div>
+      </div></div>
+      <div class="list" style="margin-top:9px">${ranks}</div>
+
+      <div class="sec-head"><h2>CAREER</h2><span>${esc(Game.title(S.level))}</span></div>
+      <div class="list"><div class="card col">${titles}</div></div>
+
+      <div class="sec-head"><h2>LIFETIME</h2></div>
+      <div class="list"><div class="card col">
+        <div class="statgrid">
+          <div class="statrow"><span>🎫</span><span class="nm">TICKETS</span><b>${f(L.tickets)}</b></div>
+          <div class="statrow"><span>💰</span><span class="nm">CREDITS EARNED</span><b>${f(L.credits)}</b></div>
+          <div class="statrow"><span>🚨</span><span class="nm">INCIDENTS WON</span><b>${f(L.incidents)}</b></div>
+          <div class="statrow"><span>😊</span><span class="nm">HAPPY USERS</span><b>${f(L.happy)}</b></div>
+          <div class="statrow"><span>🔥</span><span class="nm">BEST STREAK</span><b>${f(L.streak)}</b></div>
+          <div class="statrow"><span>🔄</span><span class="nm">REORGANISATIONS</span><b>${f(S.reorgs || 0)}</b></div>
+        </div>
+      </div></div>
+
+      <div class="sec-head"><h2>IT REORGANISATION</h2><span>${f(S.legacy)} LEGACY</span></div>
+      <div class="list"><div class="card col">
+        <p class="tiny muted" style="margin:0 0 8px">Restructure the whole department. You lose your staff, office, credits and level — you keep achievements, unlocked people and <b style="color:var(--rep)">Legacy Points</b> that make every future run faster.</p>
+        <button class="btn ${Game.reorgReady() ? 'gold' : 'off'} cta" data-act="reorg" style="margin:0">
+          ${Game.reorgReady() ? `REORGANISE FOR +${Game.reorgGain()} LEGACY` : `UNLOCKS AT LEVEL 30 (YOU ARE ${S.level})`}</button>
+      </div></div>
+      <div class="list" style="margin-top:9px">${legacy}</div>
+      <div style="height:14px"></div>`;
+  }
+
+  /* ================= WORLD ================= */
+  function renderWorld() {
+    const S = Game.state;
+    $('#screen-world').innerHTML = `
+      <div class="sec-head"><h2>GLOBAL OPERATIONS</h2><span>REP ${f(S.reputation)}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every office runs its own queue, its own people and its own disasters. Build reputation at home first — head office is watching.</p>
+      <div class="list">${DATA.WORLD.map(w => {
+      const open = S.reputation >= w.repReq;
+      return `<div class="card loc ${open ? 'open' : ''}">
+          <div class="flag">${w.icon}</div>
+          <div class="who"><h3>${esc(w.name)}</h3><div class="role">${esc(w.note)}</div></div>
+          <div class="tiny mono" style="color:${open ? 'var(--good)' : 'var(--muted)'};text-align:right">
+            ${w.repReq === 0 ? 'ACTIVE' : open ? 'READY<br><span style="color:var(--muted)">soon</span>' : '🔒 ' + f(w.repReq)}</div>
+        </div>`;
+    }).join('')}</div>
+      <div class="sec-head"><h2>DEPARTMENTS</h2></div>
+      <div class="list">${DATA.DEPARTMENTS.map(d => {
+      const open = S.reputation >= d.repReq;
+      const n = S.roster.filter(c => c.dept === d.id).length;
+      return `<div class="card" style="${open ? '' : 'opacity:.5'}">
+          <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">${d.icon}</div>
+          <div class="who"><h3>${esc(d.name)}</h3><div class="role">${esc(d.bonus)}</div>
+            <div class="tiny mono muted">${open ? n + ' assigned' : '🔒 ' + f(d.repReq) + ' REP'}</div></div>
+        </div>`;
+    }).join('')}</div>
+      <div style="height:14px"></div>`;
+  }
+
+  /* ================= SCREEN SWITCH ================= */
+  function show(name) {
+    screen = name;
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'screen-' + name));
+    document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.screen === name));
+    refresh();
+    $('#screens').scrollTop = 0;
+  }
+
+  function refresh() {
+    renderTop();
+    if (screen === 'hq') renderHQ();
+    else if (screen === 'staff') renderStaff();
+    else if (screen === 'gear') renderGear();
+    else if (screen === 'missions') renderMissions();
+    else if (screen === 'rank') renderRanking();
+    else if (screen === 'world') renderWorld();
+  }
+
+  return { $, el, esc, sheet, closeSheet, floatText, burstFloats, coins, sparks, shake, beep,
+           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateTicket, updateMini,
+           updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
+           get screen() { return screen; }, rarColor, stars };
+})();
+
+/* ============================================================
+   IT EMPIRE — BOOT + INPUT
+   ============================================================ */
+(() => {
+  const $ = s => document.querySelector(s);
+  const f = Game.fmt, esc = UI.esc;
+
+  /* ---------- SOUND (synthesised, no assets) ---------- */
+  let ac = null, muted = localStorage.getItem('ie-mute') === '1';
+  window.SFX = kind => {
+    if (muted) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      const map = { tap: [420, 620, .05], ok: [560, 880, .12], great: [660, 1320, .2],
+                    fail: [300, 170, .18], coin: [900, 1500, .07], level: [520, 1040, .35],
+                    alarm: [340, 300, .3] };
+      const [a, b, d] = map[kind] || map.tap;
+      o.type = kind === 'fail' || kind === 'alarm' ? 'sawtooth' : 'triangle';
+      o.frequency.setValueAtTime(a, t);
+      o.frequency.exponentialRampToValueAtTime(b, t + d);
+      g.gain.setValueAtTime(kind === 'level' ? .16 : .09, t);
+      g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d + .02);
+    } catch (e) { }
+  };
+
+  /* ---------- TOAST ---------- */
+  function toast(icon, t1, t2) {
+    document.querySelectorAll('.toast').forEach(x => x.remove());
+    const n = UI.el('div', 'toast', `<span style="font-size:22px">${icon}</span>
+      <div><div class="t1">${esc(t1)}</div><div class="t2">${esc(t2)}</div></div>`);
+    document.body.appendChild(n);
+    setTimeout(() => { n.style.transition = 'opacity .4s'; n.style.opacity = '0'; setTimeout(() => n.remove(), 400); }, 2600);
+  }
+
+  /* ---------- RESOLVE ---------- */
+  let busy = false;
+  function doResolve() {
+    if (busy) return; busy = true;
+    const btn = $('#btnResolve'), hero = $('#heroWrap');
+    const r = btn.getBoundingClientRect();
+    hero && hero.classList.add('working');
+    UI.beep('tap');
+    setTimeout(() => {
+      hero && hero.classList.remove('working');
+      const res = Game.resolveTicket();
+      const lines = [];
+      if (res.xp) lines.push({ t: `+${f(res.xp)} XP`, c: 'var(--crt)' });
+      if (res.credits) lines.push({ t: `+${f(res.credits)} CR`, c: 'var(--lamp)', s: 19 });
+      if (res.rep) lines.push({ t: `${res.rep > 0 ? '+' : ''}${res.rep} REP`, c: res.rep > 0 ? 'var(--rep)' : 'var(--alarm)' });
+      UI.burstFloats(r.left + r.width / 2, r.top - 6, lines);
+      UI.coins(btn, Math.min(10, 3 + Math.floor(res.credits / 60)));
+
+      if (!res.techOk) {
+        UI.beep('fail');
+        UI.floatText(r.left + r.width / 2, r.top - 34, 'ESCALATED', 'var(--alarm)', 15);
+      } else if (res.ticket.tier === 'HARD') {
+        UI.beep('great'); UI.shake();
+        UI.sparks(r.left + r.width / 2, r.top, '#FFB347', 16);
+      } else UI.beep('ok');
+
+      UI.say(res.auto ? '"The Dongle of Destiny strikes again."' : res.satReason);
+      if (res.drop) setTimeout(() => showDrop(res.drop), 480);
+      UI.refresh();
+      busy = false;
+    }, 340);
+  }
+
+  function showDrop(it) {
+    const e = Game.eqDef(it.eid), col = UI.rarColor(e.rarity);
+    UI.beep('great');
+    UI.sheet(`
+      <span class="big-emoji">🎁</span>
+      <h3 style="color:${col}">${esc(e.name)}</h3>
+      <p class="sub">${e.rarity} ${DATA.SLOTS.find(s => s.key === e.slot).label.toUpperCase()} — pulled out of a ticket</p>
+      <div class="reward-line">${Object.entries(e.stats || {}).map(([k, v]) =>
+      `<span style="color:${v > 0 ? 'var(--crt)' : 'var(--alarm)'}">${v > 0 ? '+' : ''}${v} ${k}</span>`).join('')}</div>
+      <p class="tiny muted" style="text-align:center">${esc(e.effect)}</p>
+      <button class="btn gold cta" data-close="1">NICE</button>`);
+    setTimeout(() => {
+      const s = document.querySelector('.sheet');
+      if (s) { const b = s.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 60, col, 22); }
+    }, 120);
+  }
+
+  /* ---------- LEVEL UP ---------- */
+  Game.on('levelup', d => {
+    UI.beep('level');
+    UI.sheet(`
+      <span class="big-emoji">🎉</span>
+      <h3>LEVEL ${d.level}</h3>
+      <p class="sub">${esc(d.title.toUpperCase())}</p>
+      <p class="tiny muted" style="text-align:center">Energy fully restored. Harder tickets are now hitting your queue — and they pay a great deal more.</p>
+      <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
+    setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
+  });
+
+  Game.on('achievement', a => { UI.beep('great'); toast('🏅', a.name, `${a.desc}  +${a.rep} REP`); });
+  Game.on('missiondone', m => { UI.beep('ok'); toast('📋', 'MISSION COMPLETE', m.text + ' — claim it on Missions.'); });
+  Game.on('event', e => { UI.beep('alarm'); toast(e.icon, e.title, e.desc); UI.updateChips(); });
+  Game.on('built', b => { UI.beep('great'); toast(b.icon, b.name.toUpperCase(), b.effect); });
+
+  /* ---------- CRITICAL INCIDENT ---------- */
+  let incTimer = null;
+  function openIncidentWarning() {
+    UI.beep('alarm'); UI.shake();
+    UI.sheet(`
+      <span class="big-emoji">🚨</span>
+      <h3 style="color:var(--alarm)">CRITICAL INCIDENT</h3>
+      <p class="sub">Something big just broke. The normal queue can wait.</p>
+      <p class="tiny muted" style="text-align:center">Work the problem in the right order and you will be paid many times what a ticket is worth. Guess, and you will not.</p>
+      <button class="btn gold cta" data-act="incident-go">RESPOND NOW</button>
+      <button class="btn ghost cta" data-close="1">NOT YET</button>`, { dismiss: false });
+  }
+  function runIncident() {
+    const inc = Game.startIncident();
+    drawIncident();
+    clearInterval(incTimer);
+    incTimer = setInterval(() => {
+      const s = Game.state.incident;
+      if (!s) return clearInterval(incTimer);
+      const left = (s.endsAt - Date.now()) / 1000;
+      const bar = document.querySelector('#incBar > span');
+      if (bar) bar.style.width = Math.max(0, left / s.time * 100) + '%';
+      const lbl = document.querySelector('#incLeft');
+      if (lbl) lbl.textContent = Math.max(0, Math.ceil(left)) + 's';
+      if (left <= 0) { clearInterval(incTimer); finishIncident(true); }
+    }, 200);
+  }
+  function drawIncident() {
+    const inc = Game.state.incident; if (!inc) return;
+    const step = inc.steps[inc.step];
+    UI.sheet(`
+      <span class="big-emoji">${inc.icon}</span>
+      <h3 style="color:var(--alarm)">${esc(inc.title)}</h3>
+      <p class="sub">${esc(inc.brief)}</p>
+      <div class="inc-steps">${inc.steps.map((s, i) =>
+      `<i class="${inc.log[i] ? (inc.log[i].ok ? 'ok' : 'bad') : ''}"></i>`).join('')}</div>
+      <div class="inc-timer" id="incBar"><span style="width:100%"></span></div>
+      <div class="inc-chance">SUCCESS <b style="color:var(--lamp)">${Math.round(inc.chance * 100)}%</b>
+        · <span id="incLeft">${inc.time}s</span> LEFT</div>
+      <p class="tiny" style="text-align:center;font-family:var(--disp);font-weight:700;font-size:14px">${esc(step.q)}</p>
+      ${step.opts.map((o, i) => `<button class="inc-opt" data-incopt="${i}">${esc(o.t)}</button>`).join('')}
+    `, { dismiss: false, grab: false });
+  }
+  function answerIncident(i) {
+    const r = Game.incidentAnswer(i); if (!r) return;
+    UI.beep(r.ok ? 'ok' : 'fail');
+    const btn = document.querySelector(`[data-incopt="${i}"]`);
+    if (btn) {
+      btn.classList.add(r.ok ? 'ok' : 'bad');
+      const b = btn.getBoundingClientRect();
+      UI.floatText(b.left + b.width / 2, b.top, r.ok ? 'CORRECT +17%' : 'WRONG −13%', r.ok ? 'var(--good)' : 'var(--alarm)', 14);
+      if (!r.ok) UI.shake();
+    }
+    setTimeout(() => { if (r.done) finishIncident(false); else drawIncident(); }, 520);
+  }
+  function finishIncident(timeout) {
+    clearInterval(incTimer);
+    const res = Game.incidentFinish(timeout);
+    if (!res) return;
+    UI.beep(res.win ? 'level' : 'fail');
+    UI.sheet(`
+      <span class="big-emoji">${res.win ? '🏆' : '💀'}</span>
+      <h3 style="color:${res.win ? 'var(--good)' : 'var(--alarm)'}">${res.win ? 'INCIDENT RESOLVED' : timeout ? 'OUT OF TIME' : 'INCIDENT ESCALATED'}</h3>
+      <p class="sub">${res.win ? 'Service restored. Somebody upstairs noticed.' : 'It got fixed eventually. By someone else. Loudly.'}</p>
+      <div class="reward-line">
+        <span class="rw-c">+${f(res.credits)} CR</span>
+        <span class="rw-x">+${f(res.xp)} XP</span>
+        <span class="rw-r">+${f(res.rep)} REP</span></div>
+      ${res.drop ? `<p class="tiny" style="text-align:center;color:${UI.rarColor(Game.eqDef(res.drop.eid).rarity)}">🎁 ${esc(Game.eqDef(res.drop.eid).name)}</p>` : ''}
+      <button class="btn gold cta" data-close="1">CLOSE</button>`);
+    if (res.win) setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .5, '#5FD37A', 26), 100);
+    UI.refresh();
+  }
+  Game.on('incidenttimeout', () => { if (Game.state.incident) finishIncident(true); });
+
+  /* ---------- WELCOME BACK ---------- */
+  function welcomeBack(seconds) {
+    const a = Game.state.idleAcc;
+    UI.sheet(`
+      <span class="big-emoji">☕</span>
+      <h3>WELCOME BACK</h3>
+      <p class="sub">The team kept the queue moving for ${Game.fmtTime(seconds)}</p>
+      <div class="list" style="padding:0"><div class="card col">
+        <div class="statgrid">
+          <div class="statrow"><span>🎫</span><span class="nm">TICKETS RESOLVED</span><b>${f(a.t)}</b></div>
+          <div class="statrow"><span>💰</span><span class="nm">IT CREDITS</span><b style="color:var(--lamp)">+${f(a.c)}</b></div>
+          <div class="statrow"><span>⭐</span><span class="nm">XP</span><b style="color:var(--crt)">+${f(a.x)}</b></div>
+          <div class="statrow"><span>🏆</span><span class="nm">REPUTATION</span><b style="color:var(--rep)">+${f(a.r)}</b></div>
+          <div class="statrow"><span>🎁</span><span class="nm">EQUIPMENT FOUND</span><b>${a.gear}</b></div>
+          <div class="statrow"><span>🚨</span><span class="nm">INCIDENTS HANDLED</span><b>${a.inc}</b></div>
+        </div>
+      </div></div>
+      <button class="btn gold cta" data-act="collect-sheet">COLLECT ALL</button>`, { dismiss: false });
+  }
+
+  function collect() {
+    const before = Game.state.idleAcc.c;
+    if (before < 1) return;
+    const res = Game.collectIdle();
+    UI.beep('coin');
+    const t = $('#resCredits').getBoundingClientRect();
+    UI.floatText(window.innerWidth / 2, window.innerHeight * .5, `+${f(res.c)} CREDITS`, 'var(--lamp)', 22);
+    setTimeout(() => UI.floatText(window.innerWidth / 2, window.innerHeight * .5 - 30, `+${f(res.x)} XP`, 'var(--crt)', 18), 140);
+    const src = document.querySelector('.collect') || $('#idleStrip') || document.body;
+    UI.coins(src, 14);
+    if (res.gear.length) setTimeout(() => showDrop(res.gear[0]), 700);
+    UI.refresh();
+  }
+
+  /* ---------- NOTIFICATIONS ---------- */
+  function bellSheet() {
+    const S = Game.state;
+    const ready = (S.missions || []).filter(m => m.done && !m.claimed);
+    UI.sheet(`
+      <h3>NOTIFICATIONS</h3>
+      <p class="sub">${esc(Game.rank(S.reputation).name)}</p>
+      <div class="list" style="padding:0">
+        ${S.event ? `<div class="card"><div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">${S.event.icon}</div>
+          <div class="who"><h3>${esc(S.event.title)}</h3><div class="role">${esc(S.event.desc)}</div>
+          <div class="tiny mono" style="color:var(--lamp)">${Game.fmtTime((S.event.until - Date.now()) / 1000)} remaining</div></div></div>` : ''}
+        ${Game.incidentReady() ? `<div class="card"><div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🚨</div>
+          <div class="who"><h3>Critical incident waiting</h3><div class="role">Big rewards. Bigger consequences.</div></div>
+          <button class="btn gold sm" data-act="incident-go">GO</button></div>` : ''}
+        ${ready.length ? `<div class="card"><div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">📋</div>
+          <div class="who"><h3>${ready.length} mission${ready.length > 1 ? 's' : ''} ready to claim</h3><div class="role">${esc(ready.map(m => m.text).join(' · '))}</div></div>
+          <button class="btn teal sm" data-act="go-missions">CLAIM</button></div>` : ''}
+        ${!S.event && !Game.incidentReady() && !ready.length ? `<div class="empty"><span class="big">🌙</span>Nothing on fire. Enjoy it.</div>` : ''}
+      </div>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button class="btn sm" data-act="mute" style="flex:1">${muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
+        <button class="btn sm ghost" data-act="reset" style="flex:1;color:var(--alarm)">RESET GAME</button>
+      </div>
+      <button class="btn ghost cta" data-close="1">CLOSE</button>`);
+  }
+
+  /* ---------- INPUT ---------- */
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-equip],[data-unequip],[data-back],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],#btnResolve,#bell');
+    if (!t) return;
+    const d = t.dataset;
+
+    if (t.id === 'btnResolve') return doResolve();
+    if (t.id === 'bell') return bellSheet();
+    if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }
+    if (d.close) return UI.closeSheet();
+    if (d.incopt != null) return answerIncident(+d.incopt);
+
+    if (d.act) {
+      switch (d.act) {
+        case 'collect': return collect();
+        case 'collect-sheet': UI.closeSheet(); return collect();
+        case 'go-staff': UI.closeSheet(); return UI.show('staff');
+        case 'go-missions': UI.closeSheet(); return UI.show('missions');
+        case 'incident': return Game.incidentReady() ? openIncidentWarning() : toast('🚨', 'NO ACTIVE INCIDENT', 'The next one is already brewing somewhere.');
+        case 'incident-go': return runIncident();
+        case 'mute': muted = !muted; localStorage.setItem('ie-mute', muted ? '1' : '0'); UI.closeSheet(); return toast(muted ? '🔇' : '🔊', muted ? 'SOUND OFF' : 'SOUND ON', 'Changed your mind? The bell menu has it.');
+        case 'reset': return UI.sheet(`<span class="big-emoji">⚠️</span><h3>RESET EVERYTHING?</h3>
+          <p class="sub">This wipes the save completely. There is no undo.</p>
+          <button class="btn cta" style="background:var(--alarm);color:#fff" data-act="reset-yes">YES, WIPE IT</button>
+          <button class="btn ghost cta" data-close="1">KEEP MY EMPIRE</button>`);
+        case 'reset-yes': Game.wipe(); location.reload(); return;
+        case 'reorg':
+          if (!Game.reorgReady()) return toast('🔒', 'NOT YET', 'Reach level 30 before restructuring.');
+          return UI.sheet(`<span class="big-emoji">🔄</span><h3>IT REORGANISATION</h3>
+            <p class="sub">You will gain <b style="color:var(--rep)">+${Game.reorgGain()} Legacy Points</b></p>
+            <p class="tiny muted" style="text-align:center">Lost: staff, office, credits, level, equipment. Kept: achievements, unlocked people, legacy bonuses — permanently.</p>
+            <button class="btn gold cta" data-act="reorg-yes">RESTRUCTURE</button>
+            <button class="btn ghost cta" data-close="1">NOT TODAY</button>`);
+        case 'reorg-yes': {
+          const g = Game.reorg(); UI.closeSheet(); UI.beep('level');
+          UI.buildStage(); UI.show('hq');
+          toast('🔄', `+${g} LEGACY POINTS`, 'A fresh department. Same you, but faster.');
+          return;
+        }
+      }
+    }
+
+    if (d.build) { if (Game.build(d.build)) { UI.beep('coin'); UI.coins(t, 6); } else UI.beep('fail'); return UI.refresh(); }
+    if (d.hire) {
+      const c = Game.hire(d.hire);
+      if (!c) { UI.beep('fail'); return toast('💸', 'CANNOT HIRE', 'Not enough credits or reputation yet.'); }
+      UI.beep('great'); const def = Game.def(d.hire);
+      UI.sheet(`<span class="big-emoji">${def.icon}</span><h3 style="color:${UI.rarColor(def.rarity)}">${esc(def.name)} JOINS</h3>
+        <p class="sub">${esc(def.role)} · ${def.rarity}</p>
+        <p class="tiny muted" style="text-align:center">${esc(def.personality)}</p>
+        <p class="tiny" style="text-align:center;color:var(--crt)">${esc(def.quotes[0])}</p>
+        <button class="btn gold cta" data-close="1">WELCOME ABOARD</button>`);
+      return UI.refresh();
+    }
+    if (d.levelup) {
+      const ok = Game.levelUpChar(d.levelup);
+      if (ok) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 14); }
+      else { UI.beep('fail'); toast('📈', 'NOT READY', 'Needs more character XP or more credits.'); }
+      UI.refresh();
+      if (document.querySelector('.sheet') && ok) UI.charSheet(d.levelup);
+      return;
+    }
+    if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
+    if (d.char && !e.target.closest('[data-levelup]')) return UI.charSheet(d.char);
+    if (d.slot) return UI.pickItemSheet(d.for, d.slot);
+    if (d.equip) { Game.equip(d.equip, d.for); UI.beep('ok'); return UI.charSheet(d.for); }
+    if (d.unequip) { Game.unequip(d.for, d.unequip); UI.beep('tap'); return UI.charSheet(d.for); }
+    if (d.back) return UI.charSheet(d.back);
+    if (d.dept) {
+      const c = Game.state.roster.find(x => x.uid === d.for);
+      const dp = DATA.DEPARTMENTS.find(x => x.id === d.dept);
+      if (Game.state.reputation < dp.repReq) { UI.beep('fail'); return toast('🔒', 'LOCKED', `${dp.name} opens at ${f(dp.repReq)} reputation.`); }
+      c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
+    }
+    if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
+    if (d.scrap) { Game.scrapItem(d.scrap); UI.beep('tap'); return UI.refresh(); }
+    if (d.claim) {
+      const r = Game.claimMission(d.claim);
+      if (r) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.coins(t, 8); UI.floatText(b.left, b.top - 10, `+${f(r.credits)} CR`, 'var(--lamp)', 16); }
+      return UI.refresh();
+    }
+    if (d.legacy) { Game.spendLegacy(d.legacy) ? UI.beep('great') : UI.beep('fail'); return UI.refresh(); }
+  });
+
+  /* ---------- LOOP ---------- */
+  let lastUi = 0, warned = false;
+  function loop(ts) {
+    Game.tick();
+    if (ts - lastUi > 900) {
+      lastUi = ts;
+      UI.renderTop();
+      if (UI.screen === 'hq') { UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
+      if (Game.incidentReady() && !warned && !document.querySelector('#modal.on') && UI.screen === 'hq') {
+        warned = true; openIncidentWarning();
+      }
+      if (!Game.incidentReady()) warned = false;
+      if (Date.now() > Game.state.missionsAt) { Game.rollMissions(); toast('📋', 'NEW DAILY MISSIONS', 'Fresh objectives are up.'); UI.refresh(); }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---------- BOOT ---------- */
+  const res = Game.load();
+  UI.buildStage();
+  UI.show('hq');
+  Game.on('change', () => { if (!document.hidden) UI.renderTop(); });
+
+  if (res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
+  else if (res.fresh) setTimeout(() => UI.sheet(`
+      <span class="big-emoji">🧑‍💻</span>
+      <h3>DAY ONE ON THE HELPDESK</h3>
+      <p class="sub">One desk. One screwdriver. A queue that never ends.</p>
+      <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">RESOLVE TICKET</b> to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
+      <p class="tiny" style="text-align:center;color:var(--crt)">Somewhere above you, there is a CTO chair with your name on it.</p>
+      <button class="btn gold cta" data-close="1">CLOCK IN</button>`), 350);
+
+  setInterval(Game.save, 10000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) Game.save(); else { UI.refresh(); } });
+  window.addEventListener('beforeunload', Game.save);
+  requestAnimationFrame(loop);
+})();
+
+</script>

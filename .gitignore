@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+it-empire.db
+.DS_Store
