@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0E1220">
 <title>IT Empire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +34,16 @@ body{
   background:var(--ink-2); color:var(--text);
   font-family:var(--body); font-size:15px; line-height:1.45;
   overscroll-behavior:none; -webkit-font-smoothing:antialiased;
+  /* Kills double-tap-to-zoom, which fires when you tap two tickets quickly.
+     iOS has ignored user-scalable=no since iOS 10, so the meta tag alone does
+     nothing. Pinch-to-zoom is deliberately left working — that is somebody's
+     accessibility, not a misfire. */
+  touch-action: manipulation;
+}
+button, .card, .tk, .act, .slot, .issue-slot, .sortchip, .seg-btn, .chip,
+.dchip-row, .crew, .postopt, .diag-opt, .bopt, .led-btn, .cfgline, .spec,
+.sw, .pill, .inc-opt, .dpick, #nav button{
+  touch-action: manipulation;
 }
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
 button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outline-offset:2px;border-radius:8px}
@@ -3204,6 +3214,34 @@ const Game = (() => {
     const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
     return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
   }
+  /* Level somebody as far as their experience and your budget allow, stopping
+     at the next career rank. Saves the repeated tapping without skipping past
+     a promotion, which costs four times as much and deserves a decision. */
+  function levelUpMax(uidc) {
+    const c = S.roster.find(x => x.uid === uidc); if (!c) return null;
+    const from = c.level, credits0 = S.credits;
+    let gained = 0;
+    while (canLevel(c) && !isPromotion(c.level) && gained < 200) {
+      if (!levelUpChar(uidc)) break;
+      gained++;
+    }
+    return gained ? { gained, from, to: c.level, spent: credits0 - S.credits } : null;
+  }
+
+  /* How many levels are available before the next rank wall. */
+  function levelsReady(c) {
+    if (!c || atMaxLevel(c)) return 0;
+    let lvl = c.level, xp = c.xp, credits = S.credits, n = 0;
+    while (n < 200 && lvl < maxStaffLevel()) {
+      if (isPromotion(lvl) && n > 0) break;     // stop before a rank wall
+      const need = charXpNeed(lvl);
+      const cost = Math.floor(90 * Math.pow(lvl, 1.65) * DATA.RARITY[c.rarity].mult * (isPromotion(lvl) ? 4 : 1));
+      if (xp < need || credits < cost) break;
+      xp -= need; credits -= cost; lvl++; n++;
+    }
+    return n;
+  }
+
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
     const before = rankOf(c).name;
@@ -4000,7 +4038,7 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
-    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
+    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
@@ -4389,6 +4427,8 @@ const UI = (() => {
     const o = Game.staffOutput(c);
     const rank = Game.rankOf(c), role = Game.roleOf(c);
     const maxed = Game.atMaxLevel(c);
+    const ready = Game.levelsReady(c);
+    const promoNext = !maxed && Game.isPromotion(c.level);
     return `<div class="card col staffcard" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
         <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
@@ -4410,7 +4450,8 @@ const UI = (() => {
       <div class="row" style="margin-top:8px">
         <div class="pbar ${maxed ? 'gold' : ''}" style="flex:1"><span style="width:${maxed ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
         <span class="tiny mono muted">${maxed ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : 'LV UP'}</button>
+        ${ready > 1 ? `<button class="btn sm gold" data-levelmax="${c.uid}">×${ready} LEVELS</button>` : ''}
+        <button class="btn sm ${can ? (promoNext ? 'gold' : 'teal') : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : promoNext ? 'PROMOTE' : 'LV UP'}</button>
       </div>
       ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)}${maxed ? '' : ` to reach LV.${c.level + 1}`}</div>`}
     </div>`;
@@ -4685,9 +4726,15 @@ const UI = (() => {
         <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX LEVEL' : f(c.xp) + '/' + f(need) + ' XP'}</span>
       </div>
       ${Game.atMaxLevel(c)
-        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${DATA.MAX_CHAR_LEVEL}</div>`
-        : `<button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
-        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
+        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${Game.maxStaffLevel()}</div>`
+        : (() => {
+          const ready = Game.levelsReady(c);
+          const promoNext = Game.isPromotion(c.level);
+          return `${ready > 1 ? `<button class="btn gold cta" data-levelmax="${c.uid}">
+              LEVEL UP ×${ready} · TO LV.${c.level + ready}</button>` : ''}
+            <button class="btn ${Game.canLevel(c) ? (ready > 1 ? 'teal' : 'gold') : 'off'} cta" data-levelup="${c.uid}">
+              ${promoNext ? `PROMOTE TO ${DATA.staffRank(c.level + 1).name.toUpperCase()}` : 'LEVEL UP'} · 💰 ${f(Game.levelCost(c))}</button>`;
+        })()}
       ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
       ${c.defId === 'hero' || S.roster.length <= 1 ? '' : (() => {
@@ -6014,7 +6061,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -6194,7 +6241,7 @@ const Onboard = (() => {
       UI.closeSheet();
       return UI.show('staff');
     }
-    if (d.char && !e.target.closest('[data-levelup],[data-post]')) return UI.charSheet(d.char);
+    if (d.char && !e.target.closest('[data-levelup],[data-levelmax],[data-post]')) return UI.charSheet(d.char);
     if (d.slot) return UI.pickItemSheet(d.slot);
     if (d.issue) {
       const wasSheet = !!document.querySelector('#modal.on');
@@ -6215,6 +6262,22 @@ const Onboard = (() => {
       const dp = DATA.DEPARTMENTS.find(x => x.id === d.dept);
       if (Game.state.reputation < dp.repReq) { UI.beep('fail'); return toast('🔒', 'LOCKED', `${dp.name} opens at ${f(dp.repReq)} reputation.`); }
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
+    }
+    if (d.levelmax) {
+      const c = Game.state.roster.find(x => x.uid === d.levelmax);
+      const r = Game.levelUpMax(d.levelmax);
+      if (!r) { UI.beep('fail'); return toast('📈', 'NOT READY YET', 'Not enough experience or budget for another level.'); }
+      UI.beep('level');
+      const b = t.getBoundingClientRect();
+      UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 18);
+      const nm = c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name;
+      toast('📈', `${nm} · LV.${r.from} → ${r.to}`,
+        Game.isPromotion(c.level) && Game.canLevel(c)
+          ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
+          : `${r.gained} levels for ${f(r.spent)} credits.`);
+      UI.refresh();
+      if (document.querySelector('.sheet')) UI.charSheet(d.levelmax);
+      return;
     }
     if (d.upgrade) {
       const ok = Game.upgradeItem(d.upgrade);

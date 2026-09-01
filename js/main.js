@@ -436,7 +436,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -616,7 +616,7 @@
       UI.closeSheet();
       return UI.show('staff');
     }
-    if (d.char && !e.target.closest('[data-levelup],[data-post]')) return UI.charSheet(d.char);
+    if (d.char && !e.target.closest('[data-levelup],[data-levelmax],[data-post]')) return UI.charSheet(d.char);
     if (d.slot) return UI.pickItemSheet(d.slot);
     if (d.issue) {
       const wasSheet = !!document.querySelector('#modal.on');
@@ -637,6 +637,22 @@
       const dp = DATA.DEPARTMENTS.find(x => x.id === d.dept);
       if (Game.state.reputation < dp.repReq) { UI.beep('fail'); return toast('🔒', 'LOCKED', `${dp.name} opens at ${f(dp.repReq)} reputation.`); }
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
+    }
+    if (d.levelmax) {
+      const c = Game.state.roster.find(x => x.uid === d.levelmax);
+      const r = Game.levelUpMax(d.levelmax);
+      if (!r) { UI.beep('fail'); return toast('📈', 'NOT READY YET', 'Not enough experience or budget for another level.'); }
+      UI.beep('level');
+      const b = t.getBoundingClientRect();
+      UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 18);
+      const nm = c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name;
+      toast('📈', `${nm} · LV.${r.from} → ${r.to}`,
+        Game.isPromotion(c.level) && Game.canLevel(c)
+          ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
+          : `${r.gained} levels for ${f(r.spent)} credits.`);
+      UI.refresh();
+      if (document.querySelector('.sheet')) UI.charSheet(d.levelmax);
+      return;
     }
     if (d.upgrade) {
       const ok = Game.upgradeItem(d.upgrade);

@@ -26,6 +26,16 @@ body{
   background:var(--ink-2); color:var(--text);
   font-family:var(--body); font-size:15px; line-height:1.45;
   overscroll-behavior:none; -webkit-font-smoothing:antialiased;
+  /* Kills double-tap-to-zoom, which fires when you tap two tickets quickly.
+     iOS has ignored user-scalable=no since iOS 10, so the meta tag alone does
+     nothing. Pinch-to-zoom is deliberately left working — that is somebody's
+     accessibility, not a misfire. */
+  touch-action: manipulation;
+}
+button, .card, .tk, .act, .slot, .issue-slot, .sortchip, .seg-btn, .chip,
+.dchip-row, .crew, .postopt, .diag-opt, .bopt, .led-btn, .cfgline, .spec,
+.sw, .pill, .inc-opt, .dpick, #nav button{
+  touch-action: manipulation;
 }
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
 button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outline-offset:2px;border-radius:8px}

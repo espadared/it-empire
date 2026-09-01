@@ -9,7 +9,7 @@ body = re.sub(r'<script src="[^"]+"></script>\s*', '', body)
 js = '\n'.join((root/'js'/n).read_text() for n in
                ['data.js','battle-data.js','art.js','net.js','game.js','ui.js','battle.js','onboard.js','main.js'])
 out = f"""<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0E1220">
 <title>IT Empire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

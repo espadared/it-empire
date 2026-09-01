@@ -373,6 +373,8 @@ const UI = (() => {
     const o = Game.staffOutput(c);
     const rank = Game.rankOf(c), role = Game.roleOf(c);
     const maxed = Game.atMaxLevel(c);
+    const ready = Game.levelsReady(c);
+    const promoNext = !maxed && Game.isPromotion(c.level);
     return `<div class="card col staffcard" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
         <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
@@ -394,7 +396,8 @@ const UI = (() => {
       <div class="row" style="margin-top:8px">
         <div class="pbar ${maxed ? 'gold' : ''}" style="flex:1"><span style="width:${maxed ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
         <span class="tiny mono muted">${maxed ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : 'LV UP'}</button>
+        ${ready > 1 ? `<button class="btn sm gold" data-levelmax="${c.uid}">×${ready} LEVELS</button>` : ''}
+        <button class="btn sm ${can ? (promoNext ? 'gold' : 'teal') : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : promoNext ? 'PROMOTE' : 'LV UP'}</button>
       </div>
       ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)}${maxed ? '' : ` to reach LV.${c.level + 1}`}</div>`}
     </div>`;
@@ -669,9 +672,15 @@ const UI = (() => {
         <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX LEVEL' : f(c.xp) + '/' + f(need) + ' XP'}</span>
       </div>
       ${Game.atMaxLevel(c)
-        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${DATA.MAX_CHAR_LEVEL}</div>`
-        : `<button class="btn ${Game.canLevel(c) ? 'gold' : 'off'} cta" data-levelup="${c.uid}">
-        LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
+        ? `<div class="maxed">🎓 FULLY QUALIFIED · LEVEL ${Game.maxStaffLevel()}</div>`
+        : (() => {
+          const ready = Game.levelsReady(c);
+          const promoNext = Game.isPromotion(c.level);
+          return `${ready > 1 ? `<button class="btn gold cta" data-levelmax="${c.uid}">
+              LEVEL UP ×${ready} · TO LV.${c.level + ready}</button>` : ''}
+            <button class="btn ${Game.canLevel(c) ? (ready > 1 ? 'teal' : 'gold') : 'off'} cta" data-levelup="${c.uid}">
+              ${promoNext ? `PROMOTE TO ${DATA.staffRank(c.level + 1).name.toUpperCase()}` : 'LEVEL UP'} · 💰 ${f(Game.levelCost(c))}</button>`;
+        })()}
       ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
       ${c.defId === 'hero' || S.roster.length <= 1 ? '' : (() => {

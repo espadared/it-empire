@@ -545,6 +545,34 @@ const Game = (() => {
     const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
     return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
   }
+  /* Level somebody as far as their experience and your budget allow, stopping
+     at the next career rank. Saves the repeated tapping without skipping past
+     a promotion, which costs four times as much and deserves a decision. */
+  function levelUpMax(uidc) {
+    const c = S.roster.find(x => x.uid === uidc); if (!c) return null;
+    const from = c.level, credits0 = S.credits;
+    let gained = 0;
+    while (canLevel(c) && !isPromotion(c.level) && gained < 200) {
+      if (!levelUpChar(uidc)) break;
+      gained++;
+    }
+    return gained ? { gained, from, to: c.level, spent: credits0 - S.credits } : null;
+  }
+
+  /* How many levels are available before the next rank wall. */
+  function levelsReady(c) {
+    if (!c || atMaxLevel(c)) return 0;
+    let lvl = c.level, xp = c.xp, credits = S.credits, n = 0;
+    while (n < 200 && lvl < maxStaffLevel()) {
+      if (isPromotion(lvl) && n > 0) break;     // stop before a rank wall
+      const need = charXpNeed(lvl);
+      const cost = Math.floor(90 * Math.pow(lvl, 1.65) * DATA.RARITY[c.rarity].mult * (isPromotion(lvl) ? 4 : 1));
+      if (xp < need || credits < cost) break;
+      xp -= need; credits -= cost; lvl++; n++;
+    }
+    return n;
+  }
+
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
     const before = rankOf(c).name;
@@ -1341,7 +1369,7 @@ const Game = (() => {
     quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
-    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
+    hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
