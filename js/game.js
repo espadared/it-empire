@@ -813,6 +813,42 @@ const Game = (() => {
     return (o.credits + o.xp * VALUE.xp + o.rep * VALUE.rep) * 3600;
   }
 
+  /* The same figure with the coverage bonus divided out. Coverage is the one
+     part of a person's output that belongs to the whole team, so it has to be
+     applied once to the roster rather than once per person. */
+  function rawPostingValue(c, deptId) {
+    const was = c.dept;
+    c.dept = deptId || null;
+    const o = staffOutput(c), cov = deptCover().mult;
+    c.dept = was;
+    return (o.credits + o.xp * VALUE.xp + o.rep * VALUE.rep) * 3600 / (cov || 1);
+  }
+
+  /* One pass over the roster, so a move can then be costed without rescanning. */
+  function postingCtx() {
+    const count = deptCensus();
+    let sum = 0;
+    S.roster.forEach(c => {
+      if (c.uid === S.activeId || !c.dept) return;
+      sum += rawPostingValue(c, c.dept);
+    });
+    return { count, sum, cover: coverFor(count) };
+  }
+
+  /* What the whole team is worth if this one person moves. Moving somebody
+     changes what they produce and, when they were the last one in a
+     department, the coverage bonus that multiplies everybody else. */
+  function teamValueIfMoved(c, deptId, ctx) {
+    ctx = ctx || postingCtx();
+    const count = Object.assign({}, ctx.count);
+    if (c.dept) count[c.dept] = (count[c.dept] || 1) - 1;
+    if (deptId) count[deptId] = (count[deptId] || 0) + 1;
+    const sum = ctx.sum
+      - (c.dept ? rawPostingValue(c, c.dept) : 0)
+      + (deptId ? rawPostingValue(c, deptId) : 0);
+    return coverFor(count).mult * sum;
+  }
+
   /* What this person produces where they are, in the currency that posting
      is actually for — the thing worth printing on their card. */
   function postingYield(c) {
@@ -825,25 +861,34 @@ const Game = (() => {
     return { label: fmt(o.rep * 3600) + ' rep/hr', of: 'reputation' };
   }
 
-  /* Where this person is worth the most. Measured, not guessed. */
-  function bestDept(c) {
-    let best = null, bestVal = -1;
-    DATA.DEPARTMENTS.forEach(d => {
-      if (S.reputation < d.repReq) return;
-      const v = postingValue(c, d.id);
+  /* Where this person does the team the most good. Measured across the whole
+     roster, because a posting that suits one person can still cost the team
+     more than it gains by leaving a department with nobody in it. */
+  function bestDept(c, ctx) {
+    ctx = ctx || postingCtx();
+    let best = null, bestVal = -Infinity;
+    openDepts().forEach(d => {
+      const v = teamValueIfMoved(c, d.id, ctx);
       if (v > bestVal) { bestVal = v; best = d; }
     });
-    return best ? { dept: best, fit: deptFit(c, best), value: bestVal } : null;
+    return best ? { dept: best, fit: deptFit(c, best), value: bestVal, ctx } : null;
   }
 
-  /* Every posting for this person, best first, with what each produces. */
+  /* Every posting for this person, best for the team first, saying what each
+     would produce and whether taking it would strand a department. */
   function postingOptions(c) {
-    return DATA.DEPARTMENTS
-      .filter(d => S.reputation >= d.repReq)
+    const ctx = postingCtx();
+    return openDepts()
       .map(d => {
         const was = c.dept; c.dept = d.id;
         const y = postingYield(c); c.dept = was;
-        return { dept: d, fit: deptFit(c, d), value: postingValue(c, d.id), yield: y.label };
+        const strands = !!(c.dept && c.dept !== d.id && (ctx.count[c.dept] || 0) === 1);
+        return {
+          dept: d, fit: deptFit(c, d), yield: y.label, strands,
+          leaving: strands ? deptDef(c.dept) : null,
+          value: teamValueIfMoved(c, d.id, ctx),
+          solo: postingValue(c, d.id),
+        };
       })
       .sort((a, b) => b.value - a.value);
   }
@@ -894,12 +939,16 @@ const Game = (() => {
   /* Anyone sitting in a department that does not suit them. */
   /* Genuinely in the wrong place: somewhere else is worth meaningfully more
      to the department, not merely a better stat match. */
-  const misplaced = () => S.roster.filter(c => {
-    if (c.uid === S.activeId || !c.dept) return false;
-    const b = bestDept(c); if (!b || b.dept.id === c.dept) return false;
-    const here = postingValue(c, c.dept);
-    return here > 0 && (b.value - here) / here > 0.12;
-  });
+  const misplaced = () => {
+    const ctx = postingCtx();
+    const here = ctx.cover.mult * ctx.sum;
+    if (!(here > 0)) return [];
+    return S.roster.filter(c => {
+      if (c.uid === S.activeId || !c.dept) return false;
+      const b = bestDept(c, ctx);
+      return b && b.dept.id !== c.dept && (b.value - here) / here > 0.02;
+    });
+  };
   const unposted = () => S.roster.filter(c => !c.dept && c.uid !== S.activeId);
 
   function staffRate(c) {
@@ -924,15 +973,31 @@ const Game = (() => {
   /* A department with nobody in it is a room you are paying for and not using.
      Each one staffed lifts the whole floor, and running all four lifts it
      again — so there is a reason to spread out, not only to specialise. */
-  function deptCover() {
-    const open = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
-    const staffed = open.filter(d => S.roster.some(c => c.dept === d.id && c.uid !== S.activeId));
-    const complete = open.length > 0 && staffed.length === open.length;
+  const openDepts = () => DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
+
+  /* How many people sit in each department. */
+  function deptCensus() {
+    const count = {};
+    S.roster.forEach(c => {
+      if (c.uid === S.activeId || !c.dept) return;
+      count[c.dept] = (count[c.dept] || 0) + 1;
+    });
+    return count;
+  }
+
+  /* The coverage bonus for any arrangement, not just the current one — so the
+     cost of emptying a department can be weighed before advising a move. */
+  function coverFor(count) {
+    const open = openDepts();
+    const staffed = open.filter(d => (count[d.id] || 0) > 0).length;
+    const complete = open.length > 0 && staffed === open.length;
     return {
-      staffed: staffed.length, open: open.length, complete,
-      mult: 1 + staffed.length * 0.07 + (complete && open.length >= 2 ? 0.20 : 0),
+      staffed, open: open.length, complete,
+      mult: 1 + staffed * 0.07 + (complete && open.length >= 2 ? 0.20 : 0),
     };
   }
+
+  function deptCover() { return coverFor(deptCensus()); }
 
   function roleSpread() {
     const all = Object.keys(DATA.ROLES).length;
@@ -1419,7 +1484,7 @@ const Game = (() => {
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
-    postingValue, postingYield, postingOptions,
+    postingValue, postingYield, postingOptions, teamValueIfMoved, postingCtx,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,

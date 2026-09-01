@@ -362,13 +362,14 @@ const UI = (() => {
   const deptChip = c => {
     const d = c.dept && Game.deptDef(c.dept);
     if (!d) return `<span class="dchip empty">＋ post to a department</span>`;
-    const here = Game.postingValue(c, c.dept), best = Game.bestDept(c);
+    const ctx = Game.postingCtx(), here = ctx.cover.mult * ctx.sum;
+    const best = Game.bestDept(c, ctx);
     const gain = best && here > 0 ? (best.value - here) / here : 0;
-    const better = best && best.dept.id !== d.id && gain > 0.12;
+    const better = best && best.dept.id !== d.id && gain > 0.02;
     const tone = better ? 'poor' : gain <= 0.001 ? 'good' : '';
     return `<span class="dchip ${tone}">${d.icon} ${esc(d.name)}
       <b class="fitn">${Game.postingYield(c).label}</b>${better
-        ? `<em>${best.dept.icon} +${Math.round(gain * 100)}%</em>` : ''}</span>`;
+        ? `<em>${best.dept.icon} +${gain >= 0.1 ? Math.round(gain * 100) : (gain * 100).toFixed(1)}% team</em>` : ''}</span>`;
   };
 
   function staffCard(c) {
@@ -432,10 +433,11 @@ const UI = (() => {
         <div class="dept-crew">
           ${crew.length ? crew.map(c => {
         const cd = Game.def(c.defId);
-        const here = Game.postingValue(c, d.id), bb = Game.bestDept(c);
+        const cx = Game.postingCtx(), here = cx.cover.mult * cx.sum;
+        const bb = Game.bestDept(c, cx);
         const gain = bb && here > 0 ? (bb.value - here) / here : 0;
-        const off = bb && bb.dept.id !== d.id && gain > 0.12;
-        return `<button class="crew" data-post="${c.uid}" title="${esc(cd.name)}${off ? ' — worth ' + Math.round(gain * 100) + '% more in ' + bb.dept.name : ' — well placed'}">
+        const off = bb && bb.dept.id !== d.id && gain > 0.02;
+        return `<button class="crew" data-post="${c.uid}" title="${esc(cd.name)}${off ? ' — the team gains ' + (gain * 100).toFixed(1) + '% if they move to ' + bb.dept.name : ' — well placed'}">
               <div class="avatar" style="width:40px;height:40px">${Art.portrait(cd.art, 'd' + d.id + c.uid)}</div>
               <div class="crew-fit ${off ? 'poor' : 'good'}">${off ? '↗' : '✓'}</div>
             </button>`;
@@ -602,18 +604,19 @@ const UI = (() => {
       const open = Game.postingOptions(c), top = open[0];
       // only crown another posting when it is worth the move — otherwise the
       // sheet would flag a "better" option the card has already called fine
-      const here = c.dept ? Game.postingValue(c, c.dept) : 0;
-      const worthMoving = !c.dept || (here > 0 && (top.value - here) / here > 0.12);
+      const ctx = Game.postingCtx(), here = ctx.cover.mult * ctx.sum;
+      const worthMoving = !c.dept || (here > 0 && (top.value - here) / here > 0.02);
       const locked = DATA.DEPARTMENTS.filter(dp => S.reputation < dp.repReq);
       return open.map(o => {
         const dp = o.dept, on = c.dept === dp.id;
         const crown = worthMoving ? dp.id === top.dept.id : on;
-        const note = crown ? (worthMoving ? 'best for them' : 'well placed') : 'if posted here';
+        const note = crown ? (worthMoving ? 'best for the team' : 'well placed') : 'if posted here';
         return `<button class="postopt ${on ? 'on' : ''}" data-assign="${dp.id}" data-who="${c.uid}">
           <span class="dept-ico">${dp.icon}</span>
           <div style="flex:1;min-width:0">
             <h4>${esc(dp.name)}${on ? ' · POSTED' : ''}</h4>
             <div class="tiny muted">${esc(dp.bonus)}</div>
+            ${o.strands && !on ? `<div class="tiny strand">⚠ leaves ${esc(o.leaving.name)} empty — costs the coverage bonus</div>` : ''}
           </div>
           <span class="yieldbadge ${crown ? 'good' : ''}">${o.yield}<small>${note}</small></span>
         </button>`;

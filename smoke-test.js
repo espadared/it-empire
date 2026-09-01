@@ -130,34 +130,59 @@ check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw 
 
 check('the posting advice never makes a player worse off', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
-  const keep = { rep: S.reputation, chapter: S.chapter, roster: S.roster.slice() };
+  // the reorg check above prestiges the save, so start from a clean one — this
+  // runs last, and nothing after it depends on the shared state
+  Game.newGame(null, { name: 'POST', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
   S.credits = 1e12; S.reputation = 1e6; S.chapter = 5;
-  try {
-  ['veteran', 'people-person', 'security-hawk', 'automation-expert', 'oracle']
-    .filter(id => DATA.CHARACTERS.some(x => x.id === id))
-    .forEach(id => {
-      const c = Game.hire(id); if (!c) return;
-      [12, 30, 55].forEach(lv => {
-        c.level = lv;
-        const opts = Game.postingOptions(c);
-        const best = Game.bestDept(c);
-        assert(best && best.dept.id === opts[0].dept.id,
-          id + ' L' + lv + ': the arrow points somewhere other than the best posting');
-        // whatever it recommends must beat every alternative on the same measure
-        opts.forEach(o => assert(best.value >= o.value - 1,
-          id + ' L' + lv + ': ' + o.dept.name + ' is worth more than the recommendation'));
-        // and anyone flagged as misplaced must really gain by moving
-        DATA.DEPARTMENTS.forEach(d => {
-          if (S.reputation < d.repReq) return;
-          c.dept = d.id;
-          if (Game.misplaced().some(x => x.uid === c.uid))
-            assert(Game.postingValue(c, best.dept.id) > Game.postingValue(c, d.id),
-              id + ' L' + lv + ': flagged as misplaced in ' + d.name + ' but moving gains nothing');
-        });
-        c.dept = null;
+  {
+    const ids = DATA.DEPARTMENTS.map(d => d.id);
+    DATA.CHARACTERS.filter(d => d.hireable).slice(0, 8).forEach((d, i) => {
+      const c = Game.hire(d.id); if (c) c.level = 16 + i * 3;
+    });
+    const crew = S.roster.filter(c => c.uid !== S.activeId);
+    assert(crew.length >= 4, 'could not build a crew to test with');
+
+    const arrangements = {
+      'one per department': c => c.forEach((x, i) => x.dept = ids[i % ids.length]),
+      'all in one department': c => c.forEach(x => x.dept = ids[0]),
+      'half unposted': c => c.forEach((x, i) => x.dept = i % 2 ? null : ids[i % ids.length]),
+      'two departments only': c => c.forEach((x, i) => x.dept = ids[i % 2]),
+    };
+
+    Object.entries(arrangements).forEach(([label, arrange]) => {
+      arrange(crew);
+      const ctx = Game.postingCtx(), now = ctx.cover.mult * ctx.sum;
+
+      // nothing the game recommends may leave the team worse off than it is
+      Game.misplaced().forEach(c => {
+        const b = Game.bestDept(c);
+        assert(b.value > now,
+          label + ': ' + c.defId + ' is flagged, but moving to ' + b.dept.id + ' lowers team output');
+      });
+
+      // and the arrow must agree with the ranked list the player is shown
+      crew.forEach(c => {
+        const opts = Game.postingOptions(c), b = Game.bestDept(c);
+        assert(b && b.dept.id === opts[0].dept.id,
+          label + ': ' + c.defId + ' — the arrow and the picker disagree');
       });
     });
-  } finally { S.reputation = keep.rep; S.chapter = keep.chapter; S.roster = keep.roster; }
+
+    // the reported bug: spreading one person per department must not be nagged
+    crew.forEach(x => x.dept = null);
+    crew.slice(0, ids.length).forEach((x, i) => x.dept = ids[i]);
+    assert(Game.deptCover().complete, 'the spread test did not actually cover every department');
+    assert(Game.misplaced().length === 0,
+      'a roster with every department covered is still being told people are misplaced');
+
+    // auto-post must never make an arrangement worse
+    crew.forEach((x, i) => x.dept = ids[i % 2]);
+    const before = (() => { const k = Game.postingCtx(); return k.cover.mult * k.sum; })();
+    Game.autoPost();
+    const after = (() => { const k = Game.postingCtx(); return k.cover.mult * k.sum; })();
+    assert(after >= before * 0.999, 'auto-post lowered total team output');
+  }
 });
 
 console.log(fails ? "\n" + fails + " FAILURES" : "\nall paths clean");
