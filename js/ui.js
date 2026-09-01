@@ -505,6 +505,22 @@ const UI = (() => {
         <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
         <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
       </div>
+      ${(() => {
+        const sp = Game.roleSpread();
+        const have = new Set(S.roster.map(c => Game.roleOf(c).key));
+        return `<div class="spread-strip ${sp.complete ? 'full' : ''}">
+          <div class="spread-roles">
+            ${Object.values(DATA.ROLES).map(r => `<span class="rdot ${have.has(r.key) ? 'on' : ''}"
+              style="${have.has(r.key) ? `color:${r.colour};border-color:${r.colour}55;background:${r.colour}14` : ''}"
+              title="${esc(r.name)}">${r.icon}</span>`).join('')}
+          </div>
+          <div class="spread-txt">
+            <b>${sp.roles}/${sp.of} roles covered</b>
+            <span>${sp.complete ? 'full cover — +25% bonus on top' : 'a department that can do everything earns more'}</span>
+          </div>
+          <div class="spread-mult">×${sp.mult.toFixed(2)}</div>
+        </div>`;
+      })()}
       ${chapterPanel}
       <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
       <div class="seg" style="margin:0 12px 10px">

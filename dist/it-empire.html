@@ -955,6 +955,23 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   background:rgba(95,211,122,.1);border-radius:7px;padding:4px 8px;flex:0 0 auto;white-space:nowrap;
 }
 
+/* how well the roles are covered — the reason not to hire nine of one person */
+.spread-strip{
+  display:flex;align-items:center;gap:10px;margin:8px 12px 0;padding:9px 11px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+}
+.spread-strip.full{border-color:var(--good);background:linear-gradient(180deg,rgba(95,211,122,.08),var(--panel))}
+.spread-roles{display:flex;gap:4px;flex:0 0 auto}
+.rdot{
+  width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;
+  border:1px solid var(--line);background:var(--ink-2);filter:grayscale(1) opacity(.4);
+}
+.rdot.on{filter:none}
+.spread-txt{flex:1;min-width:0}
+.spread-txt b{display:block;font-family:var(--disp);font-size:12.5px}
+.spread-txt span{font-size:10.5px;color:var(--muted);line-height:1.3}
+.spread-mult{font-family:var(--mono);font-size:15px;color:var(--lamp);flex:0 0 auto}
+
 </style>
 <div id="app">
 
@@ -1490,7 +1507,7 @@ const DATA = (() => {
   /* base: stats at level 1. growth: gain per level. */
   const CHARACTERS = [
     {
-      id:'hero', name:'JASON', role:'You', rarity:'RARE', role:'TECHNICIAN', icon:'🧑‍💻',
+      id:'hero', name:'JASON', role:'You', rarity:'RARE', roleKey:'TECHNICIAN', icon:'🧑‍💻',
       strength:'Learns from every single ticket',
       weakness:'Cannot be assigned to idle work — you do the tapping',
       personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
@@ -1501,7 +1518,7 @@ const DATA = (() => {
       cost:0, repReq:0, hireable:false
     },
     {
-      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', role:'TECHNICIAN', icon:'🔧',
+      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', roleKey:'TECHNICIAN', icon:'🔧',
       strength:'+25% hardware ticket resolution',
       weakness:'-10% automation efficiency',
       personality:'Has been here longer than the building. Owns a screwdriver older than the intern.',
@@ -1513,7 +1530,7 @@ const DATA = (() => {
       cost:1200, repReq:0, hireable:true
     },
     {
-      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', role:'SUPPORT', icon:'💬',
+      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', roleKey:'SUPPORT', icon:'💬',
       strength:'+30% user satisfaction on every ticket',
       weakness:'Lower raw technical power',
       personality:'Remembers everyone\'s birthday and their laptop asset tag. Users request them by name.',
@@ -1525,7 +1542,7 @@ const DATA = (() => {
       cost:900, repReq:0, hireable:true
     },
     {
-      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', role:'AUTOMATION', icon:'🤖',
+      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', roleKey:'AUTOMATION', icon:'🤖',
       strength:'+40% idle ticket resolution',
       weakness:'-15% user satisfaction — the script does not say hello',
       personality:'Has not manually closed a ticket since 2021 and considers that a personality.',
@@ -1537,7 +1554,7 @@ const DATA = (() => {
       cost:4500, repReq:250, hireable:true
     },
     {
-      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', role:'SPECIALIST', icon:'🚒',
+      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', roleKey:'SPECIALIST', icon:'🚒',
       strength:'+50% critical incident rewards',
       weakness:'Runs hot — no use to you on the quiet days',
       personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
@@ -1549,7 +1566,7 @@ const DATA = (() => {
       cost:6000, repReq:500, hireable:true
     },
     {
-      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', role:'TECHNICIAN', icon:'🐣',
+      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', roleKey:'TECHNICIAN', icon:'🐣',
       strength:'Gains 60% more XP from everything',
       weakness:'Low starting stats. Very low.',
       personality:'Enthusiastic. Asks "why" until you question your career. Will be terrifying in two years.',
@@ -1561,7 +1578,7 @@ const DATA = (() => {
       cost:300, repReq:0, hireable:true
     },
     {
-      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', role:'AUTOMATION', icon:'🦉',
+      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', roleKey:'AUTOMATION', icon:'🦉',
       strength:'+35% idle credits — does the maintenance window nobody wants',
       weakness:'-20% on active tickets before 11am',
       personality:'Communicates entirely in change tickets. Has never been seen in daylight.',
@@ -1573,7 +1590,7 @@ const DATA = (() => {
       cost:3200, repReq:150, hireable:true
     },
     {
-      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', role:'SPECIALIST', icon:'🦅',
+      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', roleKey:'SPECIALIST', icon:'🦅',
       strength:'+60% on security tickets, +25% incident success',
       weakness:'Blocks things. Constantly. -10% satisfaction.',
       personality:'Trusts nobody, including you, including this sentence. Loves a good log file.',
@@ -1585,14 +1602,14 @@ const DATA = (() => {
       cost:18000, repReq:2000, hireable:true
     },
     {
-      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', role:'MANAGER', icon:'🔮',
-      strength:'+25% to absolutely everything',
-      weakness:'Costs a fortune and answers only in riddles',
+      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', roleKey:'MANAGER', icon:'🔮',
+      strength:'Every colleague learns 35% faster, +20% incident success, +15% reputation',
+      weakness:'Does almost nothing themselves — and two Oracles do not manage each other',
       personality:'Nobody knows their job title. Nobody knows their manager. The outage stops when they arrive.',
       quotes:['"It was DNS. It was always DNS."','"Check the thing you did not check."','"I already fixed it. Yesterday."'],
-      base:{TECHNICAL:22,SPEED:18,COMMUNICATION:16,INVESTIGATION:22,PATIENCE:18,AUTOMATION:20,MANAGEMENT:20},
-      growth:{TECHNICAL:3.2,SPEED:2.6,COMMUNICATION:2.4,INVESTIGATION:3.2,PATIENCE:2.6,AUTOMATION:3.0,MANAGEMENT:3.0},
-      perks:{ all:0.25 },
+      base:{TECHNICAL:16,SPEED:14,COMMUNICATION:14,INVESTIGATION:16,PATIENCE:14,AUTOMATION:14,MANAGEMENT:16},
+      growth:{TECHNICAL:2.1,SPEED:1.9,COMMUNICATION:1.9,INVESTIGATION:2.1,PATIENCE:1.9,AUTOMATION:2.0,MANAGEMENT:2.2},
+      perks:{ staffXp:0.35, incidentSuccess:0.20, rep:0.15 },
       art:{ skin:'#EBC49A', hair:'#E8ECF7', hairStyle:'long', shirt:'#4A2E70', accent:'#C08BFF', glasses:false, headset:false, beard:true },
       cost:90000, repReq:10000, hireable:true
     },
@@ -2726,6 +2743,21 @@ const Game = (() => {
   const teamPower = () => S.roster.reduce((a, c) => a + charPower(c), 0);
 
   /* ---------------- BONUS AGGREGATION ---------------- */
+  /* First of a kind is worth full value; after that, sharply less. */
+  const DUP_SHARE = [1, 0.4, 0.15, 0.06];
+  /* Bodies decay more gently than perks — a fourth Automation Expert should
+     still be worth hiring, just clearly worse than a first Support. */
+  const BODY_SHARE = [1, 0.8, 0.6, 0.45, 0.32, 0.22];
+
+  /* Where this person sits among the others of their kind. */
+  function dupShare(c) {
+    let n = 0;
+    for (const x of S.roster) {
+      if (x.defId === c.defId) { n++; if (x.uid === c.uid) break; }
+    }
+    return BODY_SHARE[Math.min(n, BODY_SHARE.length) - 1];
+  }
+
   function legacyVal(id) {
     const l = DATA.LEGACY.find(x => x.id === id);
     return (S.legacySpent[id] || 0) * l.per;
@@ -2738,11 +2770,16 @@ const Game = (() => {
       if (bd.key === key) b += bd.per * lv;
       if (bd.key === 'all') b += bd.per * lv;
     });
-    // staff perks (everyone you employ helps)
+    /* Staff perks. A second copy of the same person is worth much less than
+       the first and a fourth is nearly nothing — otherwise the whole game is
+       "hire nine of whoever is best", which is not a department. */
+    const seen = {};
     S.roster.forEach(c => {
+      const n = (seen[c.defId] = (seen[c.defId] || 0) + 1);
+      const share = DUP_SHARE[Math.min(n, DUP_SHARE.length) - 1];
       const p = def(c.defId).perks || {};
-      if (p[key]) b += p[key];
-      if (p.all && key !== 'energy') b += p.all;
+      if (p[key]) b += p[key] * share;
+      if (p.all && key !== 'energy') b += p.all * share;
     });
     // standard issue perks — counted once for the whole department
     standardItems().forEach(it => {
@@ -3123,24 +3160,24 @@ const Game = (() => {
   const atCapacity = () => S.roster.length >= capacity();
 
   const rankOf = c => DATA.staffRank(c.level);
-  const roleOf = c => DATA.ROLES[def(c.defId).role] || DATA.ROLES.TECHNICIAN;
+  const roleOf = c => DATA.ROLES[def(c.defId).roleKey] || DATA.ROLES.TECHNICIAN;
 
   /* A manager produces nothing on their own and makes everyone else better. */
   function managerBoost(forChar) {
-    if (forChar && def(forChar.defId).role === 'MANAGER') return 1;
-    const mgrs = S.roster.filter(c => def(c.defId).role === 'MANAGER'
+    if (forChar && def(forChar.defId).roleKey === 'MANAGER') return 1;
+    const mgrs = S.roster.filter(c => def(c.defId).roleKey === 'MANAGER'
       && (!forChar || c.uid !== forChar.uid)).length;
-    return 1 + Math.min(0.5, mgrs * 0.10);
+    return 1 + Math.min(0.45, mgrs * 0.15);
   }
 
   /* What a role is actually worth on a given ticket. */
   function roleTicketMult(c, tier) {
-    const r = def(c.defId).role;
+    const r = def(c.defId).roleKey;
     if (r === 'TECHNICIAN' && tier !== 'HARD') return 1.25;
     if (r === 'SPECIALIST' && tier === 'HARD') return 1.35;
     return 1;
   }
-  const roleSatMult = c => def(c.defId).role === 'SUPPORT' ? 1.30 : 1;
+  const roleSatMult = c => def(c.defId).roleKey === 'SUPPORT' ? 1.30 : 1;
 
   /* Team power is what the staff screen leads on: everyone you employ. */
   const teamPowerTotal = () => S.roster.reduce((a, c) => a + charPower(c), 0);
@@ -3249,9 +3286,10 @@ const Game = (() => {
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
-    if (def(c.defId).role === 'AUTOMATION') r *= 1.35;
+    if (def(c.defId).roleKey === 'AUTOMATION') r *= 1.35;
     r *= deptBoost(c, 'rate');
     r *= managerBoost(c);
+    r *= dupShare(c);
     return r;
   }
   function idleRate() {                                   // tickets per minute
@@ -3260,8 +3298,22 @@ const Game = (() => {
   }
 
   /* What one person actually contributes per minute, posting included. */
+  /* A mixed department works better than a monoculture. Every distinct role on
+     the payroll lifts the whole automated queue. */
+  function roleSpread() {
+    const all = Object.keys(DATA.ROLES).length;
+    const roles = new Set(S.roster.map(c => def(c.defId).roleKey || 'TECHNICIAN'));
+    // Every role helps, and covering all five is worth a bonus on top: a
+    // department that can do everything beats one that does one thing well.
+    const complete = roles.size >= all;
+    return {
+      roles: roles.size, of: all, complete,
+      mult: 1 + roles.size * 0.08 + (complete ? 0.25 : 0),
+    };
+  }
+
   function staffOutput(c) {
-    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4) * roleSpread().mult;
     return {
       rate,
       credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
@@ -3726,7 +3778,7 @@ const Game = (() => {
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
-    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
+    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,
@@ -4244,6 +4296,22 @@ const UI = (() => {
         <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
         <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
       </div>
+      ${(() => {
+        const sp = Game.roleSpread();
+        const have = new Set(S.roster.map(c => Game.roleOf(c).key));
+        return `<div class="spread-strip ${sp.complete ? 'full' : ''}">
+          <div class="spread-roles">
+            ${Object.values(DATA.ROLES).map(r => `<span class="rdot ${have.has(r.key) ? 'on' : ''}"
+              style="${have.has(r.key) ? `color:${r.colour};border-color:${r.colour}55;background:${r.colour}14` : ''}"
+              title="${esc(r.name)}">${r.icon}</span>`).join('')}
+          </div>
+          <div class="spread-txt">
+            <b>${sp.roles}/${sp.of} roles covered</b>
+            <span>${sp.complete ? 'full cover — +25% bonus on top' : 'a department that can do everything earns more'}</span>
+          </div>
+          <div class="spread-mult">×${sp.mult.toFixed(2)}</div>
+        </div>`;
+      })()}
       ${chapterPanel}
       <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
       <div class="seg" style="margin:0 12px 10px">

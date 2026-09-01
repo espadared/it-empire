@@ -946,3 +946,20 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   font-family:var(--mono);font-size:9.5px;color:var(--good);border:1px solid #2F6B41;
   background:rgba(95,211,122,.1);border-radius:7px;padding:4px 8px;flex:0 0 auto;white-space:nowrap;
 }
+
+/* how well the roles are covered — the reason not to hire nine of one person */
+.spread-strip{
+  display:flex;align-items:center;gap:10px;margin:8px 12px 0;padding:9px 11px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+}
+.spread-strip.full{border-color:var(--good);background:linear-gradient(180deg,rgba(95,211,122,.08),var(--panel))}
+.spread-roles{display:flex;gap:4px;flex:0 0 auto}
+.rdot{
+  width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;
+  border:1px solid var(--line);background:var(--ink-2);filter:grayscale(1) opacity(.4);
+}
+.rdot.on{filter:none}
+.spread-txt{flex:1;min-width:0}
+.spread-txt b{display:block;font-family:var(--disp);font-size:12.5px}
+.spread-txt span{font-size:10.5px;color:var(--muted);line-height:1.3}
+.spread-mult{font-family:var(--mono);font-size:15px;color:var(--lamp);flex:0 0 auto}

@@ -475,7 +475,7 @@ const DATA = (() => {
   /* base: stats at level 1. growth: gain per level. */
   const CHARACTERS = [
     {
-      id:'hero', name:'JASON', role:'You', rarity:'RARE', role:'TECHNICIAN', icon:'🧑‍💻',
+      id:'hero', name:'JASON', role:'You', rarity:'RARE', roleKey:'TECHNICIAN', icon:'🧑‍💻',
       strength:'Learns from every single ticket',
       weakness:'Cannot be assigned to idle work — you do the tapping',
       personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
@@ -486,7 +486,7 @@ const DATA = (() => {
       cost:0, repReq:0, hireable:false
     },
     {
-      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', role:'TECHNICIAN', icon:'🔧',
+      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', roleKey:'TECHNICIAN', icon:'🔧',
       strength:'+25% hardware ticket resolution',
       weakness:'-10% automation efficiency',
       personality:'Has been here longer than the building. Owns a screwdriver older than the intern.',
@@ -498,7 +498,7 @@ const DATA = (() => {
       cost:1200, repReq:0, hireable:true
     },
     {
-      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', role:'SUPPORT', icon:'💬',
+      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', roleKey:'SUPPORT', icon:'💬',
       strength:'+30% user satisfaction on every ticket',
       weakness:'Lower raw technical power',
       personality:'Remembers everyone\'s birthday and their laptop asset tag. Users request them by name.',
@@ -510,7 +510,7 @@ const DATA = (() => {
       cost:900, repReq:0, hireable:true
     },
     {
-      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', role:'AUTOMATION', icon:'🤖',
+      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', roleKey:'AUTOMATION', icon:'🤖',
       strength:'+40% idle ticket resolution',
       weakness:'-15% user satisfaction — the script does not say hello',
       personality:'Has not manually closed a ticket since 2021 and considers that a personality.',
@@ -522,7 +522,7 @@ const DATA = (() => {
       cost:4500, repReq:250, hireable:true
     },
     {
-      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', role:'SPECIALIST', icon:'🚒',
+      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', roleKey:'SPECIALIST', icon:'🚒',
       strength:'+50% critical incident rewards',
       weakness:'Runs hot — no use to you on the quiet days',
       personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
@@ -534,7 +534,7 @@ const DATA = (() => {
       cost:6000, repReq:500, hireable:true
     },
     {
-      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', role:'TECHNICIAN', icon:'🐣',
+      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', roleKey:'TECHNICIAN', icon:'🐣',
       strength:'Gains 60% more XP from everything',
       weakness:'Low starting stats. Very low.',
       personality:'Enthusiastic. Asks "why" until you question your career. Will be terrifying in two years.',
@@ -546,7 +546,7 @@ const DATA = (() => {
       cost:300, repReq:0, hireable:true
     },
     {
-      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', role:'AUTOMATION', icon:'🦉',
+      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', roleKey:'AUTOMATION', icon:'🦉',
       strength:'+35% idle credits — does the maintenance window nobody wants',
       weakness:'-20% on active tickets before 11am',
       personality:'Communicates entirely in change tickets. Has never been seen in daylight.',
@@ -558,7 +558,7 @@ const DATA = (() => {
       cost:3200, repReq:150, hireable:true
     },
     {
-      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', role:'SPECIALIST', icon:'🦅',
+      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', roleKey:'SPECIALIST', icon:'🦅',
       strength:'+60% on security tickets, +25% incident success',
       weakness:'Blocks things. Constantly. -10% satisfaction.',
       personality:'Trusts nobody, including you, including this sentence. Loves a good log file.',
@@ -570,14 +570,14 @@ const DATA = (() => {
       cost:18000, repReq:2000, hireable:true
     },
     {
-      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', role:'MANAGER', icon:'🔮',
-      strength:'+25% to absolutely everything',
-      weakness:'Costs a fortune and answers only in riddles',
+      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', roleKey:'MANAGER', icon:'🔮',
+      strength:'Every colleague learns 35% faster, +20% incident success, +15% reputation',
+      weakness:'Does almost nothing themselves — and two Oracles do not manage each other',
       personality:'Nobody knows their job title. Nobody knows their manager. The outage stops when they arrive.',
       quotes:['"It was DNS. It was always DNS."','"Check the thing you did not check."','"I already fixed it. Yesterday."'],
-      base:{TECHNICAL:22,SPEED:18,COMMUNICATION:16,INVESTIGATION:22,PATIENCE:18,AUTOMATION:20,MANAGEMENT:20},
-      growth:{TECHNICAL:3.2,SPEED:2.6,COMMUNICATION:2.4,INVESTIGATION:3.2,PATIENCE:2.6,AUTOMATION:3.0,MANAGEMENT:3.0},
-      perks:{ all:0.25 },
+      base:{TECHNICAL:16,SPEED:14,COMMUNICATION:14,INVESTIGATION:16,PATIENCE:14,AUTOMATION:14,MANAGEMENT:16},
+      growth:{TECHNICAL:2.1,SPEED:1.9,COMMUNICATION:1.9,INVESTIGATION:2.1,PATIENCE:1.9,AUTOMATION:2.0,MANAGEMENT:2.2},
+      perks:{ staffXp:0.35, incidentSuccess:0.20, rep:0.15 },
       art:{ skin:'#EBC49A', hair:'#E8ECF7', hairStyle:'long', shirt:'#4A2E70', accent:'#C08BFF', glasses:false, headset:false, beard:true },
       cost:90000, repReq:10000, hireable:true
     },

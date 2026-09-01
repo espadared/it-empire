@@ -143,6 +143,21 @@ const Game = (() => {
   const teamPower = () => S.roster.reduce((a, c) => a + charPower(c), 0);
 
   /* ---------------- BONUS AGGREGATION ---------------- */
+  /* First of a kind is worth full value; after that, sharply less. */
+  const DUP_SHARE = [1, 0.4, 0.15, 0.06];
+  /* Bodies decay more gently than perks — a fourth Automation Expert should
+     still be worth hiring, just clearly worse than a first Support. */
+  const BODY_SHARE = [1, 0.8, 0.6, 0.45, 0.32, 0.22];
+
+  /* Where this person sits among the others of their kind. */
+  function dupShare(c) {
+    let n = 0;
+    for (const x of S.roster) {
+      if (x.defId === c.defId) { n++; if (x.uid === c.uid) break; }
+    }
+    return BODY_SHARE[Math.min(n, BODY_SHARE.length) - 1];
+  }
+
   function legacyVal(id) {
     const l = DATA.LEGACY.find(x => x.id === id);
     return (S.legacySpent[id] || 0) * l.per;
@@ -155,11 +170,16 @@ const Game = (() => {
       if (bd.key === key) b += bd.per * lv;
       if (bd.key === 'all') b += bd.per * lv;
     });
-    // staff perks (everyone you employ helps)
+    /* Staff perks. A second copy of the same person is worth much less than
+       the first and a fourth is nearly nothing — otherwise the whole game is
+       "hire nine of whoever is best", which is not a department. */
+    const seen = {};
     S.roster.forEach(c => {
+      const n = (seen[c.defId] = (seen[c.defId] || 0) + 1);
+      const share = DUP_SHARE[Math.min(n, DUP_SHARE.length) - 1];
       const p = def(c.defId).perks || {};
-      if (p[key]) b += p[key];
-      if (p.all && key !== 'energy') b += p.all;
+      if (p[key]) b += p[key] * share;
+      if (p.all && key !== 'energy') b += p.all * share;
     });
     // standard issue perks — counted once for the whole department
     standardItems().forEach(it => {
@@ -540,24 +560,24 @@ const Game = (() => {
   const atCapacity = () => S.roster.length >= capacity();
 
   const rankOf = c => DATA.staffRank(c.level);
-  const roleOf = c => DATA.ROLES[def(c.defId).role] || DATA.ROLES.TECHNICIAN;
+  const roleOf = c => DATA.ROLES[def(c.defId).roleKey] || DATA.ROLES.TECHNICIAN;
 
   /* A manager produces nothing on their own and makes everyone else better. */
   function managerBoost(forChar) {
-    if (forChar && def(forChar.defId).role === 'MANAGER') return 1;
-    const mgrs = S.roster.filter(c => def(c.defId).role === 'MANAGER'
+    if (forChar && def(forChar.defId).roleKey === 'MANAGER') return 1;
+    const mgrs = S.roster.filter(c => def(c.defId).roleKey === 'MANAGER'
       && (!forChar || c.uid !== forChar.uid)).length;
-    return 1 + Math.min(0.5, mgrs * 0.10);
+    return 1 + Math.min(0.45, mgrs * 0.15);
   }
 
   /* What a role is actually worth on a given ticket. */
   function roleTicketMult(c, tier) {
-    const r = def(c.defId).role;
+    const r = def(c.defId).roleKey;
     if (r === 'TECHNICIAN' && tier !== 'HARD') return 1.25;
     if (r === 'SPECIALIST' && tier === 'HARD') return 1.35;
     return 1;
   }
-  const roleSatMult = c => def(c.defId).role === 'SUPPORT' ? 1.30 : 1;
+  const roleSatMult = c => def(c.defId).roleKey === 'SUPPORT' ? 1.30 : 1;
 
   /* Team power is what the staff screen leads on: everyone you employ. */
   const teamPowerTotal = () => S.roster.reduce((a, c) => a + charPower(c), 0);
@@ -666,9 +686,10 @@ const Game = (() => {
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
-    if (def(c.defId).role === 'AUTOMATION') r *= 1.35;
+    if (def(c.defId).roleKey === 'AUTOMATION') r *= 1.35;
     r *= deptBoost(c, 'rate');
     r *= managerBoost(c);
+    r *= dupShare(c);
     return r;
   }
   function idleRate() {                                   // tickets per minute
@@ -677,8 +698,22 @@ const Game = (() => {
   }
 
   /* What one person actually contributes per minute, posting included. */
+  /* A mixed department works better than a monoculture. Every distinct role on
+     the payroll lifts the whole automated queue. */
+  function roleSpread() {
+    const all = Object.keys(DATA.ROLES).length;
+    const roles = new Set(S.roster.map(c => def(c.defId).roleKey || 'TECHNICIAN'));
+    // Every role helps, and covering all five is worth a bonus on top: a
+    // department that can do everything beats one that does one thing well.
+    const complete = roles.size >= all;
+    return {
+      roles: roles.size, of: all, complete,
+      mult: 1 + roles.size * 0.08 + (complete ? 0.25 : 0),
+    };
+  }
+
   function staffOutput(c) {
-    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4);
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4) * roleSpread().mult;
     return {
       rate,
       credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
@@ -1143,7 +1178,7 @@ const Game = (() => {
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
-    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
+    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,
