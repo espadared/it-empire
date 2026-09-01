@@ -724,7 +724,11 @@ const Game = (() => {
     const st = charStats(c);
     const avg = DATA.STATS.reduce((a, k) => a + st[k], 0) / DATA.STATS.length;
     if (avg <= 0) return 1;
-    return clamp(st[dept.stat] / avg, 0.45, 2.1);
+    // A department can be served by more than one strength — the front line
+    // works for someone good with people OR someone with deep patience.
+    const keys = dept.stats || [dept.stat];
+    const best = Math.max(...keys.map(k => st[k] || 0));
+    return clamp(best / avg, 0.45, 2.1);
   }
 
   /* How much a posting adds to one of the three things idle work produces. */
@@ -748,6 +752,10 @@ const Game = (() => {
   const deptStaff = id => S.roster.filter(c => c.dept === id);
 
   /* The best posting available to this person right now. */
+  /* Where this person belongs. Deliberately decided by fit and nothing else:
+     it is the number shown on their card, so the suggestion and the number
+     have to agree. Balancing what each department is worth is a separate job,
+     done in the department data. */
   function bestDept(c) {
     let best = null, bestFit = 0;
     DATA.DEPARTMENTS.forEach(d => {
@@ -878,7 +886,12 @@ const Game = (() => {
   function hire(defId) {
     const d = def(defId); if (!canHire(d)) return null;
     S.credits -= hireCost(d);
-    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, maxStaffLevel()));
+    // A recruit arrives experienced enough to be useful and well short of the
+    // ceiling — there has to be something left to develop, or hiring replaces
+    // levelling entirely.
+    const ceiling = maxStaffLevel();
+    const start = clamp(Math.round(Math.min(S.level * 0.5, ceiling * 0.45)), 1, ceiling - 1);
+    const c = mkChar(defId, start);
     S.roster.push(c); S.unlocked[defId] = true;
     checkAchievements(); emit('change');
     return c;
