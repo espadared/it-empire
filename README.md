@@ -158,6 +158,9 @@ Credits live in the save on the device, not on the server, so a win is
 collects. `js/battle-data.js` holds the questions and puzzles;
 `js/battle.js` is the room list and the game engines.
 
-## Not built yet
+## Not built
 
-The skill tree is present as data but is not yet wired to gameplay effects.
+The skill tree from the original brief was never built — there is no skill data
+and nothing references it. Character progression is carried by career ranks,
+roles and department postings instead, which cover the same ground. Listed here
+so it is not mistaken for something half-finished.
