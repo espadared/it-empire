@@ -88,7 +88,8 @@ SCHEMA_PG = (
           reputation  bigint default 0,
           tickets     bigint default 0,
           spec        text,
-          art         jsonb
+          art         jsonb,
+          rev         bigint default 0
         )""",
     f"""create table if not exists {S_TABLE} (
           token      text primary key,
@@ -112,7 +113,7 @@ SCHEMA_LITE = (
           name_key text unique not null, display text not null, pw text not null,
           created_at text not null, updated_at text not null,
           state text, level integer default 1, reputation integer default 0,
-          tickets integer default 0, spec text, art text)""",
+          tickets integer default 0, spec text, art text, rev integer default 0)""",
     f"""create table if not exists {S_TABLE} (
           token text primary key, player_id integer not null, created_at text not null)""",
     f"""create table if not exists {A_TABLE} (
@@ -134,10 +135,15 @@ def _ensure_schema():
             with _pg.connection() as c:
                 for stmt in SCHEMA_PG:
                     c.execute(stmt)
+                # tables that predate the revision guard
+                c.execute(f"alter table {P_TABLE} add column if not exists rev bigint default 0")
         else:
             with _sqlite_lock, sqlite3.connect(_sqlite_path) as c:
                 for stmt in SCHEMA_LITE:
                     c.execute(stmt)
+                cols = [r[1] for r in c.execute(f"pragma table_info({P_TABLE})")]
+                if "rev" not in cols:
+                    c.execute(f"alter table {P_TABLE} add column rev integer default 0")
         _ready = True
 
 
@@ -263,7 +269,7 @@ def player_public(row):
 def session_player(token: str):
     if not token:
         return None
-    row = q(f"""select p.id, p.display, p.state, p.spec, p.updated_at
+    row = q(f"""select p.id, p.display, p.state, p.spec, p.updated_at, p.rev
                 from {S_TABLE} s join {P_TABLE} p on p.id = s.player_id
                 where s.token = %s""", (token,), "one")
     return row
@@ -457,7 +463,8 @@ class Handler(BaseHTTPRequestHandler):
             if not row:
                 return self.fail(401, "Your session expired. Sign in again.")
             return self.json(200, {"ok": True, "player": {"name": row[1]},
-                                   "state": _json_out(row[2]), "now": int(time.time() * 1000)})
+                                   "state": _json_out(row[2]), "rev": row[5] or 0,
+                                   "now": int(time.time() * 1000)})
         if route == "leaderboard":
             rows = q(f"""select display, level, reputation, tickets, spec, art, updated_at
                          from {P_TABLE} order by reputation desc, tickets desc limit 50""",
@@ -491,7 +498,7 @@ class Handler(BaseHTTPRequestHandler):
             token = new_session(row[0])
             record_activity(row[0], None, new_session=True)
             return self.json(200, {"ok": True, "token": token, "fresh": True,
-                                   "player": {"name": row[1]}, "state": None,
+                                   "player": {"name": row[1]}, "state": None, "rev": 0,
                                    "now": int(time.time() * 1000)})
 
         if route == "login":
@@ -505,10 +512,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.fail(401, "That name and password do not match.")
             token = new_session(row[0])
             record_activity(row[0], None, new_session=True)
-            saved = q(f"select state from {P_TABLE} where id = %s", (row[0],), "one")
+            saved = q(f"select state, rev from {P_TABLE} where id = %s", (row[0],), "one")
             return self.json(200, {"ok": True, "token": token,
                                    "player": {"name": row[1]},
                                    "state": _json_out(saved[0]) if saved else None,
+                                   "rev": (saved[1] or 0) if saved else 0,
                                    "now": int(time.time() * 1000)})
 
         if route == "logout":
@@ -540,13 +548,33 @@ class Handler(BaseHTTPRequestHandler):
         blob = json.dumps(state)
         if len(blob) > MAX_STATE_BYTES:
             return self.fail(413, "That save is too large to store.")
+        # The revision guard. Every accepted save bumps rev; a client must send
+        # the rev it last saw. A second device — or a tab left open on a laptop
+        # overnight — is holding an older rev, so its write is refused instead
+        # of silently overwriting newer progress. It gets the winning state back
+        # and adopts it.
+        # A write with no revision at all is an old tab that has not reloaded
+        # since this guard shipped. Refuse it too — that is precisely the tab
+        # that overwrites a night of progress from another device.
+        current = row[5] or 0
+        sent = (data or {}).get("rev")
+        if sent is None or int(sent) != int(current):
+            return self.json(409, {
+                "error": "Your game is open somewhere else and that copy is further ahead.",
+                "conflict": True, "state": _json_out(row[2]), "rev": current,
+                "now": int(time.time() * 1000),
+            })
+
         record_activity(row[0], row[4] if len(row) > 4 else None)
         level, rep, tickets, spec, art = summarise(state)
+        new_rev = int(current) + 1
         q(f"""update {P_TABLE} set state = %s, updated_at = %s, level = %s,
-              reputation = %s, tickets = %s, spec = coalesce(%s, spec), art = coalesce(%s, art)
+              reputation = %s, tickets = %s, spec = coalesce(%s, spec),
+              art = coalesce(%s, art), rev = %s
               where id = %s""",
-          (_json_in(state), _now_iso(), level, rep, tickets, spec, _json_in(art), row[0]))
-        return self.json(200, {"ok": True, "now": int(time.time() * 1000)})
+          (_json_in(state), _now_iso(), level, rep, tickets, spec, _json_in(art),
+           new_rev, row[0]))
+        return self.json(200, {"ok": True, "rev": new_rev, "now": int(time.time() * 1000)})
 
 
 def main():

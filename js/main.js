@@ -438,6 +438,11 @@
 
     if (d.act) {
       switch (d.act) {
+        case 'adopt-newer': {
+          UI.closeSheet();
+          location.reload();          // simplest correct thing: start from the server's copy
+          return;
+        }
         case 'collect': return collect();
         case 'collect-sheet': UI.closeSheet(); return collect();
         case 'go-staff': UI.closeSheet(); return UI.show('staff');
@@ -659,6 +664,20 @@
     }
     buildCharacter({ name: name.toUpperCase(), lockName: true });
   }
+
+  /* Another device (or a tab left open on a laptop) has newer progress. This
+     copy stopped writing the moment it found out, so nothing here can undo it.
+     Show what happened and pick up the winning save. */
+  Net.onConflict = ({ state, now }) => {
+    UI.beep('alarm');
+    UI.sheet(`
+      <span class="big-emoji">📱💻</span>
+      <h3>PLAYED SOMEWHERE ELSE</h3>
+      <p class="sub">This copy of the game was behind</p>
+      <p class="tiny muted" style="text-align:center">You have IT Empire open on another device, and that one is further ahead. This tab has stopped saving so it cannot undo that progress. Load the newer save to carry on here.</p>
+      <button class="btn gold cta" data-act="adopt-newer">LOAD THE NEWER SAVE</button>`, { dismiss: false });
+    window.__newer = { state, now };
+  };
 
   async function boot() {
     const online = await Net.probe();
