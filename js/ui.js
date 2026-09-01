@@ -358,9 +358,13 @@ const UI = (() => {
 
   const deptChip = c => {
     const d = c.dept && Game.deptDef(c.dept);
-    return d
-      ? `<span class="dchip" style="border-color:${d.id === 'auto' ? 'var(--crt)' : 'var(--line)'}">${d.icon} ${esc(d.name)}</span>`
-      : `<span class="dchip empty">＋ post to a department</span>`;
+    if (!d) return `<span class="dchip empty">＋ post to a department</span>`;
+    const fit = Game.deptFit(c, d);
+    const tone = fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : '';
+    const best = Game.bestDept(c);
+    const better = best && best.dept.id !== d.id && best.fit - fit > 0.35;
+    return `<span class="dchip ${tone}">${d.icon} ${esc(d.name)}
+      <b class="fitn">${fit.toFixed(1)}×</b>${better ? `<em>→ ${best.dept.icon}</em>` : ''}</span>`;
   };
 
   function staffCard(c) {
@@ -500,6 +504,20 @@ const UI = (() => {
           <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
         </div>
       </div>
+      ${(() => {
+        const a = Game.advice();
+        return `<div class="nextmove ${a.tone}">
+          <div class="nm-top">
+            <span class="nm-ico">${a.icon}</span>
+            <div style="flex:1;min-width:0">
+              <div class="nm-lbl">NEXT MOVE</div>
+              <h3>${esc(a.title)}</h3>
+            </div>
+          </div>
+          <p class="nm-detail">${esc(a.detail)}</p>
+          ${a.label ? `<button class="btn ${a.affordable === false ? 'off' : 'gold'} cta" data-advice="${a.action}">${esc(a.label)}</button>` : ''}
+        </div>`;
+      })()}
       <div class="teamstats">
         <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
         <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
@@ -526,12 +544,6 @@ const UI = (() => {
       <div class="seg" style="margin:0 12px 10px">
         <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
         <button class="seg-btn ${staffView === 'dept' ? 'on' : ''}" data-sview="dept">BY DEPARTMENT</button>
-      </div>
-
-      <div class="idle-summary">
-        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
-        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
-        <div><b>${f(idle.r * 3600)}</b><span>rep/hr</span></div>
       </div>
 
       ${staffView === 'dept' ? `

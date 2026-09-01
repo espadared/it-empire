@@ -963,3 +963,46 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .spread-txt b{display:block;font-family:var(--disp);font-size:12.5px}
 .spread-txt span{font-size:10.5px;color:var(--muted);line-height:1.3}
 .spread-mult{font-family:var(--mono);font-size:15px;color:var(--lamp);flex:0 0 auto}
+
+/* the one thing worth doing next */
+.nextmove{
+  margin:10px 12px 0;padding:13px;border-radius:17px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+}
+.nextmove.warn{border-color:var(--lamp);box-shadow:0 0 0 1px rgba(255,179,71,.22)}
+.nextmove.idea{border-color:var(--crt-dim)}
+.nextmove.good{border-color:#2F6B41}
+.nm-top{display:flex;align-items:center;gap:11px}
+.nm-ico{
+  width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:var(--ink-2);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:21px;
+}
+.nm-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.nm-top h3{font-family:var(--disp);font-weight:800;font-size:15px;margin:1px 0 0;line-height:1.2}
+.nm-detail{margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.4}
+.nextmove .cta{width:100%;margin-top:11px}
+.dchip.good{border-color:#2F6B41}
+.dchip.poor{border-color:#7A2F33}
+.dchip .fitn{font-family:var(--mono);font-size:10px;opacity:.75;margin-left:2px}
+.dchip.good .fitn{color:var(--good);opacity:1}
+.dchip.poor .fitn{color:var(--alarm);opacity:1}
+.dchip em{font-style:normal;margin-left:5px;font-size:11px;opacity:.8}
+
+/* a rank crossing is a moment, not a line of toast */
+.promo{text-align:center;position:relative;padding-top:6px}
+.promo-ribbon{
+  display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:#31190A;
+  background:linear-gradient(180deg,#FFC46A,#E68A26);border-radius:999px;padding:4px 14px;margin-bottom:12px;
+}
+.promo-art{
+  width:96px;height:96px;margin:0 auto 10px;border-radius:26px;overflow:hidden;
+  background:radial-gradient(circle at 50% 20%,#2C3552,#161C2E);border:2px solid var(--lamp);
+  box-shadow:0 0 30px rgba(255,179,71,.35);animation:pop .45s cubic-bezier(.2,1.6,.4,1);
+}
+.promo-art .portrait-svg{width:100%;height:100%;display:block}
+.promo h3{margin:0;font-size:20px}
+.promo-rank{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:.04em;margin-top:2px}
+.promo-row{
+  display:flex;justify-content:center;gap:14px;margin-top:12px;font-family:var(--mono);font-size:11.5px;
+  color:var(--muted);flex-wrap:wrap;
+}

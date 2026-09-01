@@ -972,6 +972,49 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .spread-txt span{font-size:10.5px;color:var(--muted);line-height:1.3}
 .spread-mult{font-family:var(--mono);font-size:15px;color:var(--lamp);flex:0 0 auto}
 
+/* the one thing worth doing next */
+.nextmove{
+  margin:10px 12px 0;padding:13px;border-radius:17px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+}
+.nextmove.warn{border-color:var(--lamp);box-shadow:0 0 0 1px rgba(255,179,71,.22)}
+.nextmove.idea{border-color:var(--crt-dim)}
+.nextmove.good{border-color:#2F6B41}
+.nm-top{display:flex;align-items:center;gap:11px}
+.nm-ico{
+  width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:var(--ink-2);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:21px;
+}
+.nm-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.nm-top h3{font-family:var(--disp);font-weight:800;font-size:15px;margin:1px 0 0;line-height:1.2}
+.nm-detail{margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.4}
+.nextmove .cta{width:100%;margin-top:11px}
+.dchip.good{border-color:#2F6B41}
+.dchip.poor{border-color:#7A2F33}
+.dchip .fitn{font-family:var(--mono);font-size:10px;opacity:.75;margin-left:2px}
+.dchip.good .fitn{color:var(--good);opacity:1}
+.dchip.poor .fitn{color:var(--alarm);opacity:1}
+.dchip em{font-style:normal;margin-left:5px;font-size:11px;opacity:.8}
+
+/* a rank crossing is a moment, not a line of toast */
+.promo{text-align:center;position:relative;padding-top:6px}
+.promo-ribbon{
+  display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:#31190A;
+  background:linear-gradient(180deg,#FFC46A,#E68A26);border-radius:999px;padding:4px 14px;margin-bottom:12px;
+}
+.promo-art{
+  width:96px;height:96px;margin:0 auto 10px;border-radius:26px;overflow:hidden;
+  background:radial-gradient(circle at 50% 20%,#2C3552,#161C2E);border:2px solid var(--lamp);
+  box-shadow:0 0 30px rgba(255,179,71,.35);animation:pop .45s cubic-bezier(.2,1.6,.4,1);
+}
+.promo-art .portrait-svg{width:100%;height:100%;display:block}
+.promo h3{margin:0;font-size:20px}
+.promo-rank{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:.04em;margin-top:2px}
+.promo-row{
+  display:flex;justify-content:center;gap:14px;margin-top:12px;font-family:var(--mono);font-size:11.5px;
+  color:var(--muted);flex-wrap:wrap;
+}
+
 </style>
 <div id="app">
 
@@ -2657,7 +2700,11 @@ const Game = (() => {
   };
 
   const xpNeed = lvl => Math.floor(70 * Math.pow(lvl, 1.62) + 45 * lvl);
-  const charXpNeed = lvl => Math.floor(45 * Math.pow(lvl, 1.55) + 30 * lvl);
+  /* Steeper than it was: the last ranks should be a project, not an evening.
+     Crossing into a new career rank is a promotion and costs four times as
+     much, which is what makes a rank feel like a rank. */
+  const charXpNeed = lvl => Math.floor(55 * Math.pow(lvl, 1.8) + 40 * lvl);
+  const isPromotion = lvl => !!DATA.RANKS_STAFF.find(r => r.at === lvl + 1);
 
   const title = lvl => { let t = DATA.TITLES[0].name; DATA.TITLES.forEach(x => { if (lvl >= x.level) t = x.name; }); return t; };
   const rank = rep => { let r = DATA.RANKS[0]; DATA.RANKS.forEach(x => { if (rep >= x.at) r = x; }); return r; };
@@ -3137,7 +3184,10 @@ const Game = (() => {
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
-  function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
+  function levelCost(c) {
+    const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
+    return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
+  }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
     const before = rankOf(c).name;
@@ -3218,11 +3268,70 @@ const Game = (() => {
     return ch;
   }
 
+  /* ---------------- WHAT TO DO NEXT ----------------
+     A department has a lot of dials. Rather than making the player audit all
+     of them, work out the single most valuable move available and say it in
+     one sentence. Ordered by what actually costs them the most to ignore. */
+  function advice() {
+    const cap = capacity(), ch = chapter();
+
+    if (canPromoteChapter())
+      return { icon: ch.icon, tone: 'good', title: 'Your department is ready to grow',
+        detail: `Every objective for ${ch.name} is met. Promoting opens more desks and a higher level ceiling.`,
+        action: 'promote-chapter', label: 'PROMOTE THE DEPARTMENT' };
+
+    const idle = unposted();
+    if (idle.length)
+      return { icon: '🪑', tone: 'warn', title: `${idle.length} ${idle.length > 1 ? 'people are' : 'person is'} not posted anywhere`,
+        detail: 'Unposted staff still work the queue, but they earn nothing extra. A posting that suits them can be worth half again.',
+        action: 'autopost', label: 'POST THEM WHERE THEY FIT' };
+
+    const bad = misplaced();
+    if (bad.length)
+      return { icon: '🔀', tone: 'warn', title: `${bad.length} ${bad.length > 1 ? 'are' : 'is'} in the wrong department`,
+        detail: `${bad.map(c => c.defId === 'hero' ? S.name : def(c.defId).name).slice(0, 2).join(' and ')} would earn more somewhere else.`,
+        action: 'autopost', label: 'MOVE THEM' };
+
+    const spread = roleSpread();
+    if (!spread.complete && S.roster.length < cap) {
+      const have = new Set(S.roster.map(c => def(c.defId).roleKey));
+      const missing = Object.values(DATA.ROLES).find(r => !have.has(r.key));
+      const who = DATA.CHARACTERS.find(d => d.hireable && d.roleKey === missing.key
+        && S.reputation >= d.repReq);
+      if (missing && who)
+        return { icon: missing.icon, tone: 'idea', title: `No ${missing.name} on the payroll`,
+          detail: `${missing.blurb} Covering all five roles is worth +25% on top of everything else.`,
+          action: 'hire:' + who.id, label: `HIRE ${who.name} · 💰${fmt(hireCost(who))}`,
+          affordable: S.credits >= hireCost(who) };
+    }
+
+    const ready = S.roster.filter(c => canLevel(c))
+      .sort((a, b) => charPower(b) - charPower(a))[0];
+    if (ready) {
+      const nm = ready.defId === 'hero' ? S.name : def(ready.defId).name;
+      const promo = isPromotion(ready.level);
+      return { icon: promo ? '🎖️' : '📈', tone: 'good',
+        title: promo ? `${nm} is ready for promotion` : `${nm} can level up`,
+        detail: promo ? `Crossing into ${DATA.staffRank(ready.level + 1).name} costs four times a normal level, and is worth it.`
+          : 'They have the experience and you have the budget.',
+        action: 'levelup:' + ready.uid, label: promo ? 'PROMOTE THEM' : 'LEVEL THEM UP' };
+    }
+
+    if (S.roster.length >= cap)
+      return { icon: '🪑', tone: 'idea', title: 'Every desk is taken',
+        detail: 'To bring anyone new in you need to let somebody go, or meet this chapter\'s objectives for more room.',
+        action: 'none', label: null };
+
+    return { icon: '✅', tone: 'good', title: 'The department is in good order',
+      detail: 'Everyone is posted where they belong and nobody is waiting on a promotion. Work the queue and build up experience.',
+      action: 'none', label: null };
+  }
+
   /* Letting somebody go. You get something back, which is what makes replacing
      a middling technician with a specialist a real decision rather than a loss. */
   function retireValue(c) {
     let spent = 0;
-    for (let l = 1; l < c.level; l++) spent += Math.floor(60 * Math.pow(l, 1.45) * DATA.RARITY[c.rarity].mult);
+    for (let l = 1; l < c.level; l++) spent += Math.floor(90 * Math.pow(l, 1.65) * DATA.RARITY[c.rarity].mult * (isPromotion(l) ? 4 : 1));
     return {
       credits: Math.floor(spent * 0.6 + Game_hireRefund(c)),
       xp: Math.floor(charXpNeed(c.level) * 0.5),
@@ -3280,6 +3389,40 @@ const Game = (() => {
   }
 
   const deptStaff = id => S.roster.filter(c => c.dept === id);
+
+  /* The best posting available to this person right now. */
+  function bestDept(c) {
+    let best = null, bestFit = 0;
+    DATA.DEPARTMENTS.forEach(d => {
+      if (S.reputation < d.repReq) return;
+      const fit = deptFit(c, d);
+      if (fit > bestFit) { bestFit = fit; best = d; }
+    });
+    return best ? { dept: best, fit: bestFit } : null;
+  }
+
+  /* One move that posts everybody sensibly. The strategy is who you hire and
+     who you develop; remembering to tap nine people is just admin. */
+  function autoPost() {
+    const before = idlePerSec().c * 3600;
+    let moved = 0;
+    S.roster.forEach(c => {
+      if (c.uid === S.activeId) return;
+      const b = bestDept(c);
+      if (b && c.dept !== b.dept.id) { c.dept = b.dept.id; moved++; }
+    });
+    emit('change');
+    return { moved, before: Math.round(before), after: Math.round(idlePerSec().c * 3600) };
+  }
+
+  /* Anyone sitting in a department that does not suit them. */
+  const misplaced = () => S.roster.filter(c => {
+    if (c.uid === S.activeId || !c.dept) return false;
+    const d = deptDef(c.dept); if (!d) return false;
+    const b = bestDept(c);
+    return b && b.dept.id !== c.dept && b.fit - deptFit(c, d) > 0.35;
+  });
+  const unposted = () => S.roster.filter(c => !c.dept && c.uid !== S.activeId);
 
   function staffRate(c) {
     const st = charStats(c), d = def(c.defId);
@@ -3779,6 +3922,7 @@ const Game = (() => {
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
+    bestDept, autoPost, misplaced, unposted, isPromotion, advice,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,
@@ -4149,9 +4293,13 @@ const UI = (() => {
 
   const deptChip = c => {
     const d = c.dept && Game.deptDef(c.dept);
-    return d
-      ? `<span class="dchip" style="border-color:${d.id === 'auto' ? 'var(--crt)' : 'var(--line)'}">${d.icon} ${esc(d.name)}</span>`
-      : `<span class="dchip empty">＋ post to a department</span>`;
+    if (!d) return `<span class="dchip empty">＋ post to a department</span>`;
+    const fit = Game.deptFit(c, d);
+    const tone = fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : '';
+    const best = Game.bestDept(c);
+    const better = best && best.dept.id !== d.id && best.fit - fit > 0.35;
+    return `<span class="dchip ${tone}">${d.icon} ${esc(d.name)}
+      <b class="fitn">${fit.toFixed(1)}×</b>${better ? `<em>→ ${best.dept.icon}</em>` : ''}</span>`;
   };
 
   function staffCard(c) {
@@ -4291,6 +4439,20 @@ const UI = (() => {
           <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
         </div>
       </div>
+      ${(() => {
+        const a = Game.advice();
+        return `<div class="nextmove ${a.tone}">
+          <div class="nm-top">
+            <span class="nm-ico">${a.icon}</span>
+            <div style="flex:1;min-width:0">
+              <div class="nm-lbl">NEXT MOVE</div>
+              <h3>${esc(a.title)}</h3>
+            </div>
+          </div>
+          <p class="nm-detail">${esc(a.detail)}</p>
+          ${a.label ? `<button class="btn ${a.affordable === false ? 'off' : 'gold'} cta" data-advice="${a.action}">${esc(a.label)}</button>` : ''}
+        </div>`;
+      })()}
       <div class="teamstats">
         <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
         <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
@@ -4317,12 +4479,6 @@ const UI = (() => {
       <div class="seg" style="margin:0 12px 10px">
         <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
         <button class="seg-btn ${staffView === 'dept' ? 'on' : ''}" data-sview="dept">BY DEPARTMENT</button>
-      </div>
-
-      <div class="idle-summary">
-        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
-        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
-        <div><b>${f(idle.r * 3600)}</b><span>rep/hr</span></div>
       </div>
 
       ${staffView === 'dept' ? `
@@ -5594,10 +5750,29 @@ const Onboard = (() => {
     setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
   });
 
+  /* A rank costs four times a normal level, so it gets a moment rather than a
+     line of toast. */
   Game.on('promoted', ({ char, rank }) => {
     UI.beep('level');
-    const nm = char.defId === 'hero' ? Game.state.name : Game.def(char.defId).name;
-    toast('🎖️', 'PROMOTED TO ' + rank.name.toUpperCase(), `${nm} is now a ${rank.name} — stats up, and worth more to the department.`);
+    const d = Game.def(char.defId);
+    const nm = char.defId === 'hero' ? Game.state.name : d.name;
+    const role = Game.roleOf(char);
+    UI.sheet(`
+      <div class="promo">
+        <div class="promo-ribbon">PROMOTED</div>
+        <div class="promo-art">${Art.portrait(d.art, 'pr' + char.uid + rank.at)}</div>
+        <h3>${esc(nm)}</h3>
+        <div class="promo-rank" style="color:${rank.colour}">${esc(rank.name)}</div>
+        <div class="promo-row">
+          <span>${role.icon} ${esc(role.name)}</span><span>LV.${char.level}</span><span>⚡ ${f(Game.charPower(char))}</span>
+        </div>
+        <p class="tiny muted" style="text-align:center;margin:12px 0 0">${esc(role.perk)} — and they are worth more to every department from here.</p>
+      </div>
+      <button class="btn gold cta" data-close="1">CONGRATULATE THEM</button>`);
+    setTimeout(() => {
+      UI.sparks(window.innerWidth / 2, window.innerHeight * 0.42, rank.colour, 30);
+      UI.sparks(window.innerWidth / 2, window.innerHeight * 0.42, '#FFB347', 18);
+    }, 120);
   });
 
   Game.on('achievement', a => { UI.beep('great'); toast('🏅', a.name, `${a.desc}  +${a.rep} REP`); });
@@ -5749,7 +5924,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -5860,6 +6035,29 @@ const Onboard = (() => {
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
     if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.advice) {
+      const a = d.advice;
+      if (a === 'promote-chapter') { const btn = { dataset: { promote: '1' } }; d.promote = '1'; }
+      else if (a === 'autopost') {
+        const r = Game.autoPost();
+        UI.beep('great');
+        toast('🪑', `${r.moved} POSTED`, r.after > r.before
+          ? `Idle income ${f(r.before)} → ${f(r.after)} credits an hour.`
+          : 'Everybody is where they belong.');
+        return UI.show('staff');
+      }
+      else if (a.startsWith('hire:')) {
+        const id = a.slice(5);
+        const c = Game.hire(id);
+        if (!c) { UI.beep('fail'); return toast('💸', 'CANNOT HIRE', 'Not enough credits, no desk free, or not enough standing.'); }
+        Game.autoPost();
+        UI.beep('great');
+        toast(Game.roleOf(c).icon, `${Game.def(id).name} JOINS`, `Posted straight to ${Game.deptDef(c.dept) ? Game.deptDef(c.dept).name : 'the floor'}.`);
+        return UI.show('staff');
+      }
+      else if (a.startsWith('levelup:')) { d.levelup = a.slice(8); }
+      else return;
+    }
     if (d.promote) {
       const ch = Game.promoteChapter();
       if (!ch) return UI.beep('fail');

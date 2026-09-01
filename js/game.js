@@ -57,7 +57,11 @@ const Game = (() => {
   };
 
   const xpNeed = lvl => Math.floor(70 * Math.pow(lvl, 1.62) + 45 * lvl);
-  const charXpNeed = lvl => Math.floor(45 * Math.pow(lvl, 1.55) + 30 * lvl);
+  /* Steeper than it was: the last ranks should be a project, not an evening.
+     Crossing into a new career rank is a promotion and costs four times as
+     much, which is what makes a rank feel like a rank. */
+  const charXpNeed = lvl => Math.floor(55 * Math.pow(lvl, 1.8) + 40 * lvl);
+  const isPromotion = lvl => !!DATA.RANKS_STAFF.find(r => r.at === lvl + 1);
 
   const title = lvl => { let t = DATA.TITLES[0].name; DATA.TITLES.forEach(x => { if (lvl >= x.level) t = x.name; }); return t; };
   const rank = rep => { let r = DATA.RANKS[0]; DATA.RANKS.forEach(x => { if (rep >= x.at) r = x; }); return r; };
@@ -537,7 +541,10 @@ const Game = (() => {
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
-  function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
+  function levelCost(c) {
+    const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
+    return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
+  }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
     const before = rankOf(c).name;
@@ -618,11 +625,70 @@ const Game = (() => {
     return ch;
   }
 
+  /* ---------------- WHAT TO DO NEXT ----------------
+     A department has a lot of dials. Rather than making the player audit all
+     of them, work out the single most valuable move available and say it in
+     one sentence. Ordered by what actually costs them the most to ignore. */
+  function advice() {
+    const cap = capacity(), ch = chapter();
+
+    if (canPromoteChapter())
+      return { icon: ch.icon, tone: 'good', title: 'Your department is ready to grow',
+        detail: `Every objective for ${ch.name} is met. Promoting opens more desks and a higher level ceiling.`,
+        action: 'promote-chapter', label: 'PROMOTE THE DEPARTMENT' };
+
+    const idle = unposted();
+    if (idle.length)
+      return { icon: '🪑', tone: 'warn', title: `${idle.length} ${idle.length > 1 ? 'people are' : 'person is'} not posted anywhere`,
+        detail: 'Unposted staff still work the queue, but they earn nothing extra. A posting that suits them can be worth half again.',
+        action: 'autopost', label: 'POST THEM WHERE THEY FIT' };
+
+    const bad = misplaced();
+    if (bad.length)
+      return { icon: '🔀', tone: 'warn', title: `${bad.length} ${bad.length > 1 ? 'are' : 'is'} in the wrong department`,
+        detail: `${bad.map(c => c.defId === 'hero' ? S.name : def(c.defId).name).slice(0, 2).join(' and ')} would earn more somewhere else.`,
+        action: 'autopost', label: 'MOVE THEM' };
+
+    const spread = roleSpread();
+    if (!spread.complete && S.roster.length < cap) {
+      const have = new Set(S.roster.map(c => def(c.defId).roleKey));
+      const missing = Object.values(DATA.ROLES).find(r => !have.has(r.key));
+      const who = DATA.CHARACTERS.find(d => d.hireable && d.roleKey === missing.key
+        && S.reputation >= d.repReq);
+      if (missing && who)
+        return { icon: missing.icon, tone: 'idea', title: `No ${missing.name} on the payroll`,
+          detail: `${missing.blurb} Covering all five roles is worth +25% on top of everything else.`,
+          action: 'hire:' + who.id, label: `HIRE ${who.name} · 💰${fmt(hireCost(who))}`,
+          affordable: S.credits >= hireCost(who) };
+    }
+
+    const ready = S.roster.filter(c => canLevel(c))
+      .sort((a, b) => charPower(b) - charPower(a))[0];
+    if (ready) {
+      const nm = ready.defId === 'hero' ? S.name : def(ready.defId).name;
+      const promo = isPromotion(ready.level);
+      return { icon: promo ? '🎖️' : '📈', tone: 'good',
+        title: promo ? `${nm} is ready for promotion` : `${nm} can level up`,
+        detail: promo ? `Crossing into ${DATA.staffRank(ready.level + 1).name} costs four times a normal level, and is worth it.`
+          : 'They have the experience and you have the budget.',
+        action: 'levelup:' + ready.uid, label: promo ? 'PROMOTE THEM' : 'LEVEL THEM UP' };
+    }
+
+    if (S.roster.length >= cap)
+      return { icon: '🪑', tone: 'idea', title: 'Every desk is taken',
+        detail: 'To bring anyone new in you need to let somebody go, or meet this chapter\'s objectives for more room.',
+        action: 'none', label: null };
+
+    return { icon: '✅', tone: 'good', title: 'The department is in good order',
+      detail: 'Everyone is posted where they belong and nobody is waiting on a promotion. Work the queue and build up experience.',
+      action: 'none', label: null };
+  }
+
   /* Letting somebody go. You get something back, which is what makes replacing
      a middling technician with a specialist a real decision rather than a loss. */
   function retireValue(c) {
     let spent = 0;
-    for (let l = 1; l < c.level; l++) spent += Math.floor(60 * Math.pow(l, 1.45) * DATA.RARITY[c.rarity].mult);
+    for (let l = 1; l < c.level; l++) spent += Math.floor(90 * Math.pow(l, 1.65) * DATA.RARITY[c.rarity].mult * (isPromotion(l) ? 4 : 1));
     return {
       credits: Math.floor(spent * 0.6 + Game_hireRefund(c)),
       xp: Math.floor(charXpNeed(c.level) * 0.5),
@@ -680,6 +746,40 @@ const Game = (() => {
   }
 
   const deptStaff = id => S.roster.filter(c => c.dept === id);
+
+  /* The best posting available to this person right now. */
+  function bestDept(c) {
+    let best = null, bestFit = 0;
+    DATA.DEPARTMENTS.forEach(d => {
+      if (S.reputation < d.repReq) return;
+      const fit = deptFit(c, d);
+      if (fit > bestFit) { bestFit = fit; best = d; }
+    });
+    return best ? { dept: best, fit: bestFit } : null;
+  }
+
+  /* One move that posts everybody sensibly. The strategy is who you hire and
+     who you develop; remembering to tap nine people is just admin. */
+  function autoPost() {
+    const before = idlePerSec().c * 3600;
+    let moved = 0;
+    S.roster.forEach(c => {
+      if (c.uid === S.activeId) return;
+      const b = bestDept(c);
+      if (b && c.dept !== b.dept.id) { c.dept = b.dept.id; moved++; }
+    });
+    emit('change');
+    return { moved, before: Math.round(before), after: Math.round(idlePerSec().c * 3600) };
+  }
+
+  /* Anyone sitting in a department that does not suit them. */
+  const misplaced = () => S.roster.filter(c => {
+    if (c.uid === S.activeId || !c.dept) return false;
+    const d = deptDef(c.dept); if (!d) return false;
+    const b = bestDept(c);
+    return b && b.dept.id !== c.dept && b.fit - deptFit(c, d) > 0.35;
+  });
+  const unposted = () => S.roster.filter(c => !c.dept && c.uid !== S.activeId);
 
   function staffRate(c) {
     const st = charStats(c), d = def(c.defId);
@@ -1179,6 +1279,7 @@ const Game = (() => {
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
+    bestDept, autoPost, misplaced, unposted, isPromotion, advice,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,

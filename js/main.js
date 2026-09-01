@@ -262,10 +262,29 @@
     setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
   });
 
+  /* A rank costs four times a normal level, so it gets a moment rather than a
+     line of toast. */
   Game.on('promoted', ({ char, rank }) => {
     UI.beep('level');
-    const nm = char.defId === 'hero' ? Game.state.name : Game.def(char.defId).name;
-    toast('🎖️', 'PROMOTED TO ' + rank.name.toUpperCase(), `${nm} is now a ${rank.name} — stats up, and worth more to the department.`);
+    const d = Game.def(char.defId);
+    const nm = char.defId === 'hero' ? Game.state.name : d.name;
+    const role = Game.roleOf(char);
+    UI.sheet(`
+      <div class="promo">
+        <div class="promo-ribbon">PROMOTED</div>
+        <div class="promo-art">${Art.portrait(d.art, 'pr' + char.uid + rank.at)}</div>
+        <h3>${esc(nm)}</h3>
+        <div class="promo-rank" style="color:${rank.colour}">${esc(rank.name)}</div>
+        <div class="promo-row">
+          <span>${role.icon} ${esc(role.name)}</span><span>LV.${char.level}</span><span>⚡ ${f(Game.charPower(char))}</span>
+        </div>
+        <p class="tiny muted" style="text-align:center;margin:12px 0 0">${esc(role.perk)} — and they are worth more to every department from here.</p>
+      </div>
+      <button class="btn gold cta" data-close="1">CONGRATULATE THEM</button>`);
+    setTimeout(() => {
+      UI.sparks(window.innerWidth / 2, window.innerHeight * 0.42, rank.colour, 30);
+      UI.sparks(window.innerWidth / 2, window.innerHeight * 0.42, '#FFB347', 18);
+    }, 120);
   });
 
   Game.on('achievement', a => { UI.beep('great'); toast('🏅', a.name, `${a.desc}  +${a.rep} REP`); });
@@ -417,7 +436,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -528,6 +547,29 @@
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
     if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.advice) {
+      const a = d.advice;
+      if (a === 'promote-chapter') { const btn = { dataset: { promote: '1' } }; d.promote = '1'; }
+      else if (a === 'autopost') {
+        const r = Game.autoPost();
+        UI.beep('great');
+        toast('🪑', `${r.moved} POSTED`, r.after > r.before
+          ? `Idle income ${f(r.before)} → ${f(r.after)} credits an hour.`
+          : 'Everybody is where they belong.');
+        return UI.show('staff');
+      }
+      else if (a.startsWith('hire:')) {
+        const id = a.slice(5);
+        const c = Game.hire(id);
+        if (!c) { UI.beep('fail'); return toast('💸', 'CANNOT HIRE', 'Not enough credits, no desk free, or not enough standing.'); }
+        Game.autoPost();
+        UI.beep('great');
+        toast(Game.roleOf(c).icon, `${Game.def(id).name} JOINS`, `Posted straight to ${Game.deptDef(c.dept) ? Game.deptDef(c.dept).name : 'the floor'}.`);
+        return UI.show('staff');
+      }
+      else if (a.startsWith('levelup:')) { d.levelup = a.slice(8); }
+      else return;
+    }
     if (d.promote) {
       const ch = Game.promoteChapter();
       if (!ch) return UI.beep('fail');
