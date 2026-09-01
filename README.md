@@ -141,8 +141,23 @@ sortable roster (power / output / level / department / name) and a department
 board showing who is posted where with their fit — and you can post from
 either direction.
 
+## Battle
+
+Paid rooms, raced asynchronously — friends never have to be online together.
+You pay a stake, run the game whenever suits you, and the best time when the
+room closes takes every stake in it. Rooms open on first entry and close after
+six hours or eight runners; a room with a single entry refunds rather than
+paying somebody their own money back.
+
+Four games, all IT: **Certification Exam** (ten of forty CompTIA/ITIL
+questions, five-second penalty per wrong answer), **Rack Memory Rush**,
+**Cable Scramble** and **Spot The Fault**.
+
+Credits live in the save on the device, not on the server, so a win is
+*claimed* rather than pushed: the server records the winner and the client
+collects. `js/battle-data.js` holds the questions and puzzles;
+`js/battle.js` is the room list and the game engines.
+
 ## Not built yet
 
-The world map and the skill tree are present as UI and data but are not yet
-wired to gameplay effects — they unlock by reputation and are the natural next
-systems.
+The skill tree is present as data but is not yet wired to gameplay effects.
