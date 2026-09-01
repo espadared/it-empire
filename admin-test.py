@@ -100,10 +100,23 @@ def main():
           s == 403 and d.get("must_change"), f"got {s}")
     s, _ = sup("POST", "/admin/api/password", {"current": BOOT_PW, "new": "short1"})
     check("a weak replacement password is refused", s == 400)
-    s, _ = sup("POST", "/admin/api/password", {"current": "wrong", "new": "GoodPass2026x"})
-    check("changing a password needs the current one", s == 401)
-    s, _ = sup("POST", "/admin/api/password", {"current": BOOT_PW, "new": "GoodPass2026x"})
-    check("the password is replaced", s == 200)
+    # The first rotation is exactly what the browser sends: no current password,
+    # because on a page reload there is no sign-in form on screen to read it
+    # from. This shipped broken once — the console sent an empty string and the
+    # account could never be finished, so the whole console was unreachable.
+    s, _ = Client()("POST", "/admin/api/password", {"new": "Hijacked2026x"})
+    check("a forced rotation still needs a session", s == 401, f"got {s}")
+    s, _ = sup("POST", "/admin/api/password", {"new": "GoodPass2026x"})
+    check("the forced first rotation works with no current password", s == 200, f"got {s}")
+    s, _ = sup("POST", "/admin/api/session",
+               {"email": "owner@test.local", "password": BOOT_PW})
+    check("the temporary password stops working", s == 401, f"got {s}")
+    s, d = sup("POST", "/admin/api/session",
+               {"email": "owner@test.local", "password": "GoodPass2026x"})
+    check("the new password signs in and is no longer flagged",
+          s == 200 and not d.get("must_change"), f"got {s}")
+    s, _ = sup("POST", "/admin/api/password", {"new": "SneakyPass2026x"})
+    check("a later change still demands the current password", s == 401, f"got {s}")
     sup.login("owner@test.local", "GoodPass2026x")
     s, d = sup("GET", "/admin/api/me")
     check("super admin holds every permission",

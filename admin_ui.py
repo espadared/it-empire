@@ -282,14 +282,19 @@ function forcePassword() {
     <button class="btn primary wide" id="npGo">Set password and continue</button>
     <div id="npMsg"></div></div>`;
   $('#npGo').onclick = async () => {
+    const go = $('#npGo');
+    $('#npMsg').innerHTML = '';
     if ($('#np').value !== $('#np2').value)
-      return $('#npMsg').innerHTML = '<div class="msg bad">Those do not match.</div>';
+      return $('#npMsg').innerHTML = '<div class="msg bad">Those two do not match.</div>';
+    go.disabled = true;
     try {
-      await api('password', { method: 'POST',
-        body: { current: $('#password') ? '' : '', new: $('#np').value } });
+      await api('password', { method: 'POST', body: { new: $('#np').value } });
       location.reload();
     } catch (err) {
-      $('#npMsg').innerHTML = `<div class="msg bad">${esc(err.message)}</div>`;
+      go.disabled = false;
+      $('#npMsg').innerHTML = `<div class="msg bad">${esc(err.message)}
+        <br><br>Your password has <b>not</b> been changed. Sign in with the
+        temporary one again.</div>`;
     }
   };
 }

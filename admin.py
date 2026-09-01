@@ -976,23 +976,36 @@ def _reactivate(actor, pid, body, ip):
 
 
 def _change_password(actor, body, ip):
+    """Change one's own password.
+
+    A forced first rotation is the exception to needing the current password.
+    The admin proved they knew the temporary one to get this session at all,
+    and there is a real case — reloading the page while the session cookie is
+    still valid — where the browser is asked to rotate with no login form on
+    screen and so cannot know it. Requiring it there made the account
+    impossible to finish setting up.
+    """
     current = body.get("current") or ""
     new = body.get("new") or ""
     row = q(f"select pw from {AD_TABLE} where id = %s", (actor["id"],), "one")
-    if not row or not check_password(current, row[0]):
+    if not row:
+        return 401, {"error": "Sign in again."}
+    forced = actor["must_change"]
+    if not forced and not check_password(current, row[0]):
         return 401, {"error": "Your current password was not right."}
     problem = _password_problem(new)
     if problem:
         return 400, {"error": problem}
     if check_password(new, row[0]):
         return 400, {"error": "The new password must be different."}
-    q(f"update {AD_TABLE} set pw = %s, must_change = %s where id = %s",
+    q(f"""update {AD_TABLE} set pw = %s, must_change = %s, failed = 0,
+              locked_until = null where id = %s""",
       (hash_password(new), _false(), actor["id"]))
     # every other session for this admin ends
     q(f"delete from {AS_TABLE} where admin_id = %s and token <> %s",
       (actor["id"], actor.get("token") or ""))
-    _audit(actor, "Changed own password", "admin", actor["id"], actor["email"],
-           ip=ip)
+    _audit(actor, "Set first password" if forced else "Changed own password",
+           "admin", actor["id"], actor["email"], ip=ip)
     return 200, {"ok": True}
 
 
