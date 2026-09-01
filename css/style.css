@@ -927,3 +927,22 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .bulk-n{flex:1;font-size:12.5px;color:var(--muted)}
 .bulk-n b{font-family:var(--disp);font-size:17px;color:var(--text)}
 #bulkbar .btn{flex:0 0 auto}
+
+/* the item fitted in a standard slot, upgradeable in place */
+.fitted{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:12px;
+}
+.fitted-top{display:flex;align-items:flex-start;gap:10px}
+.fitted-top h4{margin:0 0 4px;font-family:var(--disp);font-weight:800;font-size:15px;line-height:1.2;text-align:left}
+.fitted-lv{text-align:right;flex:0 0 auto}
+.fitted-lv b{display:block;font-family:var(--disp);font-size:17px;color:var(--lamp)}
+.fitted-lv small{font-size:8.5px;color:var(--muted);letter-spacing:.05em}
+.lvbar{height:6px;border-radius:3px;background:#0B0F1C;overflow:hidden;margin-top:9px;border:1px solid #080B14}
+.lvbar>span{display:block;height:100%;background:linear-gradient(90deg,#C9772A,var(--lamp));transition:width .35s}
+.fitted .cta{width:100%;margin-top:11px}
+.sortchip i{font-style:normal;opacity:.6;font-size:10px;margin-left:2px}
+.card.owned{opacity:.72}
+.ownedtag{
+  font-family:var(--mono);font-size:9.5px;color:var(--good);border:1px solid #2F6B41;
+  background:rgba(95,211,122,.1);border-radius:7px;padding:4px 8px;flex:0 0 auto;white-space:nowrap;
+}

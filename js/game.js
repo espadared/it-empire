@@ -250,7 +250,10 @@ const Game = (() => {
       if (tier === 'MEDIUM') return o <= 2 || (o === 3 && Math.random() < 0.25);
       return o >= 1 || Math.random() < 0.3;
     });
-    const e = pick(pool.length ? pool : DATA.EQUIPMENT);
+    // Prefer kit the department does not already own — a second identical item
+    // is worthless when everyone wears the same standard.
+    const fresh = pool.filter(x => !ownsItem(x.id));
+    const e = pick(fresh.length ? fresh : (pool.length ? pool : DATA.EQUIPMENT));
     const it = mkItem(e.id);
     S.inventory.push(it);
     return it;
@@ -786,8 +789,10 @@ const Game = (() => {
     const e = eqDef(eid); if (!e) return Infinity;
     return Math.round(DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06));
   };
+  const ownsItem = eid => S.inventory.some(i => i.eid === eid);
   const canProcure = eid => {
     const e = eqDef(eid); if (!e) return false;
+    if (ownsItem(eid)) return false;          // everyone wears the same kit — one is enough
     return S.reputation >= DATA.PROCURE.repReq[e.rarity] && S.credits >= procurePrice(eid);
   };
   function procure(eid) {
@@ -1141,7 +1146,7 @@ const Game = (() => {
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
-    upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure,
+    upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,

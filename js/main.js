@@ -417,7 +417,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -577,6 +577,7 @@
     if (d.char && !e.target.closest('[data-levelup],[data-post]')) return UI.charSheet(d.char);
     if (d.slot) return UI.pickItemSheet(d.slot);
     if (d.issue) {
+      const wasSheet = !!document.querySelector('#modal.on');
       const it = Game.state.inventory.find(i => i.uid === d.issue);
       const e = it && Game.eqDef(it.eid);
       if (Game.issueStandard(d.issue)) {
@@ -595,10 +596,22 @@
       if (Game.state.reputation < dp.repReq) { UI.beep('fail'); return toast('🔒', 'LOCKED', `${dp.name} opens at ${f(dp.repReq)} reputation.`); }
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
     }
-    if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
+    if (d.upgrade) {
+      const ok = Game.upgradeItem(d.upgrade);
+      UI.beep(ok ? 'coin' : 'fail');
+      if (ok) {
+        const b = t.getBoundingClientRect();
+        UI.sparks(b.left + b.width / 2, b.top + 10, '#FFB347', 12);
+      }
+      UI.refresh();
+      // upgrading from inside a standard slot should leave you looking at it
+      if (d.inslot) return UI.pickItemSheet(d.inslot);
+      return;
+    }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
     if (d.gview) { UI.beep('tap'); return UI.setGearView(d.gview); }
     if (d.gfilter) { UI.beep('tap'); return UI.setGearFilter(d.gfilter); }
+    if (d.grarity) { UI.beep('tap'); return UI.setGearRarity(d.grarity); }
     if (d.gpick) { UI.beep('tap'); return UI.togglePicking(); }
     if (d.pick) { UI.beep('tap'); return UI.togglePick(d.pick); }
     if (d.pickall) { UI.beep('tap'); return UI.pickAll(d.pickall.split(',')); }

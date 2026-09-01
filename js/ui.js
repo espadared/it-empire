@@ -4,7 +4,7 @@
    ============================================================ */
 const UI = (() => {
   const $ = s => document.querySelector(s);
-  const el2 = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+  const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const f = Game.fmt;
   let screen = 'hq';
@@ -655,36 +655,60 @@ const UI = (() => {
     `);
   }
 
-  /* Choosing what the whole department carries in one slot. */
+  /* One slot of the standard. If something is fitted you can level it here
+     rather than hunting for it in the cupboard. */
   function pickItemSheet(slot) {
     const S = Game.state;
-    const items = S.inventory.filter(i => Game.eqDef(i.eid).slot === slot);
-    const label = DATA.SLOTS.find(s => s.key === slot);
+    const label = DATA.SLOTS.find(s2 => s2.key === slot);
     const cur = Game.standardItem(slot);
+    const curDef = cur && Game.eqDef(cur.eid);
+    const items = S.inventory.filter(i => Game.eqDef(i.eid).slot === slot && (!cur || i.uid !== cur.uid))
+      .sort((a, b) => DATA.RARITY[Game.eqDef(b.eid).rarity].order - DATA.RARITY[Game.eqDef(a.eid).rarity].order || b.level - a.level);
+    const up = cur ? Game.upgradeCost(cur) : 0;
+    const maxed = cur && cur.level >= 10;
+
     sheet(`
-      <h3>${label.label.toUpperCase()}</h3>
-      <p class="sub">Standard issue — whatever you pick here, everybody carries</p>
-      ${cur ? `<button class="btn ghost cta" data-withdraw="${slot}">WITHDRAW FROM STANDARD</button>` : ''}
-      <div class="list" style="padding:0;margin-top:10px">
-        ${items.length ? items.map(i => {
-      const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
-      return `<div class="card col" ${on ? '' : `data-issue="${i.uid}"`} style="border-color:${on ? rarColor(e.rarity) : rarColor(e.rarity) + '55'}">
+      <h3>${label.icon} ${label.label.toUpperCase()}</h3>
+      <p class="sub">Standard issue — whatever is fitted here, everybody carries</p>
+
+      ${cur ? `
+        <div class="fitted" style="border-color:${rarColor(curDef.rarity)}55">
+          <div class="fitted-top">
+            <div style="flex:1;min-width:0">
+              <h4>${esc(curDef.name)}</h4>
+              <span class="rar" style="color:${rarColor(curDef.rarity)};border:1px solid ${rarColor(curDef.rarity)}33;background:${rarColor(curDef.rarity)}14">${curDef.rarity}</span>
+            </div>
+            <div class="fitted-lv"><b>LV.${cur.level}</b><small>of 10</small></div>
+          </div>
+          <div class="lvbar"><span style="width:${cur.level / 10 * 100}%"></span></div>
+          <div class="tiny mono" style="margin-top:8px">${statLine(curDef, cur)}</div>
+          <div class="tiny muted" style="margin-top:4px">${esc(curDef.effect)}</div>
+          ${maxed ? '<div class="maxed" style="margin-top:10px">🎓 FULLY UPGRADED</div>'
+        : `<button class="btn ${S.credits >= up ? 'gold' : 'off'} cta" data-upgrade="${cur.uid}" data-inslot="${slot}">
+              LEVEL UP TO ${cur.level + 1} · 💰 ${f(up)}</button>
+            ${S.credits >= up ? '' : `<div class="blocked">💰${f(up - S.credits)} short</div>`}`}
+          <button class="btn ghost cta" data-withdraw="${slot}">WITHDRAW FROM STANDARD</button>
+        </div>`
+      : '<p class="tiny muted" style="text-align:center;margin:14px 0">Nothing fitted in this slot yet.</p>'}
+
+      ${items.length ? `<div class="sec-head" style="padding:16px 0 4px"><h2>SWAP FOR</h2></div>
+        <div class="list" style="padding:0">${items.map(i => {
+          const e = Game.eqDef(i.eid);
+          return `<div class="card col" data-issue="${i.uid}" style="border-color:${rarColor(e.rarity)}44">
             <div class="spread">
               <div style="min-width:0"><h3 style="font-family:var(--disp);font-size:14px;margin:0">${esc(e.name)}</h3>
               <span class="rar" style="color:${rarColor(e.rarity)}">${e.rarity} · LV.${i.level}</span></div>
-              ${on ? '<span class="tiny" style="color:var(--good)">ISSUED</span>' : '<button class="btn teal sm">ISSUE</button>'}
+              <button class="btn teal sm">ISSUE</button>
             </div>
             <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
-            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
           </div>`;
-    }).join('') : `<div class="empty"><span class="big">🎒</span>No ${label.label.toLowerCase()} in the store cupboard yet. Resolve tickets — gear drops.</div>`}
-      </div>
+        }).join('')}</div>`
+      : (cur ? '' : `<div class="empty"><span class="big">🎒</span>No ${label.label.toLowerCase()} in the cupboard. Procure one on the GEAR tab.</div>`)}
       <button class="btn ghost cta" data-close="1">DONE</button>`);
   }
 
-  /* ================= EQUIPMENT SCREEN ================= */
   /* Three focused views rather than one very long scroll. */
-  let gearView = 'cupboard', gearFilter = 'all';
+  let gearView = 'cupboard', gearFilter = 'all', gearRarity = 'all';
   let picking = false;
   const picked = new Set();
   try { gearView = localStorage.getItem('ie-gear-view') || 'cupboard'; } catch (e) { }
@@ -694,6 +718,7 @@ const UI = (() => {
     renderGear();
   }
   function setGearFilter(v) { gearFilter = v; renderGear(); }
+  function setGearRarity(v) { gearRarity = v; renderGear(); }
   function togglePicking() { picking = !picking; picked.clear(); renderGear(); }
   function togglePick(uid) {
     if (picked.has(uid)) picked.delete(uid); else picked.add(uid);
@@ -736,7 +761,7 @@ const UI = (() => {
   function renderGear() {
     const S = Game.state;
     const issued = Game.standardItems().length;
-    const el = $('#screen-gear'); if (!el) return;
+    const screen$ = $('#screen-gear'); if (!screen$) return;
 
     const tabs = `<div class="seg" style="margin:12px 12px 10px">
       ${[['standard', 'STANDARD'], ['cupboard', 'CUPBOARD'], ['procure', 'PROCURE']]
@@ -756,7 +781,7 @@ const UI = (() => {
           ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
         </button>`;
       }).join('');
-      el.innerHTML = `
+      screen$.innerHTML = `
         <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
         ${tabs}
         <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every technician in the department carries this, you included. Tap a slot to change what the standard is.</p>
@@ -778,8 +803,8 @@ const UI = (() => {
         .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order);
       const locked = DATA.EQUIPMENT.filter(e => S.reputation < DATA.PROCURE.repReq[e.rarity]);
       const nextTier = locked.sort((a, b) => DATA.PROCURE.repReq[a.rarity] - DATA.PROCURE.repReq[b.rarity])[0];
-      el.innerHTML = `
-        <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
+      screen$.innerHTML = `
+        <div class="sec-head"><h2>PROCURE</h2><span>${DATA.EQUIPMENT.filter(e => !Game.ownsItem(e.id)).length} STILL TO OWN</span></div>
         ${tabs}
         <div class="sortbar">
           <button class="sortchip ${gearFilter === 'all' ? 'on' : ''}" data-gfilter="all">All</button>
@@ -787,15 +812,15 @@ const UI = (() => {
         </div>
         <div class="list">${pool.length ? pool.map(e => {
         const price = Game.procurePrice(e.id), afford = S.credits >= price;
-        const owned = S.inventory.filter(i => i.eid === e.id).length;
-        return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
+        const owned = Game.ownsItem(e.id);
+        return `<div class="card col ${owned ? 'owned' : ''}" style="border-color:${owned ? 'var(--good)' : rarColor(e.rarity) + '33'}">
             <div class="spread">
               <div style="min-width:0">
                 <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
                 <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
-                ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} owned</span>` : ''}
               </div>
-              <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
+              ${owned ? '<span class="ownedtag">✓ IN THE CUPBOARD</span>'
+              : `<button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>`}
             </div>
             <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
             <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
@@ -810,42 +835,44 @@ const UI = (() => {
     /* --- the cupboard --- */
     const rk = i => DATA.RARITY[Game.eqDef(i.eid).rarity].order;
     const slotIdx = i => DATA.SLOTS.findIndex(s2 => s2.key === Game.eqDef(i.eid).slot);
-    const sorted = [...S.inventory].sort((a, b) => {
-      if (gearSort === 'type') return slotIdx(a) - slotIdx(b) || rk(b) - rk(a) || b.level - a.level;
-      return (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0)
-        || rk(b) - rk(a) || slotIdx(a) - slotIdx(b) || b.level - a.level;
-    });
-    const grouped = gearSort === 'type'
-      ? DATA.SLOTS.map(sl => ({ head: sl.icon + ' ' + sl.label.toUpperCase(), items: sorted.filter(i => Game.eqDef(i.eid).slot === sl.key) })).filter(g => g.items.length)
-      : Object.values(DATA.RARITY).sort((a, b) => b.order - a.order)
-        .map(r => ({ head: r.label, colour: r.color, items: sorted.filter(i => Game.eqDef(i.eid).rarity === r.key) })).filter(g => g.items.length);
+
+    // Owned rarities only, so the filter row never offers an empty shelf.
+    const counts = {};
+    S.inventory.forEach(i => { const r = Game.eqDef(i.eid).rarity; counts[r] = (counts[r] || 0) + 1; });
+    const tiers = Object.values(DATA.RARITY).sort((a, b) => b.order - a.order).filter(r => counts[r.key]);
+    if (gearRarity !== 'all' && !counts[gearRarity]) gearRarity = 'all';
+
+    const shelf = S.inventory
+      .filter(i => gearRarity === 'all' || Game.eqDef(i.eid).rarity === gearRarity)
+      .sort((a, b) => (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0)
+        || rk(b) - rk(a) || slotIdx(a) - slotIdx(b) || b.level - a.level);
 
     const total = pickedList().reduce((a, u) => {
       const it = S.inventory.find(x => x.uid === u);
       return a + (it ? Game.disposeValue(it) : 0);
     }, 0);
 
-    el.innerHTML = `
+    screen$.innerHTML = `
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
       ${tabs}
       <div class="sortbar">
-        <span class="sortbar-lbl">SORT</span>
-        <button class="sortchip ${gearSort === 'rarity' ? 'on' : ''}" data-gsort="rarity">Rarity</button>
-        <button class="sortchip ${gearSort === 'type' ? 'on' : ''}" data-gsort="type">Type</button>
-        <button class="sortchip ${picking ? 'on' : ''}" data-gpick="1" style="margin-left:auto">${picking ? '✕ Cancel' : '☑ Select'}</button>
+        <span class="sortbar-lbl">SHOW</span>
+        <button class="sortchip ${gearRarity === 'all' ? 'on' : ''}" data-grarity="all">All <i>${S.inventory.length}</i></button>
+        ${tiers.map(r => `<button class="sortchip ${gearRarity === r.key ? 'on' : ''}" data-grarity="${r.key}"
+          style="${gearRarity === r.key ? `border-color:${r.color};color:${r.color};background:${r.color}14` : ''}">${r.label[0] + r.label.slice(1).toLowerCase()} <i>${counts[r.key]}</i></button>`).join('')}
       </div>
-      ${grouped.length ? grouped.map(g => `
-        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i>
-          ${picking ? `<button class="pickall" data-pickall="${g.items.map(i => i.uid).join(',')}">select all</button>` : ''}
-        </div>
-        <div class="list">${g.items.map(i => itemCard(i)).join('')}</div>`).join('')
-        : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something.</div>`}
+      <div class="sortbar" style="padding-top:0">
+        <button class="sortchip ${picking ? 'on' : ''}" data-gpick="1">${picking ? '✕ Cancel' : '☑ Select'}</button>
+        ${picking && shelf.length ? `<button class="sortchip" data-pickall="${shelf.map(i => i.uid).join(',')}">Select all shown</button>` : ''}
+      </div>
+      ${shelf.length ? `<div class="list">${shelf.map(i => itemCard(i)).join('')}</div>`
+        : `<div class="empty"><span class="big">🧰</span>${S.inventory.length ? 'Nothing at that rarity.' : 'The cupboard is empty. Resolve tickets, or procure something.'}</div>`}
       <div style="height:${picking ? 90 : 14}px"></div>`;
 
     // the bulk bar only exists while picking
     const old = document.querySelector('#bulkbar'); if (old) old.remove();
     if (picking) {
-      const bar = el2('div', 'bulkbar', `
+      const bar = el('div', 'bulkbar', `
         <div class="bulk-n"><b>${picked.size}</b> selected</div>
         <button class="btn ${picked.size ? 'gold' : 'off'} sm" data-disposemany="1">DISPOSE · 💰${f(total)}</button>`);
       bar.id = 'bulkbar';
@@ -1000,11 +1027,11 @@ const UI = (() => {
     else if (screen === 'battle') { Battle.load(); Battle.render(); }
   }
 
-  return { $, el: el2, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+  return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
-           setGearView, setGearFilter, togglePicking, togglePick, pickAll, pickedList,
+           setGearView, setGearFilter, setGearRarity, togglePicking, togglePick, pickAll, pickedList,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();

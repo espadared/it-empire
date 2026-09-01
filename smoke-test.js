@@ -89,14 +89,18 @@ check('save + reload round trip', () => {
 check('procure and dispose', () => {
   const G = Game.state;            // re-read: an earlier reload swapped the state object
   G.credits = 5e6; G.reputation = 5e5;
+  const target = DATA.EQUIPMENT.find(e => !Game.ownsItem(e.id));
+  if (!target) throw new Error('nothing left unowned to test with');
   const n0 = G.inventory.length;
-  const it = Game.procure('mon_ultra');
+  const it = Game.procure(target.id);
   if (!it) throw new Error('procurement refused with plenty of credits');
   if (G.inventory.length !== n0 + 1) throw new Error('nothing arrived in the cupboard');
+  if (Game.procure(target.id)) throw new Error('bought a duplicate — should be one of each');
   const back = Game.disposeValue(it);
   const c0 = G.credits;
   Game.disposeItem(it.uid);
   if (G.credits - c0 !== back) throw new Error('disposal paid the wrong amount');
+  if (!Game.canProcure(target.id)) throw new Error('cannot re-buy after disposing');
 });
 check('chapters, capacity and retirement', () => {
   const G = Game.state;
