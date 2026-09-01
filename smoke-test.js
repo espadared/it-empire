@@ -89,8 +89,21 @@ check('save + reload round trip', () => {
 check('procure and dispose', () => {
   const G = Game.state;            // re-read: an earlier reload swapped the state object
   G.credits = 5e6; G.reputation = 5e5;
-  const target = DATA.EQUIPMENT.find(e => !Game.ownsItem(e.id));
-  if (!target) throw new Error('nothing left unowned to test with');
+  // Drops are random, so an unlucky run of the 400-ticket loop above can leave
+  // every item owned and nothing to buy. Free one up rather than depending on
+  // the dice: procurement is what is under test here, not the drop table.
+  let target = DATA.EQUIPMENT.find(e => !Game.ownsItem(e.id));
+  if (!target) {
+    target = DATA.EQUIPMENT[0];
+    G.inventory = G.inventory.filter(i => i.eid !== target.id);
+    G.roster.forEach(c => Object.keys(c.equip || {}).forEach(sl => {
+      if (!G.inventory.some(i => i.uid === c.equip[sl])) delete c.equip[sl];
+    }));
+    Object.keys(G.standard || {}).forEach(sl => {
+      if (!G.inventory.some(i => i.uid === G.standard[sl])) delete G.standard[sl];
+    });
+  }
+  if (Game.ownsItem(target.id)) throw new Error('could not free an item to test with');
   const n0 = G.inventory.length;
   const it = Game.procure(target.id);
   if (!it) throw new Error('procurement refused with plenty of credits');

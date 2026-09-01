@@ -158,6 +158,41 @@ Credits live in the save on the device, not on the server, so a win is
 collects. `js/battle-data.js` holds the questions and puzzles;
 `js/battle.js` is the room list and the game engines.
 
+## Admin console
+
+A separate console at `/admin` for the people who operate the game. Nothing
+about it is part of the player experience, and it deliberately looks nothing
+like the game.
+
+Set two environment variables to create the first account, then sign in and
+replace the password — the bootstrap account refuses to do anything else until
+you do:
+
+```
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=<a long one you choose>
+```
+
+Both are read once. If an administrator already exists, they are ignored.
+
+**Roles.** Super admin, game admin, customer support, content admin and
+analyst. Permissions are individual strings; roles are a bundle of them, and
+every request is checked on the server. A role also has a ceiling: granting
+customer support the permanent-ban permission does nothing, because support is
+not allowed to hold it however it is assigned.
+
+**Nothing overwrites a save silently.** Every administrative change snapshots
+the player's save first, so a mistaken change can be walked back — including a
+restore, which snapshots before it runs. This exists because a player once lost
+a night of progress that could not be recovered.
+
+**Every action is logged** with the admin, the player, the value before, the
+value after, the reason and the time. `admin.py` contains no update or delete
+statement against the audit table, and the test suite asserts that.
+
+`admin.py` is the back end, `admin_ui.py` the page. Run `python3 admin-test.py`
+to exercise it against a scratch database over real HTTP.
+
 ## Not built
 
 The skill tree from the original brief was never built — there is no skill data

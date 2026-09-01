@@ -29,6 +29,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 import owner
+import admin
 from urllib.parse import urlparse, parse_qs
 
 PORT = int(os.environ.get("PORT", 8480))
@@ -45,6 +46,11 @@ E_TABLE = "ie_entries"
 # The owner dashboard stays switched off on a host until a real key is set.
 # "localtest" only ever works on your own machine.
 OWNER_KEY = os.environ.get("OWNER_KEY", "" if os.environ.get("RENDER") else "localtest")
+
+# Admin console. The cookie is host-only, path-scoped and HttpOnly, so the game's
+# own javascript can never read it even though both are served from one origin.
+ADMIN_COOKIE = "ie_admin"
+ADMIN_SECURE = "; Secure" if os.environ.get("RENDER") else ""
 
 # A save more than this far after the last one means they walked away in
 # between, so the gap is not counted as time played.
@@ -302,6 +308,34 @@ def player_public(row):
             "updated": str(row[6])}
 
 
+def account_block(player_id):
+    """Why this account cannot play right now, or None.
+
+    Checked at sign-in and on every save, so a ban issued while somebody is
+    mid-session takes effect on their next write rather than at their leisure.
+    """
+    try:
+        row = q(f"select status from {P_TABLE} where id = %s", (player_id,), "one")
+        if row and row[0] == "deactivated":
+            return "This account has been deactivated. Contact support."
+        ban = q(f"""select kind, reason, until from {admin.BN_TABLE}
+                    where player_id = %s and active = {TRUE}
+                    order by id desc limit 1""", (player_id,), "one")
+    except Exception:
+        return None                     # never lock people out on a lookup failure
+    if not ban:
+        return None
+    kind, reason, until = ban
+    word = "suspended" if kind == "suspend" else "banned"
+    if until:
+        end = admin._dt(until)
+        if end and datetime.now(timezone.utc) > end:
+            return None                 # lapsed; the admin side tidies it up
+        return (f"This account is {word} until "
+                f"{end.strftime('%d %b %Y, %H:%M')} UTC. Reason: {reason}")
+    return f"This account has been permanently banned. Reason: {reason}"
+
+
 def session_player(token: str):
     if not token:
         return None
@@ -488,7 +522,51 @@ class Handler(BaseHTTPRequestHandler):
             return self.guard(self.api_get, path[5:])
         if path == "/owner":
             return self.guard(self.owner_page, parse_qs(parsed.query))
+        if path == "/admin" or path == "/admin/":
+            return self.guard(self.admin_page)
+        if path.startswith("/admin/api/"):
+            return self.guard(self.admin_api, "GET", path[11:], parse_qs(parsed.query))
         return self.guard(self.static, path)
+
+    # -- admin console --
+    def admin_cookie(self):
+        raw = self.headers.get("Cookie") or ""
+        for part in raw.split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == ADMIN_COOKIE:
+                return v
+        return ""
+
+    def admin_page(self):
+        _ensure_schema()
+        admin.ensure_schema()
+        body = admin.page().encode()
+        self._send(200, body, "text/html; charset=utf-8",
+                   {"Cache-Control": "no-store",
+                    "X-Frame-Options": "DENY",
+                    "Referrer-Policy": "no-referrer",
+                    "X-Content-Type-Options": "nosniff"})
+
+    def admin_api(self, method, route, params=None, data=None):
+        _ensure_schema()
+        # The console always sends this header. A cross-site form post cannot,
+        # which together with SameSite=Strict is what stands in for CSRF tokens.
+        if method != "GET" and self.headers.get("X-Admin-Request") != "1":
+            return self.fail(403, "Bad request origin.")
+        status, payload, cookie = admin.handle(
+            method, route, data or {}, self.admin_cookie(), self.ip,
+            self.headers.get("User-Agent", ""), params or {})
+        extra = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+        if cookie == "-":
+            extra["Set-Cookie"] = (f"{ADMIN_COOKIE}=; Path=/admin; Max-Age=0; "
+                                   f"HttpOnly; SameSite=Strict" + ADMIN_SECURE)
+        elif cookie:
+            extra["Set-Cookie"] = (
+                f"{ADMIN_COOKIE}={cookie}; Path=/admin; "
+                f"Max-Age={admin.SESSION_HOURS * 3600}; HttpOnly; SameSite=Strict"
+                + ADMIN_SECURE)
+        body = json.dumps(payload).encode()
+        self._send(status, body, "application/json", extra)
 
     def owner_page(self, params):
         """Wrong key, no key, or no key configured all look identical from
@@ -503,13 +581,19 @@ class Handler(BaseHTTPRequestHandler):
     do_HEAD = do_GET
 
     def do_POST(self):
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path.startswith("/admin/api/"):
+            return self.guard(self.admin_api, "POST", path[11:],
+                              parse_qs(parsed.query), self.body())
         if not path.startswith("/api/"):
             return self.fail(404, "Not found")
         return self.guard(self.api_post, path[5:])
 
     def do_DELETE(self):
         path = urlparse(self.path).path
+        if path.startswith("/admin/api/"):
+            return self.guard(self.admin_api, "DELETE", path[11:], {}, self.body())
         if path == "/api/account":
             return self.guard(self.delete_account)
         return self.fail(404, "Not found")
@@ -635,6 +719,9 @@ class Handler(BaseHTTPRequestHandler):
             if not row or not check_password(password, row[2]):
                 note_attempt(self.ip)
                 return self.fail(401, "That name and password do not match.")
+            blocked = account_block(row[0])
+            if blocked:
+                return self.fail(403, blocked)
             token = new_session(row[0])
             record_activity(row[0], None, new_session=True)
             saved = q(f"select state, rev from {P_TABLE} where id = %s", (row[0],), "one")
@@ -717,6 +804,11 @@ class Handler(BaseHTTPRequestHandler):
         row = session_player(token)
         if not row:
             return self.fail(401, "Your session expired. Sign in again.")
+        blocked = account_block(row[0])
+        if blocked:
+            # a ban issued mid-session takes effect here, on their next write
+            q(f"delete from {S_TABLE} where player_id = %s", (row[0],))
+            return self.fail(403, blocked)
         state = (data or {}).get("state")
         if not isinstance(state, dict):
             return self.fail(400, "That save did not look right, so nothing was overwritten.")
@@ -752,6 +844,11 @@ class Handler(BaseHTTPRequestHandler):
         return self.json(200, {"ok": True, "rev": new_rev, "now": int(time.time() * 1000)})
 
 
+def _install_admin():
+    admin.install(q, (P_TABLE, S_TABLE, A_TABLE), hash_password, check_password,
+                  bool(_pg))
+
+
 def _warm_database():
     """Prepare the schema in the background.
 
@@ -761,9 +858,13 @@ def _warm_database():
     database wakes, and q() rebuilds the schema on first use anyway."""
     try:
         _ensure_schema()
+        admin.ensure_schema()
         print(f"[db] schema ready ({'Postgres' if _pg else 'SQLite'})", flush=True)
     except Exception as exc:
         print(f"[db] not ready yet ({exc}) — will retry on first use", flush=True)
+
+
+_install_admin()
 
 
 def main():
