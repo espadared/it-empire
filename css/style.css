@@ -777,6 +777,14 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 }
 .fitbadge small{display:block;font-size:8px;letter-spacing:.06em}
 .fitbadge.good{color:var(--good)} .fitbadge.poor{color:var(--alarm)}
+.yieldbadge{
+  flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--ink);
+  text-align:right;line-height:1.25;max-width:44%;
+}
+.yieldbadge small{display:block;font-size:8px;letter-spacing:.06em;color:var(--muted);
+  font-family:var(--body);white-space:nowrap}
+.yieldbadge.good{color:var(--good)}
+.yieldbadge.good small{color:var(--good);opacity:.8}
 
 /* a technician who has learned all the department can teach */
 .avatar .lv.max{background:linear-gradient(180deg,#FFC46A,#E68A26);color:#31190A;font-weight:700}
@@ -992,11 +1000,13 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .nm-detail{margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.4}
 .nextmove .cta{width:100%;margin-top:11px}
 .dchip.good{border-color:#2F6B41}
-.dchip.poor{border-color:#7A2F33}
-.dchip .fitn{font-family:var(--mono);font-size:10px;opacity:.75;margin-left:2px}
+.dchip.poor{border-color:rgba(240,169,74,.45)}
+.dchip .fitn{font-family:var(--mono);font-size:10.5px;opacity:.85;margin-left:auto;padding-left:8px}
 .dchip.good .fitn{color:var(--good);opacity:1}
-.dchip.poor .fitn{color:var(--alarm);opacity:1}
-.dchip em{font-style:normal;margin-left:5px;font-size:11px;opacity:.8}
+.dchip.poor .fitn{color:var(--ink);opacity:.9}
+.dchip em{font-style:normal;margin-left:6px;font-size:10px;font-family:var(--mono);
+  color:var(--lamp);background:rgba(240,169,74,.13);border:1px solid rgba(240,169,74,.38);
+  border-radius:5px;padding:1px 4px;white-space:nowrap}
 
 /* a rank crossing is a moment, not a line of toast */
 .promo{text-align:center;position:relative;padding-top:6px}

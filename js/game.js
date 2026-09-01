@@ -794,18 +794,58 @@ const Game = (() => {
   const deptStaff = id => S.roster.filter(c => c.dept === id);
 
   /* The best posting available to this person right now. */
-  /* Where this person belongs. Deliberately decided by fit and nothing else:
-     it is the number shown on their card, so the suggestion and the number
-     have to agree. Balancing what each department is worth is a separate job,
-     done in the department data. */
+  /* What a posting is actually worth, as one number.
+
+     Everything is converted to credits-an-hour. The rates come from the game's
+     own economy rather than taste: a level at 30 costs about 26,000 experience
+     and 33,000 credits, so experience runs about 1.5 credits a point once the
+     scarcity of it is allowed for, and reputation is rare enough — a few
+     thousand an hour against millions of credits — to be worth a few hundred
+     each. Recommending by fit alone used to send people to a posting that
+     lowered the number the player was watching. */
+  const VALUE = { xp: 1.5, rep: 250 };
+
+  function postingValue(c, deptId) {
+    const was = c.dept;
+    c.dept = deptId || null;
+    const o = staffOutput(c);
+    c.dept = was;
+    return (o.credits + o.xp * VALUE.xp + o.rep * VALUE.rep) * 3600;
+  }
+
+  /* What this person produces where they are, in the currency that posting
+     is actually for — the thing worth printing on their card. */
+  function postingYield(c) {
+    const d = deptDef(c.dept);
+    const o = staffOutput(c);
+    if (!d) return { label: fmt(o.credits * 3600) + ' cr/hr', of: 'credits' };
+    if (d.effect === 'credits') return { label: fmt(o.credits * 3600) + ' cr/hr', of: 'credits' };
+    if (d.effect === 'rate') return { label: fmt(o.rate * 60) + ' tickets/hr', of: 'throughput' };
+    if (d.effect === 'xp') return { label: fmt(o.xp * 3600) + ' xp/hr', of: 'experience' };
+    return { label: fmt(o.rep * 3600) + ' rep/hr', of: 'reputation' };
+  }
+
+  /* Where this person is worth the most. Measured, not guessed. */
   function bestDept(c) {
-    let best = null, bestFit = 0;
+    let best = null, bestVal = -1;
     DATA.DEPARTMENTS.forEach(d => {
       if (S.reputation < d.repReq) return;
-      const fit = deptFit(c, d);
-      if (fit > bestFit) { bestFit = fit; best = d; }
+      const v = postingValue(c, d.id);
+      if (v > bestVal) { bestVal = v; best = d; }
     });
-    return best ? { dept: best, fit: bestFit } : null;
+    return best ? { dept: best, fit: deptFit(c, best), value: bestVal } : null;
+  }
+
+  /* Every posting for this person, best first, with what each produces. */
+  function postingOptions(c) {
+    return DATA.DEPARTMENTS
+      .filter(d => S.reputation >= d.repReq)
+      .map(d => {
+        const was = c.dept; c.dept = d.id;
+        const y = postingYield(c); c.dept = was;
+        return { dept: d, fit: deptFit(c, d), value: postingValue(c, d.id), yield: y.label };
+      })
+      .sort((a, b) => b.value - a.value);
   }
 
   /* One move that posts everybody sensibly. The strategy is who you hire and
@@ -827,8 +867,8 @@ const Game = (() => {
         if ([...plan.values()].includes(d.id)) return;
         crew.forEach(c => {
           if (taken.has(c.uid)) return;
-          const fit = deptFit(c, d);
-          if (!pick || fit > pick.fit) pick = { c, d, fit };
+          const v = postingValue(c, d.id);
+          if (!pick || v > pick.v) pick = { c, d, v };
         });
       });
       if (pick) { plan.set(pick.c.uid, pick.d.id); taken.add(pick.c.uid); }
@@ -852,11 +892,13 @@ const Game = (() => {
   }
 
   /* Anyone sitting in a department that does not suit them. */
+  /* Genuinely in the wrong place: somewhere else is worth meaningfully more
+     to the department, not merely a better stat match. */
   const misplaced = () => S.roster.filter(c => {
     if (c.uid === S.activeId || !c.dept) return false;
-    const d = deptDef(c.dept); if (!d) return false;
-    const b = bestDept(c);
-    return b && b.dept.id !== c.dept && b.fit - deptFit(c, d) > 0.35;
+    const b = bestDept(c); if (!b || b.dept.id === c.dept) return false;
+    const here = postingValue(c, c.dept);
+    return here > 0 && (b.value - here) / here > 0.12;
   });
   const unposted = () => S.roster.filter(c => !c.dept && c.uid !== S.activeId);
 
@@ -1377,6 +1419,7 @@ const Game = (() => {
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
+    postingValue, postingYield, postingOptions,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,

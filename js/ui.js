@@ -323,7 +323,7 @@ const UI = (() => {
      they live in localStorage rather than the save. */
   let staffView = 'list', staffSort = 'power', gearSort = 'rarity';
   try {
-    staffView = localStorage.getItem('ie-staff-view') || 'list';
+    staffView = ['list', 'dept', 'goals'].find(v => v === localStorage.getItem('ie-staff-view')) || 'list';
     staffSort = localStorage.getItem('ie-staff-sort') || 'power';
     gearSort = localStorage.getItem('ie-gear-sort') || 'rarity';
   } catch (e) { }
@@ -356,15 +356,19 @@ const UI = (() => {
       (b.uid === S.activeId) - (a.uid === S.activeId) || cmp(a, b));
   }
 
+  /* Prints what the posting is producing rather than an abstract multiplier,
+     so the number on the card and the suggestion beside it are the same
+     quantity and cannot contradict each other. */
   const deptChip = c => {
     const d = c.dept && Game.deptDef(c.dept);
     if (!d) return `<span class="dchip empty">＋ post to a department</span>`;
-    const fit = Game.deptFit(c, d);
-    const tone = fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : '';
-    const best = Game.bestDept(c);
-    const better = best && best.dept.id !== d.id && best.fit - fit > 0.35;
+    const here = Game.postingValue(c, c.dept), best = Game.bestDept(c);
+    const gain = best && here > 0 ? (best.value - here) / here : 0;
+    const better = best && best.dept.id !== d.id && gain > 0.12;
+    const tone = better ? 'poor' : gain <= 0.001 ? 'good' : '';
     return `<span class="dchip ${tone}">${d.icon} ${esc(d.name)}
-      <b class="fitn">${fit.toFixed(1)}×</b>${better ? `<em>→ ${best.dept.icon}</em>` : ''}</span>`;
+      <b class="fitn">${Game.postingYield(c).label}</b>${better
+        ? `<em>${best.dept.icon} +${Math.round(gain * 100)}%</em>` : ''}</span>`;
   };
 
   function staffCard(c) {
@@ -428,10 +432,12 @@ const UI = (() => {
         <div class="dept-crew">
           ${crew.length ? crew.map(c => {
         const cd = Game.def(c.defId);
-        const fit = Game.deptFit(c, d);
-        return `<button class="crew" data-post="${c.uid}" title="${esc(cd.name)}">
+        const here = Game.postingValue(c, d.id), bb = Game.bestDept(c);
+        const gain = bb && here > 0 ? (bb.value - here) / here : 0;
+        const off = bb && bb.dept.id !== d.id && gain > 0.12;
+        return `<button class="crew" data-post="${c.uid}" title="${esc(cd.name)}${off ? ' — worth ' + Math.round(gain * 100) + '% more in ' + bb.dept.name : ' — well placed'}">
               <div class="avatar" style="width:40px;height:40px">${Art.portrait(cd.art, 'd' + d.id + c.uid)}</div>
-              <div class="crew-fit ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×</div>
+              <div class="crew-fit ${off ? 'poor' : 'good'}">${off ? '↗' : '✓'}</div>
             </button>`;
       }).join('') : `<div class="dept-empty">Nobody posted here</div>`}
         </div>
@@ -507,6 +513,11 @@ const UI = (() => {
           <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
         </div>
       </div>
+      <div class="teamstats">
+        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
+        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
+        <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
+      </div>
       ${(() => {
         const a = Game.advice();
         return `<div class="nextmove ${a.tone}">
@@ -521,12 +532,14 @@ const UI = (() => {
           ${a.label ? `<button class="btn ${a.affordable === false ? 'off' : 'gold'} cta" data-advice="${a.action}">${esc(a.label)}</button>` : ''}
         </div>`;
       })()}
-      <div class="teamstats">
-        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
-        <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
-        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
+      ${''}
+      <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
+      <div class="seg" style="margin:0 12px 10px">
+        <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">PEOPLE</button>
+        <button class="seg-btn ${staffView === 'dept' ? 'on' : ''}" data-sview="dept">DEPARTMENTS</button>
+        <button class="seg-btn ${staffView === 'goals' ? 'on' : ''}" data-sview="goals">GOALS</button>
       </div>
-      ${(() => {
+      ${staffView !== 'goals' ? '' : (() => {
         const sp = Game.roleSpread(), dc = Game.deptCover();
         const haveRoles = new Set(S.roster.map(c => Game.roleOf(c).key));
         const openDepts = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
@@ -549,17 +562,11 @@ const UI = (() => {
           <p class="cover-note">${sp.complete && dc.complete
             ? 'Every role hired and every department staffed — both bonuses are running.'
             : `${sp.complete ? '' : `Missing ${sp.of - sp.roles} role${sp.of - sp.roles > 1 ? 's' : ''}. `}${dc.complete ? '' : `${dc.open - dc.staffed} department${dc.open - dc.staffed > 1 ? 's' : ''} with nobody in ${dc.open - dc.staffed > 1 ? 'them' : 'it'}.`}`}</p>
-        </div>`;
+        </div>` + chapterPanel;
       })()}
-      ${chapterPanel}
-      <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
-      <div class="seg" style="margin:0 12px 10px">
-        <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
-        <button class="seg-btn ${staffView === 'dept' ? 'on' : ''}" data-sview="dept">BY DEPARTMENT</button>
-      </div>
 
-      ${staffView === 'dept' ? `
-        <p class="tiny muted" style="padding:8px 14px 8px;margin:0">Post people where their strengths land. The number under a portrait is their fit — a specialist in the right department is worth roughly double one who is merely present.</p>
+      ${staffView === 'goals' ? '' : staffView === 'dept' ? `
+        <p class="tiny muted" style="padding:8px 14px 8px;margin:0">Post people where their strengths land. Each figure is what that person actually produces there per hour — a specialist in the right department is worth roughly double one who is merely present.</p>
         <div class="dept-list">${deptBoard()}</div>
         ${S.roster.filter(c => !c.dept && c.uid !== S.activeId).length
         ? `<div class="sec-head"><h2>UNPOSTED</h2><span>EARNING LESS THAN THEY COULD</span></div>
@@ -572,9 +579,10 @@ const UI = (() => {
         <div class="list">${sortedRoster().map(staffCard).join('')}</div>
       `}
 
-      <div class="sec-head"><h2>RECRUITMENT</h2><span>${S.roster.length}/${cap} DESKS USED</span></div>
-      ${Game.atCapacity() ? `<p class="tiny" style="padding:0 14px 8px;margin:0;color:var(--lamp)">Every desk is taken. Retire somebody, or promote the department for more room.</p>` : ''}
-      <div class="list">${hireable}</div>
+      ${staffView !== 'list' ? '' : `
+        <div class="sec-head"><h2>RECRUITMENT</h2><span>${S.roster.length}/${cap} DESKS USED</span></div>
+        ${Game.atCapacity() ? `<p class="tiny" style="padding:0 14px 8px;margin:0;color:var(--lamp)">Every desk is taken. Retire somebody, or promote the department for more room.</p>` : ''}
+        <div class="list">${hireable}</div>`}
       <div style="height:14px"></div>`;
   }
 
@@ -590,18 +598,31 @@ const UI = (() => {
       </div>
       <p class="sub" style="margin-top:12px">Where should they be posted?</p>
       ${c.uid === S.activeId ? '<p class="tiny muted" style="text-align:center;margin:-6px 0 8px">They are on duty, so they work your tapped tickets. A posting applies the moment somebody else takes over.</p>' : ''}
-      ${DATA.DEPARTMENTS.map(dp => {
-      const locked = S.reputation < dp.repReq, fit = Game.deptFit(c, dp), on = c.dept === dp.id;
-      return `<button class="postopt ${on ? 'on' : ''} ${locked ? 'off' : ''}" ${locked ? '' : `data-assign="${dp.id}" data-who="${c.uid}"`}>
+      ${(() => {
+      const open = Game.postingOptions(c), top = open[0];
+      // only crown another posting when it is worth the move — otherwise the
+      // sheet would flag a "better" option the card has already called fine
+      const here = c.dept ? Game.postingValue(c, c.dept) : 0;
+      const worthMoving = !c.dept || (here > 0 && (top.value - here) / here > 0.12);
+      const locked = DATA.DEPARTMENTS.filter(dp => S.reputation < dp.repReq);
+      return open.map(o => {
+        const dp = o.dept, on = c.dept === dp.id;
+        const crown = worthMoving ? dp.id === top.dept.id : on;
+        const note = crown ? (worthMoving ? 'best for them' : 'well placed') : 'if posted here';
+        return `<button class="postopt ${on ? 'on' : ''}" data-assign="${dp.id}" data-who="${c.uid}">
           <span class="dept-ico">${dp.icon}</span>
           <div style="flex:1;min-width:0">
             <h4>${esc(dp.name)}${on ? ' · POSTED' : ''}</h4>
             <div class="tiny muted">${esc(dp.bonus)}</div>
           </div>
-          ${locked ? `<span class="tiny mono" style="color:var(--alarm)">🔒 ${f(dp.repReq)}</span>`
-          : `<span class="fitbadge ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×<small>fit</small></span>`}
+          <span class="yieldbadge ${crown ? 'good' : ''}">${o.yield}<small>${note}</small></span>
         </button>`;
-    }).join('')}
+      }).join('') + locked.map(dp =>
+        `<button class="postopt off"><span class="dept-ico">${dp.icon}</span>
+          <div style="flex:1;min-width:0"><h4>${esc(dp.name)}</h4>
+            <div class="tiny muted">${esc(dp.bonus)}</div></div>
+          <span class="tiny mono" style="color:var(--alarm)">🔒 ${f(dp.repReq)} rep</span></button>`).join('');
+    })()}
       ${c.dept ? `<button class="btn ghost cta" data-assign="" data-who="${c.uid}">UNPOST THEM</button>` : ''}
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
@@ -609,20 +630,23 @@ const UI = (() => {
   function fillDeptSheet(deptId) {
     const S = Game.state, dp = Game.deptDef(deptId); if (!dp) return;
     const pool = S.roster.filter(c => c.dept !== deptId)
-      .sort((a, b) => Game.deptFit(b, dp) - Game.deptFit(a, dp));
+      .sort((a, b) => Game.postingValue(b, deptId) - Game.postingValue(a, deptId));
     sheet(`
       <span class="big-emoji">${dp.icon}</span>
       <h3>${esc(dp.name)}</h3>
-      <p class="sub">${esc(dp.bonus)} · best suited first</p>
+      <p class="sub">${esc(dp.bonus)} · what each would bring here</p>
       ${pool.length ? pool.map(c => {
-      const d = Game.def(c.defId), fit = Game.deptFit(c, dp);
+      const d = Game.def(c.defId);
+      const was = c.dept; c.dept = deptId;
+      const y = Game.postingYield(c).label; c.dept = was;
+      const leaving = c.dept ? Game.deptDef(c.dept) : null;
       return `<button class="postopt" data-assign="${deptId}" data-who="${c.uid}">
           <div class="avatar" style="width:42px;height:42px">${Art.portrait(d.art, 'fd' + c.uid)}</div>
           <div style="flex:1;min-width:0">
             <h4>${esc(c.defId === 'hero' ? S.name : d.name)}</h4>
-            <div class="tiny muted">${esc(d.role)}${c.dept ? ' · now in ' + esc(Game.deptDef(c.dept).name) : ''}</div>
+            <div class="tiny muted">${esc(d.role)}${leaving ? ' · would leave ' + esc(leaving.name) : ''}</div>
           </div>
-          <span class="fitbadge ${fit >= 1.4 ? 'good' : fit < 0.8 ? 'poor' : ''}">${fit.toFixed(1)}×<small>fit</small></span>
+          <span class="yieldbadge">${y}<small>would bring</small></span>
         </button>`;
     }).join('') : '<div class="empty">Everyone is already posted here.</div>'}
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);

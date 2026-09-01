@@ -128,5 +128,37 @@ check('the level buttons never promise what they will not spend', () => {
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
-console.log(fails ? '\n' + fails + ' FAILURES' : '\nall paths clean');
+check('the posting advice never makes a player worse off', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const keep = { rep: S.reputation, chapter: S.chapter, roster: S.roster.slice() };
+  S.credits = 1e12; S.reputation = 1e6; S.chapter = 5;
+  try {
+  ['veteran', 'people-person', 'security-hawk', 'automation-expert', 'oracle']
+    .filter(id => DATA.CHARACTERS.some(x => x.id === id))
+    .forEach(id => {
+      const c = Game.hire(id); if (!c) return;
+      [12, 30, 55].forEach(lv => {
+        c.level = lv;
+        const opts = Game.postingOptions(c);
+        const best = Game.bestDept(c);
+        assert(best && best.dept.id === opts[0].dept.id,
+          id + ' L' + lv + ': the arrow points somewhere other than the best posting');
+        // whatever it recommends must beat every alternative on the same measure
+        opts.forEach(o => assert(best.value >= o.value - 1,
+          id + ' L' + lv + ': ' + o.dept.name + ' is worth more than the recommendation'));
+        // and anyone flagged as misplaced must really gain by moving
+        DATA.DEPARTMENTS.forEach(d => {
+          if (S.reputation < d.repReq) return;
+          c.dept = d.id;
+          if (Game.misplaced().some(x => x.uid === c.uid))
+            assert(Game.postingValue(c, best.dept.id) > Game.postingValue(c, d.id),
+              id + ' L' + lv + ': flagged as misplaced in ' + d.name + ' but moving gains nothing');
+        });
+        c.dept = null;
+      });
+    });
+  } finally { S.reputation = keep.rep; S.chapter = keep.chapter; S.roster = keep.roster; }
+});
+
+console.log(fails ? "\n" + fails + " FAILURES" : "\nall paths clean");
 process.exit(fails ? 1 : 0);
