@@ -4,7 +4,7 @@
    ============================================================ */
 const UI = (() => {
   const $ = s => document.querySelector(s);
-  const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+  const el2 = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const f = Game.fmt;
   let screen = 'hq';
@@ -683,24 +683,131 @@ const UI = (() => {
   }
 
   /* ================= EQUIPMENT SCREEN ================= */
+  /* Three focused views rather than one very long scroll. */
+  let gearView = 'cupboard', gearFilter = 'all';
+  let picking = false;
+  const picked = new Set();
+  try { gearView = localStorage.getItem('ie-gear-view') || 'cupboard'; } catch (e) { }
+  function setGearView(v) {
+    gearView = v; picking = false; picked.clear();
+    try { localStorage.setItem('ie-gear-view', v); } catch (e) { }
+    renderGear();
+  }
+  function setGearFilter(v) { gearFilter = v; renderGear(); }
+  function togglePicking() { picking = !picking; picked.clear(); renderGear(); }
+  function togglePick(uid) {
+    if (picked.has(uid)) picked.delete(uid); else picked.add(uid);
+    renderGear();
+  }
+  function pickAll(uids) {
+    const all = uids.every(u => picked.has(u));
+    uids.forEach(u => all ? picked.delete(u) : picked.add(u));
+    renderGear();
+  }
+  const pickedList = () => [...picked];
+
+  function itemCard(i, opts = {}) {
+    const S = Game.state, e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
+    const up = Game.upgradeCost(i);
+    const sel = picked.has(i.uid);
+    return `<div class="card col item ${sel ? 'picked' : ''}" style="border-color:${on ? rarColor(e.rarity) : sel ? 'var(--crt)' : 'var(--line)'}"
+      ${picking ? `data-pick="${i.uid}"` : ''}>
+      <div class="spread">
+        <div style="min-width:0;display:flex;gap:9px;align-items:flex-start">
+          ${picking ? `<span class="tick ${sel ? 'on' : ''}">${sel ? '✓' : ''}</span>` : ''}
+          <div style="min-width:0">
+            <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+            <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
+            ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">ISSUED</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
+      <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+      ${picking ? '' : `<div class="row" style="margin-top:8px">
+        <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+        ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
+        : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
+        <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
+      </div>`}
+    </div>`;
+  }
+
   function renderGear() {
     const S = Game.state;
     const issued = Game.standardItems().length;
+    const el = $('#screen-gear'); if (!el) return;
 
-    // What the department carries. One kit, everyone.
-    const rack = DATA.SLOTS.map(sl => {
-      const it = Game.standardItem(sl.key);
-      const e = it && Game.eqDef(it.eid);
-      return `<button class="issue-slot ${it ? 'filled' : ''}" data-slot="${sl.key}"
-        style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
-        <div class="is-ico">${sl.icon}</div>
-        <div class="is-lbl">${sl.label}</div>
-        <div class="is-item" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name) : 'not issued'}</div>
-        ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
-      </button>`;
-    }).join('');
+    const tabs = `<div class="seg" style="margin:12px 12px 10px">
+      ${[['standard', 'STANDARD'], ['cupboard', 'CUPBOARD'], ['procure', 'PROCURE']]
+        .map(([k, l]) => `<button class="seg-btn ${gearView === k ? 'on' : ''}" data-gview="${k}">${l}</button>`).join('')}
+    </div>`;
 
-    // Sorted by rarity then slot, so the cupboard reads like a cupboard.
+    /* --- what everyone carries --- */
+    if (gearView === 'standard') {
+      const rack = DATA.SLOTS.map(sl => {
+        const it = Game.standardItem(sl.key);
+        const e = it && Game.eqDef(it.eid);
+        return `<button class="issue-slot ${it ? 'filled' : ''}" data-slot="${sl.key}"
+          style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
+          <div class="is-ico">${sl.icon}</div>
+          <div class="is-lbl">${sl.label}</div>
+          <div class="is-item" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name) : 'not issued'}</div>
+          ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
+        </button>`;
+      }).join('');
+      el.innerHTML = `
+        <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
+        ${tabs}
+        <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every technician in the department carries this, you included. Tap a slot to change what the standard is.</p>
+        <div class="issue-rack">${rack}</div>
+        <div class="list" style="margin-top:10px"><div class="card">
+          <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🏷️</div>
+          <div class="who"><h3>Kit rating</h3><div class="role">Every point lands on every member of staff</div></div>
+          <div class="pw">⚡ ${f(Game.standardPower())}</div>
+        </div></div>
+        <div style="height:14px"></div>`;
+      return;
+    }
+
+    /* --- what finance will buy --- */
+    if (gearView === 'procure') {
+      const pool = DATA.EQUIPMENT
+        .filter(e => gearFilter === 'all' || e.slot === gearFilter)
+        .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
+        .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order);
+      const locked = DATA.EQUIPMENT.filter(e => S.reputation < DATA.PROCURE.repReq[e.rarity]);
+      const nextTier = locked.sort((a, b) => DATA.PROCURE.repReq[a.rarity] - DATA.PROCURE.repReq[b.rarity])[0];
+      el.innerHTML = `
+        <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
+        ${tabs}
+        <div class="sortbar">
+          <button class="sortchip ${gearFilter === 'all' ? 'on' : ''}" data-gfilter="all">All</button>
+          ${DATA.SLOTS.map(sl => `<button class="sortchip ${gearFilter === sl.key ? 'on' : ''}" data-gfilter="${sl.key}">${sl.icon}</button>`).join('')}
+        </div>
+        <div class="list">${pool.length ? pool.map(e => {
+        const price = Game.procurePrice(e.id), afford = S.credits >= price;
+        const owned = S.inventory.filter(i => i.eid === e.id).length;
+        return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
+            <div class="spread">
+              <div style="min-width:0">
+                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
+                ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} owned</span>` : ''}
+              </div>
+              <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
+            </div>
+            <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
+            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+          </div>`;
+      }).join('') : '<div class="empty">Nothing in this category you can sign off yet.</div>'}</div>
+        ${nextTier ? `<p class="tiny muted" style="padding:12px 14px;text-align:center;margin:0">
+          ${DATA.RARITY[nextTier.rarity].label} kit unlocks at ${f(DATA.PROCURE.repReq[nextTier.rarity])} reputation.</p>` : ''}
+        <div style="height:14px"></div>`;
+      return;
+    }
+
+    /* --- the cupboard --- */
     const rk = i => DATA.RARITY[Game.eqDef(i.eid).rarity].order;
     const slotIdx = i => DATA.SLOTS.findIndex(s2 => s2.key === Game.eqDef(i.eid).slot);
     const sorted = [...S.inventory].sort((a, b) => {
@@ -713,72 +820,37 @@ const UI = (() => {
       : Object.values(DATA.RARITY).sort((a, b) => b.order - a.order)
         .map(r => ({ head: r.label, colour: r.color, items: sorted.filter(i => Game.eqDef(i.eid).rarity === r.key) })).filter(g => g.items.length);
 
-    // What the budget will buy right now.
-    const shop = DATA.EQUIPMENT
-      .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
-      .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order)
-      .slice(0, 30);
+    const total = pickedList().reduce((a, u) => {
+      const it = S.inventory.find(x => x.uid === u);
+      return a + (it ? Game.disposeValue(it) : 0);
+    }, 0);
 
-    $('#screen-gear').innerHTML = `
-      <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">This is what every technician in the department carries — you, and everyone you hire. There are no personal loadouts. Tap a slot to change what the standard is.</p>
-      <div class="issue-rack">${rack}</div>
-      <div class="list" style="margin-top:10px"><div class="card">
-        <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🏷️</div>
-        <div class="who"><h3>Kit rating</h3><div class="role">Every point here lands on every member of staff</div></div>
-        <div class="pw">⚡ ${f(Game.standardPower())}</div>
-      </div></div>
-
-      <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Buy kit outright rather than waiting for it to drop. Better equipment needs more standing before finance will sign it off.</p>
-      <div class="list">${shop.map(e => {
-      const price = Game.procurePrice(e.id), afford = S.credits >= price;
-      const owned = S.inventory.filter(i => i.eid === e.id).length;
-      return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
-          <div class="spread">
-            <div style="min-width:0">
-              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
-              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
-              ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} in the cupboard</span>` : ''}
-            </div>
-            <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
-          </div>
-          <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
-          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-        </div>`;
-    }).join('')}</div>
-
+    el.innerHTML = `
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
+      ${tabs}
       <div class="sortbar">
         <span class="sortbar-lbl">SORT</span>
         <button class="sortchip ${gearSort === 'rarity' ? 'on' : ''}" data-gsort="rarity">Rarity</button>
         <button class="sortchip ${gearSort === 'type' ? 'on' : ''}" data-gsort="type">Type</button>
+        <button class="sortchip ${picking ? 'on' : ''}" data-gpick="1" style="margin-left:auto">${picking ? '✕ Cancel' : '☑ Select'}</button>
       </div>
       ${grouped.length ? grouped.map(g => `
-        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i></div>
-        <div class="list">${g.items.map(i => {
-      const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
-      const up = Game.upgradeCost(i);
-      return `<div class="card col" style="border-color:${on ? rarColor(e.rarity) : 'var(--line)'}">
-            <div class="spread">
-              <div style="min-width:0">
-                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
-                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
-                ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
-              </div>
-            </div>
-            <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
-            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-            <div class="row" style="margin-top:8px">
-              <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
-              ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
-          : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
-              <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
-            </div>
-          </div>`;
-    }).join('')}`).join('')
-      : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something above.</div>`}
-      <div style="height:14px"></div>`;
+        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i>
+          ${picking ? `<button class="pickall" data-pickall="${g.items.map(i => i.uid).join(',')}">select all</button>` : ''}
+        </div>
+        <div class="list">${g.items.map(i => itemCard(i)).join('')}</div>`).join('')
+        : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something.</div>`}
+      <div style="height:${picking ? 90 : 14}px"></div>`;
+
+    // the bulk bar only exists while picking
+    const old = document.querySelector('#bulkbar'); if (old) old.remove();
+    if (picking) {
+      const bar = el2('div', 'bulkbar', `
+        <div class="bulk-n"><b>${picked.size}</b> selected</div>
+        <button class="btn ${picked.size ? 'gold' : 'off'} sm" data-disposemany="1">DISPOSE · 💰${f(total)}</button>`);
+      bar.id = 'bulkbar';
+      document.body.appendChild(bar);
+    }
   }
 
   /* ================= MISSIONS ================= */
@@ -928,10 +1000,11 @@ const UI = (() => {
     else if (screen === 'battle') { Battle.load(); Battle.render(); }
   }
 
-  return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+  return { $, el: el2, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
+           setGearView, setGearFilter, togglePicking, togglePick, pickAll, pickedList,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();

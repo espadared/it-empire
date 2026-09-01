@@ -904,3 +904,26 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .cfgline.right{background:rgba(95,211,122,.14);color:var(--good)}
 .cfgline.wrong{background:rgba(255,90,95,.12);color:var(--alarm);opacity:.6}
 .bigtime{font-family:var(--disp);font-weight:800;font-size:38px;text-align:center;color:var(--lamp);margin:6px 0}
+
+/* multi-select in the cupboard */
+.card.item.picked{background:linear-gradient(180deg,rgba(79,214,201,.10),var(--panel))}
+.tick{
+  width:22px;height:22px;flex:0 0 auto;border-radius:7px;border:1.5px solid var(--line);
+  background:var(--ink-2);display:grid;place-items:center;font-size:12px;color:var(--crt);margin-top:2px;
+}
+.tick.on{border-color:var(--crt);background:rgba(79,214,201,.15)}
+.pickall{
+  margin-left:auto;font-family:var(--body);font-size:10px;color:var(--crt);
+  border:1px solid var(--crt-dim);border-radius:999px;padding:2px 9px;background:transparent;
+}
+#bulkbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom,0px));
+  z-index:55;width:min(456px,calc(100% - 24px));
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--crt-dim);border-radius:15px;box-shadow:0 -6px 24px rgba(0,0,0,.5);
+  animation:toastIn .25s cubic-bezier(.2,1.3,.4,1);
+}
+.bulk-n{flex:1;font-size:12.5px;color:var(--muted)}
+.bulk-n b{font-family:var(--disp);font-size:17px;color:var(--text)}
+#bulkbar .btn{flex:0 0 auto}

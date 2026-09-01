@@ -417,7 +417,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -597,6 +597,34 @@
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.gview) { UI.beep('tap'); return UI.setGearView(d.gview); }
+    if (d.gfilter) { UI.beep('tap'); return UI.setGearFilter(d.gfilter); }
+    if (d.gpick) { UI.beep('tap'); return UI.togglePicking(); }
+    if (d.pick) { UI.beep('tap'); return UI.togglePick(d.pick); }
+    if (d.pickall) { UI.beep('tap'); return UI.pickAll(d.pickall.split(',')); }
+    if (d.disposemany) {
+      const uids = UI.pickedList();
+      if (!uids.length) return UI.beep('fail');
+      const S = Game.state;
+      const items = uids.map(u => S.inventory.find(x => x.uid === u)).filter(Boolean);
+      const total = items.reduce((a, i) => a + Game.disposeValue(i), 0);
+      const issued = items.filter(i => Game.isStandard(i.uid)).length;
+      return UI.sheet(`<span class="big-emoji">♻️</span>
+        <h3>DISPOSE OF ${items.length} ITEM${items.length > 1 ? 'S' : ''}?</h3>
+        <p class="sub">Written off the asset register for good</p>
+        ${issued ? `<p class="tiny" style="text-align:center;color:var(--alarm)">${issued} of these ${issued > 1 ? 'are' : 'is'} currently standard issue and will be withdrawn from the whole department.</p>` : ''}
+        <div class="reward-line"><span class="rw-c">+${f(total)} IT CREDITS RECOVERED</span></div>
+        <button class="btn cta" style="background:var(--alarm);color:#fff" data-disposemany-yes="1">DISPOSE OF THEM</button>
+        <button class="btn ghost cta" data-close="1">KEEP THEM</button>`);
+    }
+    if (d.disposemanyYes) {
+      const r = Game.disposeMany(UI.pickedList());
+      UI.closeSheet(); UI.togglePicking();
+      UI.beep('coin');
+      toast('♻️', `${r.count} ITEM${r.count > 1 ? 'S' : ''} DISPOSED`,
+        `${f(r.credits)} credits recovered${r.wasStandard ? ` · ${r.wasStandard} withdrawn from standard issue` : ''}.`);
+      return UI.refresh();
+    }
     if (d.enter) return Battle.enter(d.enter, +d.stake);
     if (d.play) return Battle.play(d.play, +d.room);
     if (d.bq != null) return Battle.answerQuiz(+d.bq);

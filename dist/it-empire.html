@@ -913,6 +913,29 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .cfgline.wrong{background:rgba(255,90,95,.12);color:var(--alarm);opacity:.6}
 .bigtime{font-family:var(--disp);font-weight:800;font-size:38px;text-align:center;color:var(--lamp);margin:6px 0}
 
+/* multi-select in the cupboard */
+.card.item.picked{background:linear-gradient(180deg,rgba(79,214,201,.10),var(--panel))}
+.tick{
+  width:22px;height:22px;flex:0 0 auto;border-radius:7px;border:1.5px solid var(--line);
+  background:var(--ink-2);display:grid;place-items:center;font-size:12px;color:var(--crt);margin-top:2px;
+}
+.tick.on{border-color:var(--crt);background:rgba(79,214,201,.15)}
+.pickall{
+  margin-left:auto;font-family:var(--body);font-size:10px;color:var(--crt);
+  border:1px solid var(--crt-dim);border-radius:999px;padding:2px 9px;background:transparent;
+}
+#bulkbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom,0px));
+  z-index:55;width:min(456px,calc(100% - 24px));
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--crt-dim);border-radius:15px;box-shadow:0 -6px 24px rgba(0,0,0,.5);
+  animation:toastIn .25s cubic-bezier(.2,1.3,.4,1);
+}
+.bulk-n{flex:1;font-size:12.5px;color:var(--muted)}
+.bulk-n b{font-family:var(--disp);font-size:17px;color:var(--text)}
+#bulkbar .btn{flex:0 0 auto}
+
 </style>
 <div id="app">
 
@@ -1615,6 +1638,68 @@ const DATA = (() => {
       stats:{SPEED:13,PATIENCE:9,COMMUNICATION:4}, effect:'Nobody else can use your desk. That is the feature.' },
     { id:'mon_curve',  slot:'monitor',  name:'Curved Executive Reject Monitor', rarity:'RARE',
       stats:{INVESTIGATION:8,MANAGEMENT:5}, effect:'Rescued from a director\'s desk during a refresh.' },
+
+    /* ---- Legendary: the kit people ask to borrow ---- */
+    { id:'lap_legend',  slot:'laptop',   name:'The Laptop That Survived The Flood', rarity:'LEGENDARY',
+      stats:{TECHNICAL:22,SPEED:16,PATIENCE:10},
+      effect:'+15% credits. Water damage, dropped twice, still the fastest machine in the building.', perks:{credit:0.15} },
+    { id:'mon_legend',  slot:'monitor',  name:'The Four-Screen Command Wall', rarity:'LEGENDARY',
+      stats:{INVESTIGATION:24,TECHNICAL:10,MANAGEMENT:8},
+      effect:'+18% XP. You can see the whole incident at once, which changes everything.', perks:{xp:0.18} },
+    { id:'kb_legend',   slot:'keyboard', name:'The Keyboard With No Legends Left', rarity:'LEGENDARY',
+      stats:{SPEED:24,TECHNICAL:9},
+      effect:'+15% on software tickets. The letters wore off years ago. You do not need them.', perks:{cat_software:0.15} },
+    { id:'mou_legend',  slot:'mouse',    name:'The Mouse With Thirty Thousand Miles', rarity:'LEGENDARY',
+      stats:{SPEED:20,INVESTIGATION:10,PATIENCE:6},
+      effect:'+12% on display tickets. It has clicked through every problem this company has ever had.', perks:{cat_display:0.12} },
+    { id:'head_legend', slot:'headset',  name:'The Headset That Hears The Real Problem', rarity:'LEGENDARY',
+      stats:{COMMUNICATION:22,PATIENCE:20},
+      effect:'+20% user satisfaction. Users say more than they mean to, and you catch it.', perks:{sat:0.20} },
+    { id:'net_legend',  slot:'nettools', name:'The Tester That Ends All Arguments', rarity:'LEGENDARY',
+      stats:{INVESTIGATION:22,TECHNICAL:14},
+      effect:'+35% on network tickets. It is never the network. Now you can prove it.', perks:{cat_network:0.35} },
+    { id:'bag_legend',  slot:'backpack', name:'The Bag With The Right Adapter', rarity:'LEGENDARY',
+      stats:{TECHNICAL:14,PATIENCE:16,INVESTIGATION:12},
+      effect:'+20% on hardware tickets. Whatever it is, it is in the front pocket.', perks:{cat_hardware:0.20} },
+
+    /* ---- Mythic: the endgame set. One per slot, and nobody signs these off
+           until you are genuinely running the place. ---- */
+    { id:'lap_myth',    slot:'laptop',   name:'THE MACHINE THAT NEVER NEEDS REBOOTING', rarity:'MYTHIC',
+      stats:{TECHNICAL:40,SPEED:32,AUTOMATION:24,INVESTIGATION:20},
+      effect:'+25% to everything you earn. Uptime measured in years. Nobody knows what is running on it.',
+      perks:{ all:0.25 } },
+    { id:'mon_myth',    slot:'monitor',  name:'THE GLASS THAT SHOWS THE ROOT CAUSE', rarity:'MYTHIC',
+      stats:{INVESTIGATION:46,TECHNICAL:22,MANAGEMENT:16},
+      effect:'+40% XP and +25% incident success. Every dashboard you ever needed, already open.',
+      perks:{ xp:0.40, incidentSuccess:0.25 } },
+    { id:'kb_myth',     slot:'keyboard', name:'THE KEYBOARD THAT TYPES WHAT YOU MEANT', rarity:'MYTHIC',
+      stats:{SPEED:44,TECHNICAL:26,AUTOMATION:18},
+      effect:'+30% ticket rewards. No typos, no retries, no second attempt at the command.',
+      perks:{ reward:0.30 } },
+    { id:'mou_myth',    slot:'mouse',    name:'THE MOUSE THAT CLICKS FIRST', rarity:'MYTHIC',
+      stats:{SPEED:42,INVESTIGATION:22,PATIENCE:14},
+      effect:'+35% more time on every ticket. It gets there before you decide to move it.',
+      perks:{ sla:0.35 } },
+    { id:'head_myth',   slot:'headset',  name:'THE HEADSET THAT FILTERS OUT COMPLAINING', rarity:'MYTHIC',
+      stats:{COMMUNICATION:44,PATIENCE:38},
+      effect:'+45% user satisfaction. You hear the fault. You do not hear the sighing.',
+      perks:{ sat:0.45 } },
+    { id:'tool_myth',   slot:'toolkit',  name:'THE TOOLKIT OF LAST RESORT', rarity:'MYTHIC',
+      stats:{TECHNICAL:44,INVESTIGATION:30,SPEED:20},
+      effect:'Auto-resolves 30% of display tickets and +40% on hardware. There is nothing in here you have not fixed something with.',
+      perks:{ autoDisplay:0.30, cat_hardware:0.40 } },
+    { id:'net_myth',    slot:'nettools', name:'THE CABLE THAT KNOWS WHERE IT GOES', rarity:'MYTHIC',
+      stats:{INVESTIGATION:40,TECHNICAL:30,AUTOMATION:16},
+      effect:'+60% on network and +50% incident rewards. It has been in every riser in the building.',
+      perks:{ cat_network:0.60, incident:0.50 } },
+    { id:'badge_myth',  slot:'badge',    name:'THE BADGE NOBODY DARES QUESTION', rarity:'MYTHIC',
+      stats:{SPEED:36,MANAGEMENT:34,COMMUNICATION:20},
+      effect:'+50% on executive tickets and +40% reputation. Opens the server room, the boardroom and the good coffee.',
+      perks:{ cat_vip:0.50, rep:0.40 } },
+    { id:'bag_myth',    slot:'backpack', name:'THE BAG THAT CONTAINS EVERYTHING', rarity:'MYTHIC',
+      stats:{TECHNICAL:32,PATIENCE:34,INVESTIGATION:26,AUTOMATION:14},
+      effect:'+45% idle output. Whatever the job turns out to be, you already brought it.',
+      perks:{ idle:0.45 } },
   ];
 
   /* ---------- PROCUREMENT ----------
@@ -3289,6 +3374,19 @@ const Game = (() => {
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
     S.credits -= cost; it.level++; emit('change'); return true;
   }
+  /* Clearing out several at once. Anything currently issued is withdrawn from
+     the standard first, so the department is never left wearing a ghost. */
+  function disposeMany(uids) {
+    let credits = 0, count = 0, wasStandard = 0;
+    (uids || []).forEach(u => {
+      const it = S.inventory.find(x => x.uid === u); if (!it) return;
+      if (isStandard(it.uid)) wasStandard++;
+      const r = disposeItem(u);
+      if (r) { credits += r.back; count++; }
+    });
+    return { credits, count, wasStandard };
+  }
+
   /* Disposal. Asset recovery, not a bin. */
   function disposeItem(itemUid) {
     const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return null;
@@ -3607,7 +3705,7 @@ const Game = (() => {
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
-    upgradeItem, upgradeCost, disposeItem, disposeValue, procure, procurePrice, canProcure,
+    upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,
@@ -3621,7 +3719,7 @@ const Game = (() => {
    ============================================================ */
 const UI = (() => {
   const $ = s => document.querySelector(s);
-  const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+  const el2 = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const f = Game.fmt;
   let screen = 'hq';
@@ -4300,24 +4398,131 @@ const UI = (() => {
   }
 
   /* ================= EQUIPMENT SCREEN ================= */
+  /* Three focused views rather than one very long scroll. */
+  let gearView = 'cupboard', gearFilter = 'all';
+  let picking = false;
+  const picked = new Set();
+  try { gearView = localStorage.getItem('ie-gear-view') || 'cupboard'; } catch (e) { }
+  function setGearView(v) {
+    gearView = v; picking = false; picked.clear();
+    try { localStorage.setItem('ie-gear-view', v); } catch (e) { }
+    renderGear();
+  }
+  function setGearFilter(v) { gearFilter = v; renderGear(); }
+  function togglePicking() { picking = !picking; picked.clear(); renderGear(); }
+  function togglePick(uid) {
+    if (picked.has(uid)) picked.delete(uid); else picked.add(uid);
+    renderGear();
+  }
+  function pickAll(uids) {
+    const all = uids.every(u => picked.has(u));
+    uids.forEach(u => all ? picked.delete(u) : picked.add(u));
+    renderGear();
+  }
+  const pickedList = () => [...picked];
+
+  function itemCard(i, opts = {}) {
+    const S = Game.state, e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
+    const up = Game.upgradeCost(i);
+    const sel = picked.has(i.uid);
+    return `<div class="card col item ${sel ? 'picked' : ''}" style="border-color:${on ? rarColor(e.rarity) : sel ? 'var(--crt)' : 'var(--line)'}"
+      ${picking ? `data-pick="${i.uid}"` : ''}>
+      <div class="spread">
+        <div style="min-width:0;display:flex;gap:9px;align-items:flex-start">
+          ${picking ? `<span class="tick ${sel ? 'on' : ''}">${sel ? '✓' : ''}</span>` : ''}
+          <div style="min-width:0">
+            <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+            <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
+            ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">ISSUED</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
+      <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+      ${picking ? '' : `<div class="row" style="margin-top:8px">
+        <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+        ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
+        : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
+        <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
+      </div>`}
+    </div>`;
+  }
+
   function renderGear() {
     const S = Game.state;
     const issued = Game.standardItems().length;
+    const el = $('#screen-gear'); if (!el) return;
 
-    // What the department carries. One kit, everyone.
-    const rack = DATA.SLOTS.map(sl => {
-      const it = Game.standardItem(sl.key);
-      const e = it && Game.eqDef(it.eid);
-      return `<button class="issue-slot ${it ? 'filled' : ''}" data-slot="${sl.key}"
-        style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
-        <div class="is-ico">${sl.icon}</div>
-        <div class="is-lbl">${sl.label}</div>
-        <div class="is-item" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name) : 'not issued'}</div>
-        ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
-      </button>`;
-    }).join('');
+    const tabs = `<div class="seg" style="margin:12px 12px 10px">
+      ${[['standard', 'STANDARD'], ['cupboard', 'CUPBOARD'], ['procure', 'PROCURE']]
+        .map(([k, l]) => `<button class="seg-btn ${gearView === k ? 'on' : ''}" data-gview="${k}">${l}</button>`).join('')}
+    </div>`;
 
-    // Sorted by rarity then slot, so the cupboard reads like a cupboard.
+    /* --- what everyone carries --- */
+    if (gearView === 'standard') {
+      const rack = DATA.SLOTS.map(sl => {
+        const it = Game.standardItem(sl.key);
+        const e = it && Game.eqDef(it.eid);
+        return `<button class="issue-slot ${it ? 'filled' : ''}" data-slot="${sl.key}"
+          style="${e ? `border-color:${rarColor(e.rarity)}` : ''}">
+          <div class="is-ico">${sl.icon}</div>
+          <div class="is-lbl">${sl.label}</div>
+          <div class="is-item" style="${e ? `color:${rarColor(e.rarity)}` : ''}">${e ? esc(e.name) : 'not issued'}</div>
+          ${e ? `<div class="is-lv">LV.${it.level}</div>` : ''}
+        </button>`;
+      }).join('');
+      el.innerHTML = `
+        <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
+        ${tabs}
+        <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every technician in the department carries this, you included. Tap a slot to change what the standard is.</p>
+        <div class="issue-rack">${rack}</div>
+        <div class="list" style="margin-top:10px"><div class="card">
+          <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🏷️</div>
+          <div class="who"><h3>Kit rating</h3><div class="role">Every point lands on every member of staff</div></div>
+          <div class="pw">⚡ ${f(Game.standardPower())}</div>
+        </div></div>
+        <div style="height:14px"></div>`;
+      return;
+    }
+
+    /* --- what finance will buy --- */
+    if (gearView === 'procure') {
+      const pool = DATA.EQUIPMENT
+        .filter(e => gearFilter === 'all' || e.slot === gearFilter)
+        .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
+        .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order);
+      const locked = DATA.EQUIPMENT.filter(e => S.reputation < DATA.PROCURE.repReq[e.rarity]);
+      const nextTier = locked.sort((a, b) => DATA.PROCURE.repReq[a.rarity] - DATA.PROCURE.repReq[b.rarity])[0];
+      el.innerHTML = `
+        <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
+        ${tabs}
+        <div class="sortbar">
+          <button class="sortchip ${gearFilter === 'all' ? 'on' : ''}" data-gfilter="all">All</button>
+          ${DATA.SLOTS.map(sl => `<button class="sortchip ${gearFilter === sl.key ? 'on' : ''}" data-gfilter="${sl.key}">${sl.icon}</button>`).join('')}
+        </div>
+        <div class="list">${pool.length ? pool.map(e => {
+        const price = Game.procurePrice(e.id), afford = S.credits >= price;
+        const owned = S.inventory.filter(i => i.eid === e.id).length;
+        return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
+            <div class="spread">
+              <div style="min-width:0">
+                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
+                ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} owned</span>` : ''}
+              </div>
+              <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
+            </div>
+            <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
+            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+          </div>`;
+      }).join('') : '<div class="empty">Nothing in this category you can sign off yet.</div>'}</div>
+        ${nextTier ? `<p class="tiny muted" style="padding:12px 14px;text-align:center;margin:0">
+          ${DATA.RARITY[nextTier.rarity].label} kit unlocks at ${f(DATA.PROCURE.repReq[nextTier.rarity])} reputation.</p>` : ''}
+        <div style="height:14px"></div>`;
+      return;
+    }
+
+    /* --- the cupboard --- */
     const rk = i => DATA.RARITY[Game.eqDef(i.eid).rarity].order;
     const slotIdx = i => DATA.SLOTS.findIndex(s2 => s2.key === Game.eqDef(i.eid).slot);
     const sorted = [...S.inventory].sort((a, b) => {
@@ -4330,72 +4535,37 @@ const UI = (() => {
       : Object.values(DATA.RARITY).sort((a, b) => b.order - a.order)
         .map(r => ({ head: r.label, colour: r.color, items: sorted.filter(i => Game.eqDef(i.eid).rarity === r.key) })).filter(g => g.items.length);
 
-    // What the budget will buy right now.
-    const shop = DATA.EQUIPMENT
-      .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
-      .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order)
-      .slice(0, 30);
+    const total = pickedList().reduce((a, u) => {
+      const it = S.inventory.find(x => x.uid === u);
+      return a + (it ? Game.disposeValue(it) : 0);
+    }, 0);
 
-    $('#screen-gear').innerHTML = `
-      <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">This is what every technician in the department carries — you, and everyone you hire. There are no personal loadouts. Tap a slot to change what the standard is.</p>
-      <div class="issue-rack">${rack}</div>
-      <div class="list" style="margin-top:10px"><div class="card">
-        <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">🏷️</div>
-        <div class="who"><h3>Kit rating</h3><div class="role">Every point here lands on every member of staff</div></div>
-        <div class="pw">⚡ ${f(Game.standardPower())}</div>
-      </div></div>
-
-      <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Buy kit outright rather than waiting for it to drop. Better equipment needs more standing before finance will sign it off.</p>
-      <div class="list">${shop.map(e => {
-      const price = Game.procurePrice(e.id), afford = S.credits >= price;
-      const owned = S.inventory.filter(i => i.eid === e.id).length;
-      return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
-          <div class="spread">
-            <div style="min-width:0">
-              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
-              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
-              ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} in the cupboard</span>` : ''}
-            </div>
-            <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
-          </div>
-          <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
-          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-        </div>`;
-    }).join('')}</div>
-
+    el.innerHTML = `
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
+      ${tabs}
       <div class="sortbar">
         <span class="sortbar-lbl">SORT</span>
         <button class="sortchip ${gearSort === 'rarity' ? 'on' : ''}" data-gsort="rarity">Rarity</button>
         <button class="sortchip ${gearSort === 'type' ? 'on' : ''}" data-gsort="type">Type</button>
+        <button class="sortchip ${picking ? 'on' : ''}" data-gpick="1" style="margin-left:auto">${picking ? '✕ Cancel' : '☑ Select'}</button>
       </div>
       ${grouped.length ? grouped.map(g => `
-        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i></div>
-        <div class="list">${g.items.map(i => {
-      const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
-      const up = Game.upgradeCost(i);
-      return `<div class="card col" style="border-color:${on ? rarColor(e.rarity) : 'var(--line)'}">
-            <div class="spread">
-              <div style="min-width:0">
-                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
-                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
-                ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
-              </div>
-            </div>
-            <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
-            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-            <div class="row" style="margin-top:8px">
-              <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
-              ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
-          : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
-              <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
-            </div>
-          </div>`;
-    }).join('')}`).join('')
-      : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something above.</div>`}
-      <div style="height:14px"></div>`;
+        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i>
+          ${picking ? `<button class="pickall" data-pickall="${g.items.map(i => i.uid).join(',')}">select all</button>` : ''}
+        </div>
+        <div class="list">${g.items.map(i => itemCard(i)).join('')}</div>`).join('')
+        : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something.</div>`}
+      <div style="height:${picking ? 90 : 14}px"></div>`;
+
+    // the bulk bar only exists while picking
+    const old = document.querySelector('#bulkbar'); if (old) old.remove();
+    if (picking) {
+      const bar = el2('div', 'bulkbar', `
+        <div class="bulk-n"><b>${picked.size}</b> selected</div>
+        <button class="btn ${picked.size ? 'gold' : 'off'} sm" data-disposemany="1">DISPOSE · 💰${f(total)}</button>`);
+      bar.id = 'bulkbar';
+      document.body.appendChild(bar);
+    }
   }
 
   /* ================= MISSIONS ================= */
@@ -4545,11 +4715,12 @@ const UI = (() => {
     else if (screen === 'battle') { Battle.load(); Battle.render(); }
   }
 
-  return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
+  return { $, el: el2, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
+           setGearView, setGearFilter, togglePicking, togglePick, pickAll, pickedList,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();
 
@@ -5459,7 +5630,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -5639,6 +5810,34 @@ const Onboard = (() => {
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.gview) { UI.beep('tap'); return UI.setGearView(d.gview); }
+    if (d.gfilter) { UI.beep('tap'); return UI.setGearFilter(d.gfilter); }
+    if (d.gpick) { UI.beep('tap'); return UI.togglePicking(); }
+    if (d.pick) { UI.beep('tap'); return UI.togglePick(d.pick); }
+    if (d.pickall) { UI.beep('tap'); return UI.pickAll(d.pickall.split(',')); }
+    if (d.disposemany) {
+      const uids = UI.pickedList();
+      if (!uids.length) return UI.beep('fail');
+      const S = Game.state;
+      const items = uids.map(u => S.inventory.find(x => x.uid === u)).filter(Boolean);
+      const total = items.reduce((a, i) => a + Game.disposeValue(i), 0);
+      const issued = items.filter(i => Game.isStandard(i.uid)).length;
+      return UI.sheet(`<span class="big-emoji">♻️</span>
+        <h3>DISPOSE OF ${items.length} ITEM${items.length > 1 ? 'S' : ''}?</h3>
+        <p class="sub">Written off the asset register for good</p>
+        ${issued ? `<p class="tiny" style="text-align:center;color:var(--alarm)">${issued} of these ${issued > 1 ? 'are' : 'is'} currently standard issue and will be withdrawn from the whole department.</p>` : ''}
+        <div class="reward-line"><span class="rw-c">+${f(total)} IT CREDITS RECOVERED</span></div>
+        <button class="btn cta" style="background:var(--alarm);color:#fff" data-disposemany-yes="1">DISPOSE OF THEM</button>
+        <button class="btn ghost cta" data-close="1">KEEP THEM</button>`);
+    }
+    if (d.disposemanyYes) {
+      const r = Game.disposeMany(UI.pickedList());
+      UI.closeSheet(); UI.togglePicking();
+      UI.beep('coin');
+      toast('♻️', `${r.count} ITEM${r.count > 1 ? 'S' : ''} DISPOSED`,
+        `${f(r.credits)} credits recovered${r.wasStandard ? ` · ${r.wasStandard} withdrawn from standard issue` : ''}.`);
+      return UI.refresh();
+    }
     if (d.enter) return Battle.enter(d.enter, +d.stake);
     if (d.play) return Battle.play(d.play, +d.room);
     if (d.bq != null) return Battle.answerQuiz(+d.bq);

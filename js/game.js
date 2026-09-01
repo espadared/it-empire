@@ -810,6 +810,19 @@ const Game = (() => {
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
     S.credits -= cost; it.level++; emit('change'); return true;
   }
+  /* Clearing out several at once. Anything currently issued is withdrawn from
+     the standard first, so the department is never left wearing a ghost. */
+  function disposeMany(uids) {
+    let credits = 0, count = 0, wasStandard = 0;
+    (uids || []).forEach(u => {
+      const it = S.inventory.find(x => x.uid === u); if (!it) return;
+      if (isStandard(it.uid)) wasStandard++;
+      const r = disposeItem(u);
+      if (r) { credits += r.back; count++; }
+    });
+    return { credits, count, wasStandard };
+  }
+
   /* Disposal. Asset recovery, not a bin. */
   function disposeItem(itemUid) {
     const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return null;
@@ -1128,7 +1141,7 @@ const Game = (() => {
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
-    upgradeItem, upgradeCost, disposeItem, disposeValue, procure, procurePrice, canProcure,
+    upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,
