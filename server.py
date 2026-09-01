@@ -39,6 +39,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 P_TABLE = "ie_players"
 S_TABLE = "ie_sessions"
 A_TABLE = "ie_activity"
+R_TABLE = "ie_rooms"
+E_TABLE = "ie_entries"
 
 # The owner dashboard stays switched off on a host until a real key is set.
 # "localtest" only ever works on your own machine.
@@ -49,6 +51,10 @@ OWNER_KEY = os.environ.get("OWNER_KEY", "" if os.environ.get("RENDER") else "loc
 ACTIVE_GAP_MAX = 90
 # A gap longer than this starts a new visit.
 SESSION_GAP = 30 * 60
+
+# A battle room stays open this long from its first entry, or until it fills.
+ROOM_HOURS = 6
+ROOM_MAX_ENTRIES = 8
 
 SESSION_DAYS = 90
 MAX_STATE_BYTES = 400_000          # a very long game is ~40KB; this is generous
@@ -104,6 +110,25 @@ SCHEMA_PG = (
           sessions   int default 0,
           primary key (player_id, day)
         )""",
+    f"""create table if not exists {R_TABLE} (
+          id         bigserial primary key,
+          game       text not null,
+          stake      bigint not null,
+          created_at timestamptz not null default now(),
+          closes_at  timestamptz not null,
+          settled    boolean default false,
+          winner_id  bigint,
+          payout     bigint default 0,
+          paid       boolean default false
+        )""",
+    f"""create table if not exists {E_TABLE} (
+          room_id   bigint not null,
+          player_id bigint not null,
+          display   text not null,
+          ms        bigint,
+          played_at timestamptz not null default now(),
+          primary key (room_id, player_id)
+        )""",
     f"create index if not exists {P_TABLE}_rep_idx on {P_TABLE} (reputation desc)",
 )
 
@@ -120,10 +145,20 @@ SCHEMA_LITE = (
           player_id integer not null, day text not null, seconds integer default 0,
           saves integer default 0, sessions integer default 0,
           primary key (player_id, day))""",
+    f"""create table if not exists {R_TABLE} (
+          id integer primary key autoincrement, game text not null, stake integer not null,
+          created_at text not null, closes_at text not null, settled integer default 0,
+          winner_id integer, payout integer default 0, paid integer default 0)""",
+    f"""create table if not exists {E_TABLE} (
+          room_id integer not null, player_id integer not null, display text not null,
+          ms integer, played_at text not null, primary key (room_id, player_id))""",
 )
 
 _ready = False
 _ready_lock = threading.Lock()
+
+# Postgres wants true/false; SQLite stores booleans as 1/0.
+TRUE, FALSE = ("true", "false") if _pg else ("1", "0")
 
 
 def _ensure_schema():
@@ -324,6 +359,55 @@ def record_activity(player_id, last_seen, new_session=False):
           (player_id, day, seconds, starts, seconds, starts))
 
 
+# --- battle rooms ------------------------------------------------------------
+
+def _iso(dt):
+    return dt.isoformat()
+
+
+def open_room(game, stake):
+    """The open room for a game, created on demand."""
+    row = q(f"""select id, stake, closes_at from {R_TABLE}
+                where game = %s and settled = {FALSE} order by id desc limit 1""",
+            (game,), "one")
+    if row:
+        closes = _parse_ts(row[2])
+        n = q(f"select count(*) from {E_TABLE} where room_id = %s", (row[0],), "one")[0]
+        if (closes and closes > datetime.now(timezone.utc)) and n < ROOM_MAX_ENTRIES:
+            return row[0], row[1]
+    now = datetime.now(timezone.utc)
+    q(f"insert into {R_TABLE} (game, stake, created_at, closes_at) values (%s,%s,%s,%s)",
+      (game, stake, _iso(now), _iso(now + timedelta(hours=ROOM_HOURS))))
+    new = q(f"""select id, stake from {R_TABLE} where game = %s and settled = {FALSE}
+                order by id desc limit 1""", (game,), "one")
+    return new[0], new[1]
+
+
+def settle_rooms():
+    """Close any room past its deadline or full, and decide the winner.
+
+    A room with a single entry refunds that player rather than paying them a
+    pot of their own money — with a handful of friends playing, a room often
+    only gets one runner."""
+    now = datetime.now(timezone.utc)
+    rooms = q(f"select id, stake, closes_at from {R_TABLE} where settled = {FALSE}", (), "all") or []
+    for rid, stake, closes in rooms:
+        entries = q(f"""select player_id, ms from {E_TABLE}
+                        where room_id = %s and ms is not null order by ms asc""",
+                    (rid,), "all") or []
+        expired = _parse_ts(closes) and _parse_ts(closes) <= now
+        full = len(entries) >= ROOM_MAX_ENTRIES
+        if not expired and not full:
+            continue
+        if not entries:
+            q(f"update {R_TABLE} set settled = {TRUE}, paid = {TRUE} where id = %s", (rid,))
+            continue
+        winner, _best = entries[0]
+        pot = int(stake) * len(entries)
+        q(f"update {R_TABLE} set settled = {TRUE}, winner_id = %s, payout = %s where id = %s",
+          (winner, pot, rid))
+
+
 def summarise(state: dict):
     """Pull the handful of numbers the leaderboard shows out of a save."""
     if not isinstance(state, dict):
@@ -465,6 +549,43 @@ class Handler(BaseHTTPRequestHandler):
             return self.json(200, {"ok": True, "player": {"name": row[1]},
                                    "state": _json_out(row[2]), "rev": row[5] or 0,
                                    "now": int(time.time() * 1000)})
+        if route == "battle":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            settle_rooms()
+            me = row[0]
+            out = []
+            for g in ("quiz", "memory", "scramble", "fault"):
+                r = q(f"""select id, stake, closes_at from {R_TABLE}
+                          where game = %s and settled = {FALSE} order by id desc limit 1""",
+                      (g,), "one")
+                if not r:
+                    out.append({"game": g, "id": None, "entries": [], "pot": 0})
+                    continue
+                ents = q(f"""select display, ms, player_id from {E_TABLE}
+                             where room_id = %s order by (ms is null), ms asc""", (r[0],), "all") or []
+                out.append({
+                    "game": g, "id": r[0], "stake": int(r[1]),
+                    "closes": str(r[2]), "pot": int(r[1]) * len(ents),
+                    "entries": [{"name": e[0], "ms": e[1], "mine": e[2] == me} for e in ents],
+                    "joined": any(e[2] == me for e in ents),
+                    "played": any(e[2] == me and e[1] is not None for e in ents),
+                })
+            # anything won and not yet collected
+            wins = q(f"""select r.id, r.game, r.payout from {R_TABLE} r
+                         where r.winner_id = %s and r.settled = {TRUE} and r.paid = {FALSE}""",
+                     (me,), "all") or []
+            # recent results, so a room feels like it happened
+            past = q(f"""select r.game, r.payout, p.display from {R_TABLE} r
+                         join {P_TABLE} p on p.id = r.winner_id
+                         where r.settled = {TRUE} and r.winner_id is not null
+                         order by r.id desc limit 6""", (), "all") or []
+            return self.json(200, {"ok": True, "rooms": out,
+                                   "wins": [{"room": w[0], "game": w[1], "payout": int(w[2])} for w in wins],
+                                   "recent": [{"game": r0[0], "payout": int(r0[1]), "name": r0[2]} for r0 in past],
+                                   "now": int(time.time() * 1000)})
+
         if route == "leaderboard":
             rows = q(f"""select display, level, reputation, tickets, spec, art, updated_at
                          from {P_TABLE} order by reputation desc, tickets desc limit 50""",
@@ -518,6 +639,56 @@ class Handler(BaseHTTPRequestHandler):
                                    "state": _json_out(saved[0]) if saved else None,
                                    "rev": (saved[1] or 0) if saved else 0,
                                    "now": int(time.time() * 1000)})
+
+        if route == "battle-enter":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            game = str(data.get("game") or "")
+            stake = int(data.get("stake") or 0)
+            if game not in ("quiz", "memory", "scramble", "fault") or stake <= 0:
+                return self.fail(400, "That is not a room.")
+            settle_rooms()
+            rid, room_stake = open_room(game, stake)
+            existing = q(f"select ms from {E_TABLE} where room_id = %s and player_id = %s",
+                         (rid, row[0]), "one")
+            if existing:
+                return self.fail(409, "You have already entered this room. Wait for it to settle.")
+            q(f"""insert into {E_TABLE} (room_id, player_id, display, ms, played_at)
+                  values (%s,%s,%s,null,%s)""", (rid, row[0], row[1], _now_iso()))
+            return self.json(200, {"ok": True, "room": rid, "stake": int(room_stake)})
+
+        if route == "battle-score":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            rid = int(data.get("room") or 0)
+            ms = int(data.get("ms") or 0)
+            if ms < 1000 or ms > 60 * 60 * 1000:
+                return self.fail(400, "That run does not look real.")
+            got = q(f"select ms from {E_TABLE} where room_id = %s and player_id = %s",
+                    (rid, row[0]), "one")
+            if not got:
+                return self.fail(400, "You are not in that room.")
+            if got[0] is not None:
+                return self.fail(409, "You have already run this one.")
+            q(f"update {E_TABLE} set ms = %s, played_at = %s where room_id = %s and player_id = %s",
+              (ms, _now_iso(), rid, row[0]))
+            settle_rooms()
+            return self.json(200, {"ok": True})
+
+        if route == "battle-claim":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            rid = int(data.get("room") or 0)
+            r = q(f"""select payout from {R_TABLE}
+                      where id = %s and winner_id = %s and settled = {TRUE} and paid = {FALSE}""",
+                  (rid, row[0]), "one")
+            if not r:
+                return self.fail(409, "Nothing to collect there.")
+            q(f"update {R_TABLE} set paid = {TRUE} where id = %s", (rid,))
+            return self.json(200, {"ok": True, "payout": int(r[0])})
 
         if route == "logout":
             q(f"delete from {S_TABLE} where token = %s", (self.token(),))

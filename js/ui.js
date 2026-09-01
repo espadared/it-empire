@@ -909,34 +909,6 @@ const UI = (() => {
       <div style="height:14px"></div>`;
   }
 
-  /* ================= WORLD ================= */
-  function renderWorld() {
-    const S = Game.state;
-    $('#screen-world').innerHTML = `
-      <div class="sec-head"><h2>GLOBAL OPERATIONS</h2><span>REP ${f(S.reputation)}</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every office runs its own queue, its own people and its own disasters. Build reputation at home first — head office is watching.</p>
-      <div class="list">${DATA.WORLD.map(w => {
-      const open = S.reputation >= w.repReq;
-      return `<div class="card loc ${open ? 'open' : ''}">
-          <div class="flag">${w.icon}</div>
-          <div class="who"><h3>${esc(w.name)}</h3><div class="role">${esc(w.note)}</div></div>
-          <div class="tiny mono" style="color:${open ? 'var(--good)' : 'var(--muted)'};text-align:right">
-            ${w.repReq === 0 ? 'ACTIVE' : open ? 'READY<br><span style="color:var(--muted)">soon</span>' : '🔒 ' + f(w.repReq)}</div>
-        </div>`;
-    }).join('')}</div>
-      <div class="sec-head"><h2>DEPARTMENTS</h2></div>
-      <div class="list">${DATA.DEPARTMENTS.map(d => {
-      const open = S.reputation >= d.repReq;
-      const n = S.roster.filter(c => c.dept === d.id).length;
-      return `<div class="card" style="${open ? '' : 'opacity:.5'}">
-          <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">${d.icon}</div>
-          <div class="who"><h3>${esc(d.name)}</h3><div class="role">${esc(d.bonus)}</div>
-            <div class="tiny mono muted">${open ? n + ' assigned' : '🔒 ' + f(d.repReq) + ' REP'}</div></div>
-        </div>`;
-    }).join('')}</div>
-      <div style="height:14px"></div>`;
-  }
-
   /* ================= SCREEN SWITCH ================= */
   function show(name) {
     screen = name;
@@ -953,7 +925,7 @@ const UI = (() => {
     else if (screen === 'gear') renderGear();
     else if (screen === 'missions') renderMissions();
     else if (screen === 'rank') { loadBoard(); renderRanking(); }
-    else if (screen === 'world') renderWorld();
+    else if (screen === 'battle') { Battle.load(); Battle.render(); }
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,

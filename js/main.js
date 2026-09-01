@@ -417,7 +417,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -597,6 +597,12 @@
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.enter) return Battle.enter(d.enter, +d.stake);
+    if (d.play) return Battle.play(d.play, +d.room);
+    if (d.bq != null) return Battle.answerQuiz(+d.bq);
+    if (d.led != null) return Battle.pressLed(+d.led);
+    if (d.scram) return Battle.submitScramble();
+    if (d.fault != null) return Battle.pickFault(+d.fault);
     if (d.dispose) {
       const r = Game.disposeItem(d.dispose);
       if (r) { UI.beep('coin'); toast('♻️', 'DISPOSED', `${r.name} written off — ${f(r.back)} credits recovered.`); }

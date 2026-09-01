@@ -846,6 +846,73 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .grouphead i{font-style:normal;background:var(--panel);border:1px solid var(--line);border-radius:999px;
   padding:1px 7px;font-size:9px;color:var(--muted)}
 
+/* ============================================================
+   BATTLE — paid rooms and the games inside them
+   ============================================================ */
+.room{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);
+  border-radius:17px;padding:12px}
+.room-top{display:flex;align-items:center;gap:10px}
+.room-ico{width:44px;height:44px;flex:0 0 auto;border-radius:13px;background:var(--ink-2);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:22px}
+.room-top h3{font-family:var(--disp);font-weight:800;font-size:15px;margin:0;line-height:1.15}
+.room-sub{font-size:11px;color:var(--muted)}
+.room-sub b{color:var(--lamp);font-family:var(--mono)}
+.room-stake{text-align:right;flex:0 0 auto}
+.room-stake b{display:block;font-family:var(--mono);font-size:13px;color:var(--lamp)}
+.room-stake small{font-size:8.5px;color:var(--muted);letter-spacing:.05em}
+.room-blurb{margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.35;font-style:italic}
+.ladder{margin-top:9px;background:var(--ink-2);border:1px solid var(--line);border-radius:11px;padding:6px 8px}
+.ladder.empty-l{font-size:11px;color:var(--faint);text-align:center;padding:10px;font-style:italic}
+.lrow{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+.lrow.me{color:var(--lamp)}
+.lpos{font-family:var(--mono);font-size:10px;color:var(--muted);width:14px}
+.lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ltime{font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+.room-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.recent{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);padding:4px 0}
+.recent b{color:var(--text)}
+
+.bgame{padding:2px 0}
+.bg-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.bg-head h3{font-family:var(--disp);font-weight:800;font-size:16px;margin:0;text-align:left}
+.bg-sub{font-size:11px;color:var(--muted)}
+.bg-clock{font-family:var(--mono);font-size:17px;color:var(--lamp);margin-left:auto;
+  font-variant-numeric:tabular-nums;flex:0 0 auto}
+.bg-bar{height:4px;border-radius:2px;background:#0B0F1C;overflow:hidden;margin-bottom:12px}
+.bg-bar>span{display:block;height:100%;background:linear-gradient(90deg,#3FA9C9,var(--crt));transition:width .3s}
+.bq{font-family:var(--disp);font-weight:700;font-size:15px;line-height:1.35;margin:0 0 12px;text-align:left}
+.bopt{display:block;width:100%;text-align:left;border-radius:13px;padding:12px;margin-top:8px;
+  background:var(--panel);border:1px solid var(--line);font-family:var(--body);font-weight:600;
+  font-size:13.5px;line-height:1.3;transition:transform .07s,border-color .15s,background .15s}
+.bopt:active{transform:scale(.985)}
+.bopt.right{border-color:var(--good);background:rgba(95,211,122,.1);color:var(--good)}
+.bopt.wrong{border-color:var(--alarm);background:rgba(255,90,95,.1);color:var(--alarm)}
+.bopt:disabled{opacity:.85}
+.bg-note{margin:12px 0 0;font-size:10.5px;color:var(--faint);text-align:center;font-family:var(--mono)}
+
+.rack{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+.led-btn{height:62px;border-radius:14px;background:var(--ink-2);border:2px solid var(--line);
+  transition:all .12s}
+.led-btn.lit{background:radial-gradient(circle at 50% 40%,#DFFCF7,var(--crt));border-color:var(--crt);
+  box-shadow:0 0 22px rgba(79,214,201,.6)}
+.led-btn:not(:disabled):active{transform:scale(.95)}
+
+.scram{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+.scram span{width:34px;height:42px;border-radius:9px;background:var(--panel-3);border:1px solid var(--line);
+  display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:19px}
+.bg-input{width:100%;background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:12px;
+  color:var(--text);font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.08em;text-align:center}
+.bg-input:focus{outline:none;border-color:var(--crt)}
+.bg-input.bad{border-color:var(--alarm);animation:shake .4s}
+
+.cfg{background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:6px;overflow-x:auto}
+.cfgline{display:block;width:100%;text-align:left;font-family:var(--mono);font-size:11.5px;
+  padding:9px 10px;border-radius:8px;white-space:pre;color:var(--text);transition:background .12s}
+.cfgline:active{background:var(--panel-3)}
+.cfgline.right{background:rgba(95,211,122,.14);color:var(--good)}
+.cfgline.wrong{background:rgba(255,90,95,.12);color:var(--alarm);opacity:.6}
+.bigtime{font-family:var(--disp);font-weight:800;font-size:38px;text-align:center;color:var(--lamp);margin:6px 0}
+
 </style>
 <div id="app">
 
@@ -884,7 +951,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
     <section class="screen" id="screen-gear"></section>
     <section class="screen" id="screen-missions"></section>
     <section class="screen" id="screen-rank"></section>
-    <section class="screen" id="screen-world"></section>
+    <section class="screen" id="screen-battle"></section>
 
   </main>
 
@@ -894,7 +961,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
     <button data-screen="gear"><i>🎒</i>GEAR</button>
     <button data-screen="missions"><i>📋</i>MISSIONS<span class="badge" id="navBadge" style="display:none">0</span></button>
     <button data-screen="rank"><i>🏆</i>RANKING</button>
-    <button data-screen="world"><i>🌐</i>WORLD</button>
+    <button data-screen="battle"><i>⚔️</i>BATTLE</button>
   </nav>
 
 </div>
@@ -1836,6 +1903,167 @@ const CREATOR = {
 };
 DATA.CREATOR = CREATOR;
 DATA.spec = id => CREATOR.specs.find(s => s.id === id) || CREATOR.specs[0];
+
+/* ============================================================
+   IT EMPIRE — BATTLE CONTENT
+   Questions and puzzles for the competitive rooms. Pure data.
+   ============================================================ */
+const BATTLE = (() => {
+
+  /* Four rooms, four different things to be good at. Stakes are what it costs
+     to enter; the pot is every entry stake, and the best run takes it. */
+  const GAMES = [
+    { id:'quiz',     name:'Certification Exam', icon:'🎓', stake:5000,  rounds:10,
+      blurb:'Ten questions from the CompTIA and ITIL papers. Wrong answers cost you five seconds.',
+      unit:'time' },
+    { id:'memory',   name:'Rack Memory Rush',   icon:'💡', stake:3000,  rounds:8,
+      blurb:'The rack lights up. Repeat the sequence back. It gets longer every round.',
+      unit:'time' },
+    { id:'scramble', name:'Cable Scramble',     icon:'🔤', stake:3000,  rounds:8,
+      blurb:'Unscramble the term before the next one lands. A wrong guess costs five seconds.',
+      unit:'time' },
+    { id:'fault',    name:'Spot The Fault',     icon:'🔍', stake:4000,  rounds:6,
+      blurb:'Two configs, one difference. Find the line that changed.',
+      unit:'time' },
+  ];
+
+  const PENALTY_MS = 5000;          // what a wrong answer costs, everywhere
+
+  /* ---------- CERTIFICATION QUESTIONS ---------- */
+  const QUIZ = [
+    { q:'Which port does HTTPS use by default?', o:['80','443','8080','22'], a:1, src:'Network+' },
+    { q:'What does RAID 1 provide?', o:['Striping for speed','Mirroring for redundancy','Parity across three disks','Compression'], a:1, src:'A+' },
+    { q:'In ITIL, what is the goal of Incident Management?', o:['Find the root cause','Restore normal service as quickly as possible','Prevent all future incidents','Approve changes'], a:1, src:'ITIL' },
+    { q:'Which record type maps a hostname to an IPv4 address?', o:['MX','CNAME','A','TXT'], a:2, src:'Network+' },
+    { q:'What does the principle of least privilege mean?', o:['Everyone gets admin','Users get only the access their job needs','Passwords must be long','Only managers get accounts'], a:1, src:'Security+' },
+    { q:'A laptop posts but shows no display on an external monitor only. First check?', o:['Reinstall the OS','The input source and cable','The BIOS battery','The hard drive'], a:1, src:'A+' },
+    { q:'Which is a private IPv4 range?', o:['172.16.0.0/12','8.8.0.0/16','200.1.1.0/24','1.1.1.0/24'], a:0, src:'Network+' },
+    { q:'In ITIL, a Problem is best described as:', o:['Any user complaint','The unknown cause of one or more incidents','A failed change','A service request'], a:1, src:'ITIL' },
+    { q:'What does MFA add to a login?', o:['A longer password','A second, different kind of proof','Encryption of the session','A password manager'], a:1, src:'Security+' },
+    { q:'Which command shows the route packets take to a host?', o:['ping','tracert','netstat','ipconfig'], a:1, src:'Network+' },
+    { q:'A user reports "the internet is down" but can reach internal sites. Most likely?', o:['Their monitor','DNS or the gateway','Their keyboard','The printer'], a:1, src:'A+' },
+    { q:'What is the purpose of a change advisory board?', o:['To fix incidents','To assess and authorise changes','To answer the phones','To buy hardware'], a:1, src:'ITIL' },
+    { q:'Which of these is symmetric encryption?', o:['RSA','AES','ECC','Diffie-Hellman'], a:1, src:'Security+' },
+    { q:'DHCP hands out which of the following?', o:['MAC addresses','IP configuration','Usernames','Certificates'], a:1, src:'Network+' },
+    { q:'What does an SLA define?', o:['The hardware warranty','Agreed service targets between provider and customer','The password policy','The network topology'], a:1, src:'ITIL' },
+    { q:'A phishing email is best described as:', o:['Unsolicited advertising','A message designed to trick you into giving up access','A virus attachment','A denial of service'], a:1, src:'Security+' },
+    { q:'Which connector is used for standard twisted-pair Ethernet?', o:['RJ11','RJ45','BNC','SC'], a:1, src:'A+' },
+    { q:'What is the first step of the ITIL service lifecycle?', o:['Service Design','Service Strategy','Service Transition','Service Operation'], a:1, src:'ITIL' },
+    { q:'A switch operates primarily at which OSI layer?', o:['Layer 1','Layer 2','Layer 4','Layer 7'], a:1, src:'Network+' },
+    { q:'What does BitLocker protect?', o:['Email in transit','Data at rest on the drive','The BIOS password','Network traffic'], a:1, src:'Security+' },
+    { q:'Which memory type is used as system RAM in a modern desktop?', o:['DDR4','NAND','EEPROM','VRAM'], a:0, src:'A+' },
+    { q:'A "known error" in ITIL is:', o:['An incident nobody logged','A problem with a documented root cause and workaround','A failed backup','An unauthorised change'], a:1, src:'ITIL' },
+    { q:'What does VLAN segmentation primarily give you?', o:['Faster cables','Logical separation of traffic','More IP addresses','Better wifi range'], a:1, src:'Network+' },
+    { q:'Which is the strongest wireless security option listed?', o:['WEP','WPA','WPA2','WPA3'], a:3, src:'Security+' },
+    { q:'A user cannot print. Everyone else on the floor can. First check?', o:['Restart the print server','Their default printer and driver','Replace the printer','Reimage their laptop'], a:1, src:'A+' },
+    { q:'What is the purpose of a CMDB?', o:['To store passwords','To record configuration items and their relationships','To log network traffic','To schedule backups'], a:1, src:'ITIL' },
+    { q:'Which protocol securely replaces Telnet?', o:['FTP','SSH','SNMP','SMTP'], a:1, src:'Network+' },
+    { q:'Ransomware most commonly enters an organisation through:', o:['The firewall','Email and compromised credentials','The printer','DNS'], a:1, src:'Security+' },
+    { q:'What does a hypervisor do?', o:['Manages print queues','Runs and isolates virtual machines','Encrypts the disk','Routes packets'], a:1, src:'A+' },
+    { q:'A service request differs from an incident because:', o:['It is more urgent','Nothing is broken — the user wants something','It affects more people','It is logged by IT'], a:1, src:'ITIL' },
+    { q:'Which subnet mask matches a /24 network?', o:['255.255.0.0','255.255.255.0','255.255.255.128','255.0.0.0'], a:1, src:'Network+' },
+    { q:'What is the main risk of shadow IT?', o:['Higher licence costs only','Unmanaged systems holding company data','Slower wifi','More helpdesk tickets'], a:1, src:'Security+' },
+    { q:'Thermal paste is applied between:', o:['The PSU and the case','The CPU and its heatsink','The RAM and the board','The drive and the bay'], a:1, src:'A+' },
+    { q:'What does RPO measure in a backup plan?', o:['How long recovery takes','How much data you can afford to lose','How many tapes you keep','How often you test'], a:1, src:'ITIL' },
+    { q:'An IP address of 169.254.x.x usually means:', o:['A static address','DHCP failed and the host self-assigned','A public address','A VPN address'], a:1, src:'Network+' },
+    { q:'Which is an example of social engineering?', o:['A port scan','Someone phoning the helpdesk pretending to be the CFO','A buffer overflow','A DDoS'], a:1, src:'Security+' },
+    { q:'What does POST check when a PC starts?', o:['The network','Core hardware before the OS loads','The antivirus','User accounts'], a:1, src:'A+' },
+    { q:'Continual Service Improvement is mainly about:', o:['Buying newer hardware','Measuring and improving services over time','Closing tickets faster','Hiring more staff'], a:1, src:'ITIL' },
+    { q:'NAT primarily allows:', o:['Many private hosts to share a public address','Faster DNS','Encrypted email','Wireless roaming'], a:0, src:'Network+' },
+    { q:'A certificate warning on an internal site most often means:', o:['The site is hacked','An expired, self-signed or mismatched certificate','The user typed the wrong password','The firewall is down'], a:1, src:'Security+' },
+  ];
+
+  /* ---------- CABLE SCRAMBLE ---------- */
+  const SCRAMBLE = [
+    { w:'FIREWALL',   hint:'Blocks traffic it does not like' },
+    { w:'SUBNET',     hint:'A slice of a network' },
+    { w:'PHISHING',   hint:'Arrives by email, wants your password' },
+    { w:'BANDWIDTH',  hint:'How much you can push down the pipe' },
+    { w:'ENCRYPTION', hint:'Makes it unreadable without the key' },
+    { w:'LATENCY',    hint:'The delay everyone blames' },
+    { w:'ROUTER',     hint:'Decides where packets go next' },
+    { w:'BACKUP',     hint:'Worthless until you test the restore' },
+    { w:'MALWARE',    hint:'Software nobody asked for' },
+    { w:'PROTOCOL',   hint:'The agreed rules of a conversation' },
+    { w:'DOMAIN',     hint:'Where your login lives' },
+    { w:'PATCHING',   hint:'Tuesday is famous for it' },
+    { w:'DOWNTIME',   hint:'The thing the SLA is about' },
+    { w:'GATEWAY',    hint:'The way out of your network' },
+    { w:'INCIDENT',   hint:'Something is broken, restore it' },
+    { w:'HARDWARE',   hint:'The part you can drop' },
+    { w:'PASSWORD',   hint:'Written on a sticky note somewhere' },
+    { w:'SERVER',     hint:'It is always this, apparently' },
+    { w:'VIRTUAL',    hint:'Not a real machine, but it runs' },
+    { w:'DATABASE',   hint:'Where the records actually are' },
+    { w:'TICKET',     hint:'Your whole day, in a queue' },
+    { w:'NETWORK',    hint:'It is never this. Except when it is' },
+    { w:'STORAGE',    hint:'Always nearly full' },
+    { w:'MIGRATION',  hint:'A weekend you will not get back' },
+  ];
+
+  /* ---------- SPOT THE FAULT ----------
+     Two configs, identical but for one line. Find the line that changed. */
+  const FAULTS = [
+    { title:'Firewall rule set', lines:[
+      'allow tcp any -> 10.0.0.0/8 port 443',
+      'allow tcp any -> 10.0.0.0/8 port 80',
+      'deny  udp any -> any port 137',
+      'allow tcp 10.0.5.0/24 -> any port 22',
+      'deny  ip  any -> any log' ],
+      bad:3, was:'allow tcp 10.0.5.0/24 -> any port 22', now:'allow tcp any -> any port 22' },
+    { title:'DHCP scope', lines:[
+      'scope 10.20.0.0 mask 255.255.255.0',
+      'range 10.20.0.100 - 10.20.0.200',
+      'option router 10.20.0.1',
+      'option dns 10.20.0.5, 10.20.0.6',
+      'lease 8 days' ],
+      bad:2, was:'option router 10.20.0.1', now:'option router 10.20.1.1' },
+    { title:'Backup job', lines:[
+      'source  /srv/finance',
+      'target  nas01:/backups/finance',
+      'schedule daily 02:00',
+      'retention 30 days',
+      'verify  after each run' ],
+      bad:4, was:'verify  after each run', now:'verify  disabled' },
+    { title:'User account', lines:[
+      'sAMAccountName  j.tan',
+      'memberOf        Finance-Read',
+      'passwordNeverExpires  false',
+      'accountEnabled  true',
+      'mfaRegistered   true' ],
+      bad:1, was:'memberOf        Finance-Read', now:'memberOf        Domain Admins' },
+    { title:'Switch port', lines:[
+      'interface Gi1/0/12',
+      ' description  Meeting Room 4 AP',
+      ' switchport mode access',
+      ' switchport access vlan 40',
+      ' spanning-tree portfast' ],
+      bad:3, was:' switchport access vlan 40', now:' switchport access vlan 1' },
+    { title:'Web server TLS', lines:[
+      'ssl_protocols        TLSv1.2 TLSv1.3',
+      'ssl_certificate      /etc/ssl/live/fullchain.pem',
+      'ssl_prefer_server_ciphers  on',
+      'add_header  Strict-Transport-Security  max-age=31536000',
+      'ssl_session_timeout  10m' ],
+      bad:0, was:'ssl_protocols        TLSv1.2 TLSv1.3', now:'ssl_protocols        TLSv1 TLSv1.1' },
+    { title:'Mail connector', lines:[
+      'smarthost  smtp.corp.local',
+      'port       587',
+      'auth       required',
+      'tls        required',
+      'relay      authenticated only' ],
+      bad:4, was:'relay      authenticated only', now:'relay      open' },
+    { title:'VPN profile', lines:[
+      'protocol   IKEv2',
+      'split-tunnel  enabled',
+      'dns        10.0.0.5',
+      'idle-timeout  30m',
+      'certificate  machine' ],
+      bad:1, was:'split-tunnel  enabled', now:'split-tunnel  disabled' },
+  ];
+
+  return { GAMES, PENALTY_MS, QUIZ, SCRAMBLE, FAULTS };
+})();
 
 /* ============================================================
    IT EMPIRE — ART LAYER
@@ -4298,34 +4526,6 @@ const UI = (() => {
       <div style="height:14px"></div>`;
   }
 
-  /* ================= WORLD ================= */
-  function renderWorld() {
-    const S = Game.state;
-    $('#screen-world').innerHTML = `
-      <div class="sec-head"><h2>GLOBAL OPERATIONS</h2><span>REP ${f(S.reputation)}</span></div>
-      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Every office runs its own queue, its own people and its own disasters. Build reputation at home first — head office is watching.</p>
-      <div class="list">${DATA.WORLD.map(w => {
-      const open = S.reputation >= w.repReq;
-      return `<div class="card loc ${open ? 'open' : ''}">
-          <div class="flag">${w.icon}</div>
-          <div class="who"><h3>${esc(w.name)}</h3><div class="role">${esc(w.note)}</div></div>
-          <div class="tiny mono" style="color:${open ? 'var(--good)' : 'var(--muted)'};text-align:right">
-            ${w.repReq === 0 ? 'ACTIVE' : open ? 'READY<br><span style="color:var(--muted)">soon</span>' : '🔒 ' + f(w.repReq)}</div>
-        </div>`;
-    }).join('')}</div>
-      <div class="sec-head"><h2>DEPARTMENTS</h2></div>
-      <div class="list">${DATA.DEPARTMENTS.map(d => {
-      const open = S.reputation >= d.repReq;
-      const n = S.roster.filter(c => c.dept === d.id).length;
-      return `<div class="card" style="${open ? '' : 'opacity:.5'}">
-          <div class="avatar" style="display:grid;place-items:center;font-size:22px;background:var(--ink-2)">${d.icon}</div>
-          <div class="who"><h3>${esc(d.name)}</h3><div class="role">${esc(d.bonus)}</div>
-            <div class="tiny mono muted">${open ? n + ' assigned' : '🔒 ' + f(d.repReq) + ' REP'}</div></div>
-        </div>`;
-    }).join('')}</div>
-      <div style="height:14px"></div>`;
-  }
-
   /* ================= SCREEN SWITCH ================= */
   function show(name) {
     screen = name;
@@ -4342,7 +4542,7 @@ const UI = (() => {
     else if (screen === 'gear') renderGear();
     else if (screen === 'missions') renderMissions();
     else if (screen === 'rank') { loadBoard(); renderRanking(); }
-    else if (screen === 'world') renderWorld();
+    else if (screen === 'battle') { Battle.load(); Battle.render(); }
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
@@ -4351,6 +4551,314 @@ const UI = (() => {
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
            loadBoard, get screen() { return screen; }, rarColor, stars };
+})();
+
+/* ============================================================
+   IT EMPIRE — BATTLE
+   Paid rooms and the games played in them. Everyone runs the same
+   room on their own time and the best run takes the pot, so friends
+   never have to be online together.
+   ============================================================ */
+const Battle = (() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const f = Game.fmt;
+  const gameDef = id => BATTLE.GAMES.find(g => g.id === id);
+
+  let board = null, loading = false, run = null;
+
+  const ms2s = ms => (ms / 1000).toFixed(2) + 's';
+  const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+
+  async function api(path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const t = Net.token; if (t) headers.Authorization = 'Bearer ' + t;
+    const r = await fetch('api/' + path, { method: body ? 'POST' : 'GET', headers, body: body ? JSON.stringify(body) : undefined });
+    let j = {}; try { j = await r.json(); } catch (e) { }
+    return { ok: r.ok, status: r.status, ...j };
+  }
+
+  async function load(force) {
+    if (!Net.online || loading) return;
+    loading = true;
+    const r = await api('battle');
+    loading = false;
+    if (r.ok) { board = r; render(); collectWins(r.wins); }
+  }
+
+  /* Winning is claimed rather than pushed, because the credits live in the
+     save on this device, not on the server. */
+  async function collectWins(wins) {
+    if (!wins || !wins.length) return;
+    for (const w of wins) {
+      const r = await api('battle-claim', { room: w.room });
+      if (r.ok && r.payout) {
+        Game.state.credits += r.payout;
+        Game.save();
+        UI.beep('level');
+        UI.sheet(`<span class="big-emoji">🏆</span>
+          <h3>YOU TOOK THE POT</h3>
+          <p class="sub">${esc(gameDef(w.game) ? gameDef(w.game).name : w.game)}</p>
+          <p class="tiny muted" style="text-align:center">Nobody beat your run before the room closed.</p>
+          <div class="reward-line"><span class="rw-c">+${f(r.payout)} IT CREDITS</span></div>
+          <button class="btn gold cta" data-close="1">COLLECT</button>`);
+      }
+    }
+    load();
+  }
+
+  /* ---------------- ROOM LIST ---------------- */
+  function render() {
+    const el = $('#screen-battle'); if (!el) return;
+    if (!Net.online) {
+      el.innerHTML = `<div class="sec-head"><h2>BATTLE</h2></div>
+        <div class="empty"><span class="big">🏆</span>Battle rooms need an account — they are how you play against your friends. Sign in on the hosted game to take part.</div>`;
+      return;
+    }
+    if (!board) {
+      el.innerHTML = `<div class="sec-head"><h2>BATTLE</h2></div><div class="empty">Finding rooms…</div>`;
+      return;
+    }
+    const S = Game.state;
+    el.innerHTML = `
+      <div class="sec-head"><h2>BATTLE</h2><span>💰 ${f(S.credits)}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Pay to enter, run it whenever suits you, and the best time when the room closes takes every stake in it. Your friends are racing the same room on their own schedule.</p>
+      <div class="list">${board.rooms.map(r => {
+      const g = gameDef(r.game); if (!g) return '';
+      const mine = r.entries.find(e => e.mine);
+      const ranked = r.entries.filter(e => e.ms != null);
+      const closes = r.closes ? new Date(r.closes).getTime() - Date.now() : 0;
+      const canPay = S.credits >= (r.stake || g.stake);
+      return `<div class="room">
+          <div class="room-top">
+            <span class="room-ico">${g.icon}</span>
+            <div style="flex:1;min-width:0">
+              <h3>${esc(g.name)}</h3>
+              <div class="room-sub">${r.entries.length} in · pot <b>${f(r.pot || 0)}</b></div>
+            </div>
+            <div class="room-stake"><b>${f(r.stake || g.stake)}</b><small>to enter</small></div>
+          </div>
+          <p class="room-blurb">${esc(g.blurb)}</p>
+          ${ranked.length ? `<div class="ladder">${ranked.slice(0, 5).map((e, i) => `
+            <div class="lrow ${e.mine ? 'me' : ''}">
+              <span class="lpos">${i + 1}</span>
+              <span class="lname">${esc(e.name)}${e.mine ? ' · you' : ''}</span>
+              <span class="ltime">${ms2s(e.ms)}</span>
+            </div>`).join('')}</div>` : '<div class="ladder empty-l">No times posted yet. Set one.</div>'}
+          <div class="room-foot">
+            <span class="tiny muted">${!r.id ? 'opens when you enter'
+          : closes > 0 ? 'closes in ' + Game.fmtTime(closes / 1000) : 'settling now'}</span>
+            ${r.played ? `<span class="tiny" style="color:var(--good)">your time is in — ${ms2s(mine.ms)}</span>`
+          : r.joined ? `<button class="btn teal sm" data-play="${r.game}" data-room="${r.id}">PLAY YOUR RUN</button>`
+            : `<button class="btn gold sm ${canPay ? '' : 'off'}" data-enter="${r.game}" data-stake="${r.stake || g.stake}">ENTER · 💰${f(r.stake || g.stake)}</button>`}
+          </div>
+        </div>`;
+    }).join('')}</div>
+      ${board.recent && board.recent.length ? `
+        <div class="sec-head"><h2>RECENT WINNERS</h2></div>
+        <div class="list"><div class="card col">${board.recent.map(w => `
+          <div class="recent"><span>${(gameDef(w.game) || {}).icon || '🏆'}</span>
+            <b>${esc(w.name)}</b> took ${f(w.payout)} in ${esc((gameDef(w.game) || {}).name || w.game)}</div>`).join('')}
+        </div></div>` : ''}
+      <div style="height:14px"></div>`;
+  }
+
+  /* ---------------- ENTERING ---------------- */
+  async function enter(game, stake) {
+    const S = Game.state;
+    if (S.credits < stake) { UI.beep('fail'); return; }
+    const r = await api('battle-enter', { game, stake });
+    if (!r.ok) { UI.beep('fail'); return UI.sheet(`<h3>COULD NOT ENTER</h3><p class="sub">${esc(r.error || 'Try again.')}</p><button class="btn ghost cta" data-close="1">OK</button>`); }
+    S.credits -= stake;                     // the stake is committed
+    Game.save(); Net.flush(true);
+    UI.beep('coin');
+    await load();
+    play(game, r.room);
+  }
+
+  /* ---------------- THE GAMES ---------------- */
+  function frame(inner, opts = {}) {
+    UI.sheet(`<div class="bgame">${inner}</div>`, { dismiss: false, grab: false, live: true, ...opts });
+  }
+
+  function start(game, room, rounds) {
+    run = { game, room, rounds, i: 0, t0: performance.now(), penalty: 0, wrong: 0 };
+  }
+  const elapsed = () => Math.round(performance.now() - run.t0 + run.penalty);
+
+  async function finish() {
+    const ms = elapsed();
+    const r = await api('battle-score', { room: run.room, ms });
+    UI.beep(r.ok ? 'great' : 'fail');
+    const g = gameDef(run.game);
+    UI.sheet(`<span class="big-emoji">${g.icon}</span>
+      <h3>RUN COMPLETE</h3>
+      <p class="sub">${esc(g.name)}</p>
+      <div class="bigtime">${ms2s(ms)}</div>
+      ${run.wrong ? `<p class="tiny muted" style="text-align:center">${run.wrong} wrong · ${(run.penalty / 1000)}s of penalties included</p>`
+      : '<p class="tiny" style="text-align:center;color:var(--good)">Clean run — no penalties</p>'}
+      <p class="tiny muted" style="text-align:center">Your time is on the board. The pot pays out when the room closes.</p>
+      <button class="btn gold cta" data-close="1">DONE</button>`);
+    run = null;
+    load();
+  }
+
+  function penalise() {
+    run.penalty += BATTLE.PENALTY_MS; run.wrong++;
+    UI.beep('fail'); UI.shake();
+  }
+
+  function head(title, sub) {
+    return `<div class="bg-head"><div><h3>${esc(title)}</h3><div class="bg-sub">${esc(sub)}</div></div>
+      <div class="bg-clock" id="bgClock">0.0s</div></div>
+      <div class="bg-bar"><span style="width:${run.i / run.rounds * 100}%"></span></div>`;
+  }
+
+  /* --- 1. Certification exam --- */
+  function playQuiz() {
+    if (run.i >= run.rounds) return finish();
+    const q = run.set[run.i];
+    frame(`${head('Certification Exam', `Question ${run.i + 1} of ${run.rounds} · ${q.src}`)}
+      <p class="bq">${esc(q.q)}</p>
+      ${q.order.map((oi, n) => `<button class="bopt" data-bq="${n}">${esc(q.o[oi])}</button>`).join('')}
+      <p class="bg-note">A wrong answer costs five seconds.</p>`);
+  }
+  function answerQuiz(n) {
+    const q = run.set[run.i];
+    const correct = q.order[n] === q.a;
+    const btns = document.querySelectorAll('[data-bq]');
+    btns.forEach((b, k) => { if (q.order[k] === q.a) b.classList.add('right'); });
+    if (!correct) { btns[n].classList.add('wrong'); penalise(); } else UI.beep('ok');
+    btns.forEach(b => b.disabled = true);
+    setTimeout(() => { run.i++; playQuiz(); }, correct ? 320 : 900);
+  }
+
+  /* --- 2. Rack memory rush --- */
+  function playMemory() {
+    if (run.i >= run.rounds) return finish();
+    run.seq = run.seq || [];
+    run.seq.push(Math.floor(Math.random() * 6));
+    run.input = [];
+    frame(`${head('Rack Memory Rush', `Sequence ${run.i + 1} of ${run.rounds} · ${run.seq.length} lights`)}
+      <div class="rack">${Array.from({ length: 6 }, (_, k) =>
+      `<button class="led-btn" data-led="${k}" disabled></button>`).join('')}</div>
+      <p class="bg-note" id="memNote">Watch…</p>`);
+    showSequence();
+  }
+  function showSequence() {
+    const btns = [...document.querySelectorAll('[data-led]')];
+    let k = 0;
+    const step = () => {
+      if (k >= run.seq.length) {
+        btns.forEach(b => b.disabled = false);
+        const n = document.querySelector('#memNote'); if (n) n.textContent = 'Now repeat it';
+        return;
+      }
+      const b = btns[run.seq[k]];
+      if (b) { b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), 330); }
+      k++;
+      setTimeout(step, 480);
+    };
+    setTimeout(step, 420);
+  }
+  function pressLed(k) {
+    const btns = [...document.querySelectorAll('[data-led]')];
+    const b = btns[k]; if (b) { b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), 180); }
+    run.input.push(k);
+    const idx = run.input.length - 1;
+    if (run.input[idx] !== run.seq[idx]) {
+      penalise();
+      run.input = []; run.seq.pop();          // that round does not count, try again
+      btns.forEach(x => x.disabled = true);
+      setTimeout(() => playMemory(), 700);
+      return;
+    }
+    UI.beep('tap');
+    if (run.input.length === run.seq.length) {
+      btns.forEach(x => x.disabled = true);
+      run.i++;
+      setTimeout(() => playMemory(), 420);
+    }
+  }
+
+  /* --- 3. Cable scramble --- */
+  function playScramble() {
+    if (run.i >= run.rounds) return finish();
+    const item = run.set[run.i];
+    frame(`${head('Cable Scramble', `Term ${run.i + 1} of ${run.rounds}`)}
+      <div class="scram">${item.mixed.split('').map(ch => `<span>${ch}</span>`).join('')}</div>
+      <p class="bq" style="text-align:center;font-size:13px;color:var(--muted)">${esc(item.hint)}</p>
+      <input class="bg-input" id="scramIn" autocomplete="off" autocapitalize="characters"
+        spellcheck="false" placeholder="type the term">
+      <button class="btn teal cta" data-scram="1">SUBMIT</button>
+      <p class="bg-note">A wrong guess costs five seconds.</p>`);
+    setTimeout(() => { const i = document.querySelector('#scramIn'); if (i) i.focus(); }, 60);
+  }
+  function submitScramble() {
+    const el = document.querySelector('#scramIn'); if (!el) return;
+    const guess = (el.value || '').trim().toUpperCase();
+    if (!guess) return;
+    if (guess === run.set[run.i].w) { UI.beep('ok'); run.i++; playScramble(); }
+    else { penalise(); el.value = ''; el.classList.add('bad'); setTimeout(() => el.classList.remove('bad'), 400); }
+  }
+
+  /* --- 4. Spot the fault --- */
+  function playFault() {
+    if (run.i >= run.rounds) return finish();
+    const c = run.set[run.i];
+    frame(`${head('Spot The Fault', `Config ${run.i + 1} of ${run.rounds} · ${c.title}`)}
+      <p class="bq" style="font-size:12.5px;color:var(--muted)">One line was changed. Tap it.</p>
+      <div class="cfg">${c.shown.map((l, k) => `<button class="cfgline" data-fault="${k}">${esc(l)}</button>`).join('')}</div>
+      <p class="bg-note">A wrong pick costs five seconds.</p>`);
+  }
+  function pickFault(k) {
+    const c = run.set[run.i];
+    if (k === c.bad) {
+      UI.beep('ok');
+      const b = document.querySelector(`[data-fault="${k}"]`); if (b) b.classList.add('right');
+      run.i++; setTimeout(() => playFault(), 350);
+    } else {
+      penalise();
+      const b = document.querySelector(`[data-fault="${k}"]`);
+      if (b) { b.classList.add('wrong'); b.disabled = true; }
+    }
+  }
+
+  /* ---------------- LAUNCH ---------------- */
+  function play(game, room) {
+    const g = gameDef(game);
+    start(game, room, g.rounds);
+    if (game === 'quiz') {
+      run.set = shuffle(BATTLE.QUIZ).slice(0, g.rounds).map(q => ({ ...q, order: shuffle([0, 1, 2, 3]) }));
+      playQuiz();
+    } else if (game === 'memory') {
+      playMemory();
+    } else if (game === 'scramble') {
+      run.set = shuffle(BATTLE.SCRAMBLE).slice(0, g.rounds).map(s => {
+        let mixed = s.w;
+        while (mixed === s.w) mixed = shuffle(s.w.split('')).join('');
+        return { ...s, mixed };
+      });
+      playScramble();
+    } else if (game === 'fault') {
+      run.set = shuffle(BATTLE.FAULTS).slice(0, g.rounds).map(c => {
+        const shown = [...c.lines]; shown[c.bad] = c.now;
+        return { ...c, shown };
+      });
+      playFault();
+    }
+    tickClock();
+  }
+
+  function tickClock() {
+    const el = document.querySelector('#bgClock');
+    if (!el || !run) return;
+    el.textContent = ((performance.now() - run.t0 + run.penalty) / 1000).toFixed(1) + 's';
+    requestAnimationFrame(tickClock);
+  }
+
+  return { load, render, enter, play, answerQuiz, pressLed, submitScramble, pickFault,
+           get running() { return !!run; } };
 })();
 
 /* ============================================================
@@ -4951,7 +5459,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -5131,6 +5639,12 @@ const Onboard = (() => {
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.enter) return Battle.enter(d.enter, +d.stake);
+    if (d.play) return Battle.play(d.play, +d.room);
+    if (d.bq != null) return Battle.answerQuiz(+d.bq);
+    if (d.led != null) return Battle.pressLed(+d.led);
+    if (d.scram) return Battle.submitScramble();
+    if (d.fault != null) return Battle.pickFault(+d.fault);
     if (d.dispose) {
       const r = Game.disposeItem(d.dispose);
       if (r) { UI.beep('coin'); toast('♻️', 'DISPOSED', `${r.name} written off — ${f(r.back)} credits recovered.`); }
