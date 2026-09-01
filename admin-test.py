@@ -72,6 +72,10 @@ def main():
     tmp = Path(tempfile.mkdtemp()) / "admin-test.db"
     os.environ.update({"PORT": str(PORT), "ADMIN_EMAIL": "owner@test.local",
                        "ADMIN_PASSWORD": BOOT_PW})
+    # DATABASE_URL in the environment runs the whole suite against Postgres,
+    # which is what production uses. Without it the run falls back to SQLite.
+    if os.environ.get("DATABASE_URL"):
+        print(f"(running against Postgres)\n")
     sys.path.insert(0, str(Path(__file__).parent))
     import server
     server._sqlite_path = tmp                 # never touch the developer's own database

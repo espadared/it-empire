@@ -213,13 +213,35 @@ def _schema(pg):
 
 def install(runner, tables, hasher, checker, is_pg):
     global q, P_TABLE, S_TABLE, A_TABLE, hash_password, check_password, _is_pg
+    global _DUMMY_HASH
     q = runner
     P_TABLE, S_TABLE, A_TABLE = tables
     hash_password, check_password = hasher, checker
     _is_pg = is_pg
+    _DUMMY_HASH = hasher(secrets.token_urlsafe(32))
+
+
+_schema_ready = False
+_schema_lock = threading.Lock()
 
 
 def ensure_schema():
+    """Build the tables once per process.
+
+    handle() calls this on every request so a cold or replaced database heals
+    itself, but without this guard that meant a dozen DDL round trips and a
+    bootstrap check on each one — slow against a hosted database, and it filled
+    the log with the same line over and over.
+    """
+    global _schema_ready
+    with _schema_lock:
+        if _schema_ready:
+            return
+        _build_schema()
+        _schema_ready = True
+
+
+def _build_schema():
     for stmt in _schema(_is_pg):
         q(stmt)
     # the player table predates any notion of an account being anything other
@@ -238,26 +260,93 @@ def ensure_schema():
 
 
 def _bootstrap():
-    """Create the first super admin from the environment, once.
+    """Create — or recover — the first super admin from the environment.
 
-    The password is never generated here and never printed. Whoever deploys
-    the service supplies it, and the account is flagged so that the first
-    successful sign-in has to replace it.
+    The password is never generated here and never printed. Whoever deploys the
+    service supplies it, and the account is flagged so the first sign-in has to
+    replace it.
+
+    Recovery matters as much as creation. If the only administrator's password
+    is wrong, forgotten, or the account is locked, there is otherwise no way
+    back into the console at all. Setting ADMIN_RESET alongside the other two
+    repairs the named account. That is safe because anyone who can set
+    environment variables already controls the deployment; it is gated behind
+    an explicit flag only so an ordinary redeploy never silently reverts a
+    password somebody chose.
+
+    Everything it does is printed, because Render's log tab is the one place an
+    operator can look when they cannot get in.
     """
     import os
     email = (os.environ.get("ADMIN_EMAIL") or "").strip().lower()
     pw = os.environ.get("ADMIN_PASSWORD") or ""
+    reset = (os.environ.get("ADMIN_RESET") or "").strip().lower() in ("1", "true", "yes", "on")
+
+    def say(msg):
+        print(f"[admin] {msg}", flush=True)
+
     if not email or not pw:
+        row = q(f"select count(*) from {AD_TABLE}", (), "one")
+        if not (row and row[0]):
+            say("no administrator exists and ADMIN_EMAIL / ADMIN_PASSWORD are "
+                "not set — the console cannot be signed into yet")
         return
-    row = q(f"select count(*) from {AD_TABLE}", (), "one")
-    if row and row[0]:
+
+    total = (q(f"select count(*) from {AD_TABLE}", (), "one") or [0])[0]
+    existing = _admin_by_email(email)
+
+    if not total:
+        q(f"""insert into {AD_TABLE} (email, name, pw, role, active, must_change,
+                                      created_at)
+              values (%s, %s, %s, 'SUPER_ADMIN', %s, %s, %s)""",
+          (email, email.split("@")[0][:40] or "Owner", hash_password(pw),
+           _true(), _true(), _now()))
+        say(f"created the first administrator: {email}")
+        _audit(None, "Bootstrapped the first super admin", target_type="admin",
+               target_name=email, reason="ADMIN_EMAIL set in the environment")
         return
-    q(f"""insert into {AD_TABLE} (email, name, pw, role, active, must_change, created_at)
-          values (%s, %s, %s, 'SUPER_ADMIN', {'true' if _is_pg else '1'},
-                  {'true' if _is_pg else '1'}, %s)""",
-      (email, email.split("@")[0][:40] or "Owner", hash_password(pw), _now()))
-    _audit(None, "Bootstrapped the first super admin", target_type="admin",
-           target_name=email, reason="ADMIN_EMAIL set in the environment")
+
+    if existing and reset:
+        q(f"""update {AD_TABLE} set pw = %s, must_change = %s, failed = 0,
+                  locked_until = null, active = %s where id = %s""",
+          (hash_password(pw), _true(), _true(), existing["id"]))
+        q(f"delete from {AS_TABLE} where admin_id = %s", (existing["id"],))
+        say(f"ADMIN_RESET: reset the password for {email} and cleared any lock. "
+            f"Remove ADMIN_RESET and ADMIN_PASSWORD once you are back in.")
+        _audit(None, "Password reset from the environment", target_type="admin",
+               target_id=existing["id"], target_name=email,
+               reason="ADMIN_RESET set in the environment")
+        return
+
+    if existing:
+        locked = _dt(existing["locked_until"])
+        state = []
+        if not existing["active"]:
+            state.append("DISABLED")
+        if locked and locked > datetime.now(timezone.utc):
+            state.append(f"LOCKED until {locked:%H:%M} UTC")
+        if existing["must_change"]:
+            state.append("must change password")
+        say(f"administrator {email} already exists"
+            + (f" ({', '.join(state)})" if state else "")
+            + " — ADMIN_PASSWORD is ignored. Set ADMIN_RESET=1 to reset it.")
+        return
+
+    if reset:
+        q(f"""insert into {AD_TABLE} (email, name, pw, role, active, must_change,
+                                      created_at)
+              values (%s, %s, %s, 'SUPER_ADMIN', %s, %s, %s)""",
+          (email, email.split("@")[0][:40] or "Owner", hash_password(pw),
+           _true(), _true(), _now()))
+        say(f"ADMIN_RESET: created a new super admin {email}")
+        _audit(None, "Super admin created from the environment", target_type="admin",
+               target_name=email, reason="ADMIN_RESET set in the environment")
+        return
+
+    others = q(f"select email from {AD_TABLE} order by id limit 5", (), "all") or []
+    say(f"{total} administrator(s) exist but {email} is not one of them "
+        f"(existing: {', '.join(r[0] for r in others)}). "
+        f"Set ADMIN_RESET=1 to create it, or sign in as one of those.")
 
 
 # --- small helpers ----------------------------------------------------------
@@ -358,6 +447,10 @@ def snapshot(player_id, reason, admin_name=None):
 
 _fails = {}
 _fails_lock = threading.Lock()
+
+# A real hash of a value nobody knows, used only to burn the same time a
+# genuine password check would when there is no account to check against.
+_DUMMY_HASH = None
 
 
 def _rate_limited(ip):
@@ -461,6 +554,11 @@ def _login(body, ip, ua):
         return 401, {"error": "Those details were not recognised."}
 
     if not admin or not admin["active"]:
+        # Spend the same time hashing as a real check would, so the reply for
+        # an unknown address is not measurably faster than one for a real
+        # account with the wrong password. Without this the form answers "does
+        # this person administer the game?" to anyone holding a stopwatch.
+        check_password(password, _DUMMY_HASH)
         if admin:
             _audit(None, "Sign-in refused (account disabled)", target_type="admin",
                    target_name=email, ip=ip)

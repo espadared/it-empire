@@ -173,7 +173,26 @@ ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=<a long one you choose>
 ```
 
-Both are read once. If an administrator already exists, they are ignored.
+Both are read once, and **only when no administrator exists yet**. Editing
+`ADMIN_PASSWORD` later does nothing — the account already has a password, and a
+redeploy will not overwrite somebody's chosen one.
+
+If you cannot get in — wrong password, forgotten, locked out after repeated
+attempts, or the email does not match the account — add a third variable to
+repair the named account on the next deploy:
+
+```
+ADMIN_RESET=1
+```
+
+That resets the password to whatever `ADMIN_PASSWORD` currently is, clears any
+lockout, and forces a fresh password at the next sign-in. Remove `ADMIN_RESET`
+and `ADMIN_PASSWORD` once you are back in. It is gated behind the flag so an
+ordinary redeploy never silently reverts a password.
+
+The service log says on every start what it did — created the account, ignored
+the variables because it already exists (and whether that account is locked),
+or which accounts do exist if the email matches none of them.
 
 **Roles.** Super admin, game admin, customer support, content admin and
 analyst. Permissions are individual strings; roles are a bundle of them, and
