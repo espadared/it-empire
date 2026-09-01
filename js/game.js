@@ -643,6 +643,16 @@ const Game = (() => {
         detail: 'Unposted staff still work the queue, but they earn nothing extra. A posting that suits them can be worth half again.',
         action: 'autopost', label: 'POST THEM WHERE THEY FIT' };
 
+    const dc = deptCover();
+    if (!dc.complete && S.roster.filter(c => c.uid !== S.activeId).length >= dc.open) {
+      const dark = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq
+        && !S.roster.some(c => c.dept === d.id && c.uid !== S.activeId));
+      return { icon: dark[0].icon, tone: 'warn',
+        title: `${dark.length} department${dark.length > 1 ? 's have' : ' has'} nobody in ${dark.length > 1 ? 'them' : 'it'}`,
+        detail: `${dark.map(d => d.name).join(' and ')} produce nothing while empty, and staffing every department is worth a bonus on top of each one.`,
+        action: 'autopost', label: 'SPREAD THE TEAM OUT' };
+    }
+
     const bad = misplaced();
     if (bad.length)
       return { icon: '🔀', tone: 'warn', title: `${bad.length} ${bad.length > 1 ? 'are' : 'is'} in the wrong department`,
@@ -768,16 +778,45 @@ const Game = (() => {
 
   /* One move that posts everybody sensibly. The strategy is who you hire and
      who you develop; remembering to tap nine people is just admin. */
+  /* Post everybody sensibly. Cover first, then fit: every open department gets
+     its best available candidate before anyone gets their personal favourite,
+     because an empty department is worth nothing to anybody. */
   function autoPost() {
     const before = idlePerSec().c * 3600;
-    let moved = 0;
-    S.roster.forEach(c => {
-      if (c.uid === S.activeId) return;
+    const crew = S.roster.filter(c => c.uid !== S.activeId);
+    const open = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
+    const taken = new Set();
+    const plan = new Map();
+
+    // one pass to light up every department, best-suited candidate first
+    open.forEach(() => {
+      let pick = null;
+      open.forEach(d => {
+        if ([...plan.values()].includes(d.id)) return;
+        crew.forEach(c => {
+          if (taken.has(c.uid)) return;
+          const fit = deptFit(c, d);
+          if (!pick || fit > pick.fit) pick = { c, d, fit };
+        });
+      });
+      if (pick) { plan.set(pick.c.uid, pick.d.id); taken.add(pick.c.uid); }
+    });
+
+    // everybody else goes where they personally do best
+    crew.forEach(c => {
+      if (taken.has(c.uid)) return;
       const b = bestDept(c);
-      if (b && c.dept !== b.dept.id) { c.dept = b.dept.id; moved++; }
+      if (b) plan.set(c.uid, b.dept.id);
+    });
+
+    let moved = 0;
+    crew.forEach(c => {
+      const to = plan.get(c.uid);
+      if (to && c.dept !== to) { c.dept = to; moved++; }
     });
     emit('change');
-    return { moved, before: Math.round(before), after: Math.round(idlePerSec().c * 3600) };
+    return { moved, before: Math.round(before), after: Math.round(idlePerSec().c * 3600),
+             cover: deptCover() };
   }
 
   /* Anyone sitting in a department that does not suit them. */
@@ -808,6 +847,19 @@ const Game = (() => {
   /* What one person actually contributes per minute, posting included. */
   /* A mixed department works better than a monoculture. Every distinct role on
      the payroll lifts the whole automated queue. */
+  /* A department with nobody in it is a room you are paying for and not using.
+     Each one staffed lifts the whole floor, and running all four lifts it
+     again — so there is a reason to spread out, not only to specialise. */
+  function deptCover() {
+    const open = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
+    const staffed = open.filter(d => S.roster.some(c => c.dept === d.id && c.uid !== S.activeId));
+    const complete = open.length > 0 && staffed.length === open.length;
+    return {
+      staffed: staffed.length, open: open.length, complete,
+      mult: 1 + staffed.length * 0.07 + (complete && open.length >= 2 ? 0.20 : 0),
+    };
+  }
+
   function roleSpread() {
     const all = Object.keys(DATA.ROLES).length;
     const roles = new Set(S.roster.map(c => def(c.defId).roleKey || 'TECHNICIAN'));
@@ -821,11 +873,11 @@ const Game = (() => {
   }
 
   function staffOutput(c) {
-    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4) * roleSpread().mult;
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4) * roleSpread().mult * deptCover().mult;
     return {
       rate,
       credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
-      xp: rate * idleXpPerTicket(),
+      xp: rate * idleXpPerTicket() * deptBoost(c, 'xp'),
       rep: rate * 0.035 * bonus('rep') * deptBoost(c, 'reputation'),
     };
   }
@@ -1292,7 +1344,7 @@ const Game = (() => {
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
     chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
-    bestDept, autoPost, misplaced, unposted, isPromotion, advice,
+    bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
     retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,

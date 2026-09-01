@@ -524,19 +524,28 @@ const UI = (() => {
         <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
       </div>
       ${(() => {
-        const sp = Game.roleSpread();
-        const have = new Set(S.roster.map(c => Game.roleOf(c).key));
-        return `<div class="spread-strip ${sp.complete ? 'full' : ''}">
-          <div class="spread-roles">
-            ${Object.values(DATA.ROLES).map(r => `<span class="rdot ${have.has(r.key) ? 'on' : ''}"
-              style="${have.has(r.key) ? `color:${r.colour};border-color:${r.colour}55;background:${r.colour}14` : ''}"
-              title="${esc(r.name)}">${r.icon}</span>`).join('')}
-          </div>
-          <div class="spread-txt">
-            <b>${sp.roles}/${sp.of} roles covered</b>
-            <span>${sp.complete ? 'full cover — +25% bonus on top' : 'a department that can do everything earns more'}</span>
-          </div>
-          <div class="spread-mult">×${sp.mult.toFixed(2)}</div>
+        const sp = Game.roleSpread(), dc = Game.deptCover();
+        const haveRoles = new Set(S.roster.map(c => Game.roleOf(c).key));
+        const openDepts = DATA.DEPARTMENTS.filter(d => S.reputation >= d.repReq);
+        const staffed = new Set(S.roster.filter(c => c.dept && c.uid !== S.activeId).map(c => c.dept));
+        const row = (label, items, done, mult, hint) => `
+          <div class="cover-row ${done ? 'full' : ''}">
+            <span class="cover-lbl">${label}</span>
+            <div class="cover-dots">${items}</div>
+            <span class="cover-mult">×${mult.toFixed(2)}</span>
+          </div>`;
+        return `<div class="cover-card">
+          ${row('ROLES',
+          Object.values(DATA.ROLES).map(r => `<span class="rdot ${haveRoles.has(r.key) ? 'on' : ''}"
+            style="${haveRoles.has(r.key) ? `color:${r.colour};border-color:${r.colour}55;background:${r.colour}14` : ''}"
+            title="${esc(r.name)}">${r.icon}</span>`).join(''), sp.complete, sp.mult)}
+          ${row('DEPARTMENTS',
+          openDepts.map(d => `<span class="rdot ${staffed.has(d.id) ? 'on' : ''}"
+            style="${staffed.has(d.id) ? 'color:var(--crt);border-color:var(--crt-dim);background:rgba(79,214,201,.12)' : ''}"
+            title="${esc(d.name)}">${d.icon}</span>`).join(''), dc.complete, dc.mult)}
+          <p class="cover-note">${sp.complete && dc.complete
+            ? 'Every role hired and every department staffed — both bonuses are running.'
+            : `${sp.complete ? '' : `Missing ${sp.of - sp.roles} role${sp.of - sp.roles > 1 ? 's' : ''}. `}${dc.complete ? '' : `${dc.open - dc.staffed} department${dc.open - dc.staffed > 1 ? 's' : ''} with nobody in ${dc.open - dc.staffed > 1 ? 'them' : 'it'}.`}`}</p>
         </div>`;
       })()}
       ${chapterPanel}

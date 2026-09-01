@@ -857,10 +857,11 @@ const DATA = (() => {
       effect:'reputation', per:0.90,
       bonus:'+90% idle reputation',
       blurb:'Quietly making you look good upstairs.' },
-    { id:'auto',     name:'Automation',     icon:'🤖', stat:'AUTOMATION',    repReq:2500,
-      effect:'rate', per:0.50,
-      bonus:'+50% tickets an hour',
-      blurb:'Scripts that work the queue while everyone sleeps.' },
+    { id:'auto',     name:'Automation',     icon:'🤖', stat:'AUTOMATION',
+      stats:['AUTOMATION'], repReq:2500,
+      effect:'xp', per:0.85,
+      bonus:'+85% experience from the queue',
+      blurb:'Scripts that work all night, and a team that learns from every one of them.' },
   ];
 
   /* ---------- MISSIONS ---------- */

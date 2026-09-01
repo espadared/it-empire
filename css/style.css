@@ -1006,3 +1006,15 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   display:flex;justify-content:center;gap:14px;margin-top:12px;font-family:var(--mono);font-size:11.5px;
   color:var(--muted);flex-wrap:wrap;
 }
+
+/* roles hired and departments staffed, side by side */
+.cover-card{margin:8px 12px 0;padding:10px 11px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px}
+.cover-row{display:flex;align-items:center;gap:9px;padding:4px 0}
+.cover-lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--muted);
+  width:74px;flex:0 0 auto}
+.cover-dots{display:flex;gap:4px;flex:1;min-width:0}
+.cover-mult{font-family:var(--mono);font-size:12.5px;color:var(--muted);flex:0 0 auto}
+.cover-row.full .cover-mult{color:var(--lamp)}
+.cover-note{margin:6px 0 0;padding-top:7px;border-top:1px dashed var(--line);
+  font-size:10.5px;color:var(--muted);line-height:1.35}
