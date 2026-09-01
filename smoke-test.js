@@ -113,6 +113,19 @@ check('missions include a hard tier', () => {
   Game.rollMissions();
   if (!Game.state.missions.some(m => m.tier === 'hard')) throw new Error('no hard mission rolled');
 });
+check('the level buttons never promise what they will not spend', () => {
+  const G = Game.state;
+  const c = G.roster.find(x => x.defId !== 'hero') || G.roster[0];
+  for (let l = 1; l < Game.maxStaffLevel(); l++) {
+    c.level = l; c.xp = 1e9; G.credits = 1e12;
+    const promised = Game.levelsReady(c);
+    const delivered = (Game.levelUpMax(c.uid) || { gained: 0 }).gained;
+    if (promised !== delivered)
+      throw new Error(`L${l}: button offers ${promised} levels but spends ${delivered}`);
+    if (Game.isPromotion(l) && promised !== 0)
+      throw new Error(`L${l} is a rank wall but the bulk button still offered ${promised}`);
+  }
+});
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
 console.log(fails ? '\n' + fails + ' FAILURES' : '\nall paths clean');

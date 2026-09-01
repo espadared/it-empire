@@ -559,16 +559,20 @@ const Game = (() => {
     return gained ? { gained, from, to: c.level, spent: credits0 - S.credits } : null;
   }
 
-  /* How many levels are available before the next rank wall. */
+  /* How many plain levels are available before the next rank wall. This has to
+     agree exactly with what levelUpMax will actually do, or the button
+     advertises levels it then refuses to spend. Standing ON a wall means zero
+     plain levels are available — only the promotion, which is its own button. */
   function levelsReady(c) {
     if (!c || atMaxLevel(c)) return 0;
+    if (isPromotion(c.level)) return 0;
     let lvl = c.level, xp = c.xp, credits = S.credits, n = 0;
     while (n < 200 && lvl < maxStaffLevel()) {
-      if (isPromotion(lvl) && n > 0) break;     // stop before a rank wall
       const need = charXpNeed(lvl);
-      const cost = Math.floor(90 * Math.pow(lvl, 1.65) * DATA.RARITY[c.rarity].mult * (isPromotion(lvl) ? 4 : 1));
+      const cost = Math.floor(90 * Math.pow(lvl, 1.65) * DATA.RARITY[c.rarity].mult);
       if (xp < need || credits < cost) break;
       xp -= need; credits -= cost; lvl++; n++;
+      if (isPromotion(lvl)) break;              // arrived at the next wall
     }
     return n;
   }

@@ -526,13 +526,19 @@
       return UI.refresh();
     }
     if (d.levelup) {
+      const c = Game.state.roster.find(x => x.uid === d.levelup);
+      // Note these BEFORE levelling: a promotion opens its own card, which is
+      // also a .sheet, so afterwards we cannot tell it apart from the character
+      // sheet the player may have been reading.
+      const sheetWasOpen = !!document.querySelector('#modal.on');
+      const rankBefore = c ? Game.rankOf(c).name : null;
       const ok = Game.levelUpChar(d.levelup);
+      const promoted = ok && c && Game.rankOf(c).name !== rankBefore;
       if (ok) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 14); }
       else {
         UI.beep('fail');
-        const c = Game.state.roster.find(x => x.uid === d.levelup);
         if (c && Game.atMaxLevel(c)) {
-          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${DATA.MAX_CHAR_LEVEL} — as far as anyone goes.`);
+          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${Game.maxStaffLevel()} — as far as this chapter allows.`);
           return;
         }
         const short = c && (c.xp < Game.charXpNeed(c.level)
@@ -541,7 +547,8 @@
         toast('📈', 'NOT READY YET', short || 'Needs more XP or credits.');
       }
       UI.refresh();
-      if (document.querySelector('.sheet') && ok) UI.charSheet(d.levelup);
+      // Never replace the promotion card with the character sheet.
+      if (sheetWasOpen && ok && !promoted) UI.charSheet(d.levelup);
       return;
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
@@ -639,6 +646,7 @@
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
     }
     if (d.levelmax) {
+      const sheetWasOpen = !!document.querySelector('#modal.on');
       const c = Game.state.roster.find(x => x.uid === d.levelmax);
       const r = Game.levelUpMax(d.levelmax);
       if (!r) { UI.beep('fail'); return toast('📈', 'NOT READY YET', 'Not enough experience or budget for another level.'); }
@@ -651,7 +659,7 @@
           ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
           : `${r.gained} levels for ${f(r.spent)} credits.`);
       UI.refresh();
-      if (document.querySelector('.sheet')) UI.charSheet(d.levelmax);
+      if (sheetWasOpen) UI.charSheet(d.levelmax);
       return;
     }
     if (d.upgrade) {
