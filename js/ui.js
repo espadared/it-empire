@@ -321,12 +321,14 @@ const UI = (() => {
   /* Two ways to look at the same people: a sortable roster, or the department
      board showing who is posted where. View and sort are per-device taste, so
      they live in localStorage rather than the save. */
-  let staffView = 'list', staffSort = 'power';
+  let staffView = 'list', staffSort = 'power', gearSort = 'rarity';
   try {
     staffView = localStorage.getItem('ie-staff-view') || 'list';
     staffSort = localStorage.getItem('ie-staff-sort') || 'power';
+    gearSort = localStorage.getItem('ie-gear-sort') || 'rarity';
   } catch (e) { }
   function setStaffView(v) { staffView = v; try { localStorage.setItem('ie-staff-view', v); } catch (e) { } renderStaff(); }
+  function setGearSort(v) { gearSort = v; try { localStorage.setItem('ie-gear-sort', v); } catch (e) { } renderGear(); }
   function setStaffSort(v) { staffSort = v; try { localStorage.setItem('ie-staff-sort', v); } catch (e) { } renderStaff(); }
 
   const SORTS = [
@@ -365,26 +367,32 @@ const UI = (() => {
     const S = Game.state, d = Game.def(c.defId), isActive = c.uid === S.activeId;
     const need = Game.charXpNeed(c.level), can = Game.canLevel(c);
     const o = Game.staffOutput(c);
-    return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
+    const rank = Game.rankOf(c), role = Game.roleOf(c);
+    const maxed = Game.atMaxLevel(c);
+    return `<div class="card col staffcard" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
-        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv${Game.atMaxLevel(c) ? ' max' : ''}">L${c.level}</span></div>
+        <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
           <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
-          <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
-          <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          <div class="rankline" style="color:${rank.colour}">${esc(rank.name)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
+          <div class="badges">
+            <span class="rolechip" style="color:${role.colour};border-color:${role.colour}44;background:${role.colour}14">${role.icon} ${role.name}</span>
+            <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          </div>
         </div>
         <div style="text-align:right">
           <div class="pw">⚡ ${f(Game.charPower(c))}</div>
           <div class="tiny muted mono">${isActive ? 'your tickets' : f(o.credits * 3600) + ' cr/hr'}</div>
         </div>
       </div>
+      <div class="tiny muted" style="margin-top:6px">${esc(role.perk)}</div>
       <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
       <div class="row" style="margin-top:8px">
-        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${Game.atMaxLevel(c) ? 'MAX' : 'LV UP'}</button>
+        <div class="pbar ${maxed ? 'gold' : ''}" style="flex:1"><span style="width:${maxed ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${maxed ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
+        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : 'LV UP'}</button>
       </div>
-      ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
+      ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)}${maxed ? '' : ` to reach LV.${c.level + 1}`}</div>`}
     </div>`;
   }
 
@@ -444,12 +452,60 @@ const UI = (() => {
         </div>
         <div style="text-align:right">
           ${locked ? `<div class="tiny mono" style="color:var(--alarm)">🔒 ${f(d.repReq)} REP</div>`
+          : Game.atCapacity() ? `<div class="tiny mono" style="color:var(--alarm)">NO DESK FREE</div>`
           : `<button class="btn gold sm ${S.credits < cost ? 'off' : ''}" data-hire="${d.id}">💰 ${f(cost)}</button>`}
         </div>
       </div>`;
     }).join('');
 
+    const ch = Game.chapter(), objs = Game.chapterProgress();
+    const canPromote = Game.canPromoteChapter();
+    const cap = Game.capacity(), grade = Game.deptGrade();
+
+    const chapterPanel = `
+      <div class="chapter ${canPromote ? 'ready' : ''}">
+        <div class="chapter-top">
+          <span class="chapter-ico">${ch.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div class="chapter-n">CHAPTER ${ch.n} OF ${DATA.CHAPTERS.length}</div>
+            <h3>${esc(ch.name)}</h3>
+          </div>
+          <div class="chapter-caps">
+            <div>staff to <b>L${Game.maxStaffLevel()}</b></div>
+            <div><b>${cap}</b> desks</div>
+          </div>
+        </div>
+        <p class="chapter-goal">${esc(ch.goal)}</p>
+        <div class="objs">${objs.map(o => `
+          <div class="obj ${o.done ? 'done' : ''}">
+            <span class="obj-tick">${o.done ? '✓' : ''}</span>
+            <div style="flex:1;min-width:0">
+              <div class="obj-text">${esc(o.text)}</div>
+              <div class="pbar" style="margin-top:4px"><span style="width:${Math.min(100, o.have / o.target * 100)}%"></span></div>
+            </div>
+            <span class="obj-n">${f(Math.min(o.have, o.target))}/${f(o.target)}</span>
+          </div>`).join('')}</div>
+        ${ch.unlocks ? `<p class="chapter-next">Next: ${esc(ch.unlocks)}</p>` : '<p class="chapter-next">The last chapter. Everything from here is yours to run.</p>'}
+        ${canPromote ? `<button class="btn gold cta" data-promote="1" style="margin-top:10px">PROMOTE THE DEPARTMENT</button>` : ''}
+      </div>`;
+
     $('#screen-staff').innerHTML = `
+      <div class="teamhead">
+        <div class="th-main">
+          <div class="th-lbl">TEAM POWER</div>
+          <div class="th-power">${f(Game.teamPowerTotal())}</div>
+        </div>
+        <div class="th-side">
+          <div class="th-stat"><b class="${S.roster.length >= cap ? 'full' : ''}">${S.roster.length}/${cap}</b><span>STAFF</span></div>
+          <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
+        </div>
+      </div>
+      <div class="teamstats">
+        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
+        <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
+        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
+      </div>
+      ${chapterPanel}
       <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
       <div class="seg" style="margin:0 12px 10px">
         <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
@@ -476,7 +532,8 @@ const UI = (() => {
         <div class="list">${sortedRoster().map(staffCard).join('')}</div>
       `}
 
-      <div class="sec-head"><h2>RECRUITMENT</h2><span>REP ${f(S.reputation)}</span></div>
+      <div class="sec-head"><h2>RECRUITMENT</h2><span>${S.roster.length}/${cap} DESKS USED</span></div>
+      ${Game.atCapacity() ? `<p class="tiny" style="padding:0 14px 8px;margin:0;color:var(--lamp)">Every desk is taken. Retire somebody, or promote the department for more room.</p>` : ''}
       <div class="list">${hireable}</div>
       <div style="height:14px"></div>`;
   }
@@ -580,6 +637,11 @@ const UI = (() => {
         LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
       ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
+      ${c.defId === 'hero' || S.roster.length <= 1 ? '' : (() => {
+        const v = Game.retireValue(c);
+        return `<button class="btn ghost cta" data-retire="${c.uid}" style="color:var(--muted)">
+          RETIRE · frees a desk, returns 💰${f(v.credits)}${v.legacy ? ' + ' + v.legacy + ' legacy' : ''}</button>`;
+      })()}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>
         <span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
@@ -638,9 +700,24 @@ const UI = (() => {
       </button>`;
     }).join('');
 
-    const sorted = [...S.inventory].sort((a, b) =>
-      (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0) ||
-      DATA.RARITY[Game.eqDef(b.eid).rarity].order - DATA.RARITY[Game.eqDef(a.eid).rarity].order || b.level - a.level);
+    // Sorted by rarity then slot, so the cupboard reads like a cupboard.
+    const rk = i => DATA.RARITY[Game.eqDef(i.eid).rarity].order;
+    const slotIdx = i => DATA.SLOTS.findIndex(s2 => s2.key === Game.eqDef(i.eid).slot);
+    const sorted = [...S.inventory].sort((a, b) => {
+      if (gearSort === 'type') return slotIdx(a) - slotIdx(b) || rk(b) - rk(a) || b.level - a.level;
+      return (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0)
+        || rk(b) - rk(a) || slotIdx(a) - slotIdx(b) || b.level - a.level;
+    });
+    const grouped = gearSort === 'type'
+      ? DATA.SLOTS.map(sl => ({ head: sl.icon + ' ' + sl.label.toUpperCase(), items: sorted.filter(i => Game.eqDef(i.eid).slot === sl.key) })).filter(g => g.items.length)
+      : Object.values(DATA.RARITY).sort((a, b) => b.order - a.order)
+        .map(r => ({ head: r.label, colour: r.color, items: sorted.filter(i => Game.eqDef(i.eid).rarity === r.key) })).filter(g => g.items.length);
+
+    // What the budget will buy right now.
+    const shop = DATA.EQUIPMENT
+      .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
+      .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order)
+      .slice(0, 30);
 
     $('#screen-gear').innerHTML = `
       <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
@@ -652,28 +729,55 @@ const UI = (() => {
         <div class="pw">⚡ ${f(Game.standardPower())}</div>
       </div></div>
 
+      <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Buy kit outright rather than waiting for it to drop. Better equipment needs more standing before finance will sign it off.</p>
+      <div class="list">${shop.map(e => {
+      const price = Game.procurePrice(e.id), afford = S.credits >= price;
+      const owned = S.inventory.filter(i => i.eid === e.id).length;
+      return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
+          <div class="spread">
+            <div style="min-width:0">
+              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
+              ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} in the cupboard</span>` : ''}
+            </div>
+            <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
+          </div>
+          <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
+          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+        </div>`;
+    }).join('')}</div>
+
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
-      <div class="list">${sorted.length ? sorted.map(i => {
+      <div class="sortbar">
+        <span class="sortbar-lbl">SORT</span>
+        <button class="sortchip ${gearSort === 'rarity' ? 'on' : ''}" data-gsort="rarity">Rarity</button>
+        <button class="sortchip ${gearSort === 'type' ? 'on' : ''}" data-gsort="type">Type</button>
+      </div>
+      ${grouped.length ? grouped.map(g => `
+        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i></div>
+        <div class="list">${g.items.map(i => {
       const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
       const up = Game.upgradeCost(i);
       return `<div class="card col" style="border-color:${on ? rarColor(e.rarity) : 'var(--line)'}">
-          <div class="spread">
-            <div style="min-width:0">
-              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s => s.key === e.slot).icon} ${esc(e.name)}</h3>
-              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
-              ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
+            <div class="spread">
+              <div style="min-width:0">
+                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
+                ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
+              </div>
             </div>
-          </div>
-          <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
-          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
-            ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
+            <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
+            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+              ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
           : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
-            <button class="btn sm ghost" data-scrap="${i.uid}" style="margin-left:auto">SCRAP</button>
-          </div>
-        </div>`;
-    }).join('') : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets and gear will turn up — the harder the ticket, the better the drop.</div>`}</div>
+              <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
+            </div>
+          </div>`;
+    }).join('')}`).join('')
+      : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something above.</div>`}
       <div style="height:14px"></div>`;
   }
 
@@ -856,6 +960,6 @@ const UI = (() => {
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
-           postSheet, fillDeptSheet, setStaffView, setStaffSort, renderStaff,
+           postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();

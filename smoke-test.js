@@ -56,12 +56,12 @@ check('incident win with drop', () => {
 });
 check('buildings', () => { if (!Game.build('knowledge')) throw new Error('build failed'); });
 check('character level up', () => { const c = S.roster[1]; c.xp = 1e9; if (!Game.levelUpChar(c.uid)) throw new Error('levelup failed'); });
-check('standard issue: issue + upgrade + scrap', () => {
+check('standard issue: issue + upgrade + dispose', () => {
   const it = S.inventory[0];
   if (!Game.issueStandard(it.uid)) throw new Error('could not issue');
   if (!Game.isStandard(it.uid)) throw new Error('not marked as standard');
   Game.upgradeItem(it.uid);
-  Game.scrapItem(it.uid);
+  Game.disposeItem(it.uid);
   if (Game.isStandard(it.uid)) throw new Error('scrapped item still standard');
 });
 check('standard issue lifts every member of staff', () => {
@@ -85,6 +85,29 @@ check('save + reload round trip', () => {
   Game.fillQueue();
   Game.state.quotaLeft = 999;
   if (!Game.resolveTicket(Game.state.queue[0].uid)) throw new Error('cannot work after reload');
+});
+check('procure and dispose', () => {
+  const G = Game.state;            // re-read: an earlier reload swapped the state object
+  G.credits = 5e6; G.reputation = 5e5;
+  const n0 = G.inventory.length;
+  const it = Game.procure('mon_ultra');
+  if (!it) throw new Error('procurement refused with plenty of credits');
+  if (G.inventory.length !== n0 + 1) throw new Error('nothing arrived in the cupboard');
+  const back = Game.disposeValue(it);
+  const c0 = G.credits;
+  Game.disposeItem(it.uid);
+  if (G.credits - c0 !== back) throw new Error('disposal paid the wrong amount');
+});
+check('chapters, capacity and retirement', () => {
+  const G = Game.state;
+  if (Game.capacity() < 5) throw new Error('no capacity');
+  while (Game.hire('intern')) {}
+  if (G.roster.length > Game.capacity()) throw new Error('hired past capacity');
+  if (G.roster.length > 1 && !Game.retireStaff(G.roster[G.roster.length - 1].uid)) throw new Error('retire failed');
+});
+check('missions include a hard tier', () => {
+  Game.rollMissions();
+  if (!Game.state.missions.some(m => m.tier === 'hard')) throw new Error('no hard mission rolled');
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 

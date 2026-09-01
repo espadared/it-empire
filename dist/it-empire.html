@@ -784,6 +784,68 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   padding:12px;background:rgba(255,179,71,.08);
 }
 
+/* ---- staff: team header, chapters, ranks ---- */
+.teamhead{
+  display:flex;align-items:center;gap:10px;margin:12px 12px 8px;padding:14px;
+  background:linear-gradient(135deg,#232C46,#1A2136);border:1px solid var(--line);border-radius:18px;
+}
+.th-main{flex:1;min-width:0}
+.th-lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--muted)}
+.th-power{font-family:var(--disp);font-weight:800;font-size:32px;line-height:1.05;
+  background:linear-gradient(180deg,#FFE0B0,var(--lamp));-webkit-background-clip:text;background-clip:text;color:transparent}
+.th-side{display:flex;gap:8px;flex:0 0 auto}
+.th-stat{background:var(--ink-2);border:1px solid var(--line);border-radius:13px;padding:8px 11px;text-align:center;min-width:58px}
+.th-stat b{display:block;font-family:var(--disp);font-weight:800;font-size:17px;line-height:1.1}
+.th-stat b.full{color:var(--alarm)}
+.th-stat span{font-size:8px;color:var(--muted);letter-spacing:.06em}
+.grade{font-size:22px!important}
+.g-S{color:#FF5A9E} .g-A{color:var(--lamp)} .g-B{color:var(--good)}
+.g-C{color:var(--crt)} .g-D{color:var(--muted)} .g-E{color:var(--faint)}
+.teamstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px}
+.teamstats>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 6px;text-align:center}
+.teamstats b{display:block;font-family:var(--mono);font-size:13px;color:var(--crt)}
+.teamstats span{font-size:8.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+
+.chapter{
+  margin:10px 12px 0;padding:13px;border-radius:18px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+}
+.chapter.ready{border-color:var(--lamp);box-shadow:0 0 0 1px rgba(255,179,71,.3),0 0 22px rgba(255,179,71,.14)}
+.chapter-top{display:flex;align-items:center;gap:10px}
+.chapter-ico{width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:var(--ink-2);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:21px}
+.chapter-n{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted)}
+.chapter-top h3{font-family:var(--disp);font-weight:800;font-size:16px;margin:0;line-height:1.15}
+.chapter-caps{text-align:right;font-size:10px;color:var(--muted);flex:0 0 auto;line-height:1.5}
+.chapter-caps b{color:var(--lamp);font-family:var(--mono);font-size:12px}
+.chapter-goal{margin:9px 0 0;font-size:11.5px;color:var(--muted);font-style:italic}
+.objs{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.obj{display:flex;align-items:center;gap:8px}
+.obj-tick{
+  width:18px;height:18px;flex:0 0 auto;border-radius:6px;border:1px solid var(--line);background:var(--ink-2);
+  display:grid;place-items:center;font-size:11px;color:var(--good);
+}
+.obj.done .obj-tick{border-color:var(--good);background:rgba(95,211,122,.12)}
+.obj-text{font-size:11.5px;line-height:1.3}
+.obj.done .obj-text{color:var(--good)}
+.obj-n{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.chapter-next{margin:10px 0 0;font-size:11px;color:var(--crt);line-height:1.4}
+
+.staffcard .rankline{font-size:11.5px;font-weight:700}
+.badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.rolechip{
+  display:inline-flex;align-items:center;gap:4px;border:1px solid;border-radius:7px;padding:2px 7px;
+  font-family:var(--disp);font-weight:700;font-size:10px;
+}
+
+/* cupboard groupings */
+.grouphead{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--muted);
+  padding:14px 14px 6px;display:flex;align-items:center;gap:7px;
+}
+.grouphead i{font-style:normal;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:1px 7px;font-size:9px;color:var(--muted)}
+
 </style>
 <div id="app">
 
@@ -1055,7 +1117,7 @@ const DATA = (() => {
 
   /* How far a technician can be developed. Past this they are as good as the
      department can make them — bring somebody else on instead. */
-  const MAX_CHAR_LEVEL = 80;
+  const MAX_CHAR_LEVEL = 70;   // the ceiling in the last chapter
 
   /* Your hands-on allowance. You can personally work this many tickets an
      hour; the hour starts when you work your first one, and when it is up the
@@ -1319,7 +1381,7 @@ const DATA = (() => {
   /* base: stats at level 1. growth: gain per level. */
   const CHARACTERS = [
     {
-      id:'hero', name:'JASON', role:'You', rarity:'RARE', icon:'🧑‍💻',
+      id:'hero', name:'JASON', role:'You', rarity:'RARE', role:'TECHNICIAN', icon:'🧑‍💻',
       strength:'Learns from every single ticket',
       weakness:'Cannot be assigned to idle work — you do the tapping',
       personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
@@ -1330,7 +1392,7 @@ const DATA = (() => {
       cost:0, repReq:0, hireable:false
     },
     {
-      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', icon:'🔧',
+      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', role:'TECHNICIAN', icon:'🔧',
       strength:'+25% hardware ticket resolution',
       weakness:'-10% automation efficiency',
       personality:'Has been here longer than the building. Owns a screwdriver older than the intern.',
@@ -1342,7 +1404,7 @@ const DATA = (() => {
       cost:1200, repReq:0, hireable:true
     },
     {
-      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', icon:'💬',
+      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', role:'SUPPORT', icon:'💬',
       strength:'+30% user satisfaction on every ticket',
       weakness:'Lower raw technical power',
       personality:'Remembers everyone\'s birthday and their laptop asset tag. Users request them by name.',
@@ -1354,7 +1416,7 @@ const DATA = (() => {
       cost:900, repReq:0, hireable:true
     },
     {
-      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', icon:'🤖',
+      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', role:'AUTOMATION', icon:'🤖',
       strength:'+40% idle ticket resolution',
       weakness:'-15% user satisfaction — the script does not say hello',
       personality:'Has not manually closed a ticket since 2021 and considers that a personality.',
@@ -1366,7 +1428,7 @@ const DATA = (() => {
       cost:4500, repReq:250, hireable:true
     },
     {
-      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', icon:'🚒',
+      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', role:'SPECIALIST', icon:'🚒',
       strength:'+50% critical incident rewards',
       weakness:'Runs hot — no use to you on the quiet days',
       personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
@@ -1378,7 +1440,7 @@ const DATA = (() => {
       cost:6000, repReq:500, hireable:true
     },
     {
-      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', icon:'🐣',
+      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', role:'TECHNICIAN', icon:'🐣',
       strength:'Gains 60% more XP from everything',
       weakness:'Low starting stats. Very low.',
       personality:'Enthusiastic. Asks "why" until you question your career. Will be terrifying in two years.',
@@ -1390,7 +1452,7 @@ const DATA = (() => {
       cost:300, repReq:0, hireable:true
     },
     {
-      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', icon:'🦉',
+      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', role:'AUTOMATION', icon:'🦉',
       strength:'+35% idle credits — does the maintenance window nobody wants',
       weakness:'-20% on active tickets before 11am',
       personality:'Communicates entirely in change tickets. Has never been seen in daylight.',
@@ -1402,7 +1464,7 @@ const DATA = (() => {
       cost:3200, repReq:150, hireable:true
     },
     {
-      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', icon:'🦅',
+      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', role:'SPECIALIST', icon:'🦅',
       strength:'+60% on security tickets, +25% incident success',
       weakness:'Blocks things. Constantly. -10% satisfaction.',
       personality:'Trusts nobody, including you, including this sentence. Loves a good log file.',
@@ -1414,7 +1476,7 @@ const DATA = (() => {
       cost:18000, repReq:2000, hireable:true
     },
     {
-      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', icon:'🔮',
+      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', role:'MANAGER', icon:'🔮',
       strength:'+25% to absolutely everything',
       weakness:'Costs a fortune and answers only in riddles',
       personality:'Nobody knows their job title. Nobody knows their manager. The outage stops when they arrive.',
@@ -1488,6 +1550,15 @@ const DATA = (() => {
       stats:{INVESTIGATION:8,MANAGEMENT:5}, effect:'Rescued from a director\'s desk during a refresh.' },
   ];
 
+  /* ---------- PROCUREMENT ----------
+     What the budget will stretch to. Better kit needs standing before finance
+     will sign it off, which is exactly how it works in real life. */
+  const PROCURE = {
+    price: { COMMON: 400, UNCOMMON: 1600, RARE: 7000, EPIC: 34000, LEGENDARY: 160000, MYTHIC: 800000 },
+    repReq: { COMMON: 0, UNCOMMON: 0, RARE: 250, EPIC: 1500, LEGENDARY: 8000, MYTHIC: 40000 },
+    disposeShare: 0.45,        // of what it would cost to buy new
+  };
+
   /* ---------- OFFICE / BUILDINGS ---------- */
   const BUILDINGS = [
     { id:'helpdesk',   name:'Helpdesk Counter',        icon:'🛎️', base:150,   growth:1.55, max:20, repReq:0,
@@ -1516,6 +1587,99 @@ const DATA = (() => {
       effect:'+25% to everything per level',           key:'all', per:0.25 },
   ];
 
+  /* ---------- CAREER RANKS ----------
+     A level is a number; a rank is a moment. Crossing one changes the title,
+     bumps stats and is worth stopping to look at.                          */
+  const RANKS_STAFF = [
+    { at:1,  name:'Junior Technician', short:'JR',   colour:'#8A93AD' },
+    { at:11, name:'Technician',        short:'TECH', colour:'#5FD37A' },
+    { at:21, name:'Senior Technician', short:'SNR',  colour:'#4FA8FF' },
+    { at:31, name:'Specialist',        short:'SPEC', colour:'#B67CFF' },
+    { at:41, name:'Team Lead',         short:'LEAD', colour:'#FFB347' },
+    { at:51, name:'Manager',           short:'MGR',  colour:'#FF9A5F' },
+    { at:61, name:'Director',          short:'DIR',  colour:'#FF5A9E' },
+  ];
+  const staffRank = lvl => {
+    let r = RANKS_STAFF[0];
+    RANKS_STAFF.forEach(x => { if (lvl >= x.at) r = x; });
+    return r;
+  };
+  const nextStaffRank = lvl => RANKS_STAFF.find(x => lvl < x.at) || null;
+
+  /* ---------- ROLES ----------
+     Five jobs, five reasons to hire. None is simply a better version of
+     another: a team of five Specialists closes hard tickets and starves.   */
+  const ROLES = {
+    TECHNICIAN: { key:'TECHNICIAN', name:'Technician', icon:'🔧', colour:'#5FD37A',
+      blurb:'The backbone. Gets through ordinary tickets faster than anyone.',
+      perk:'+25% on easy and medium tickets' },
+    SPECIALIST: { key:'SPECIALIST', name:'Specialist', icon:'🎯', colour:'#B67CFF',
+      blurb:'Wasted on a printer. Worth their salary the moment something big breaks.',
+      perk:'+35% on hard tickets and critical incidents' },
+    SUPPORT:    { key:'SUPPORT',    name:'Support',    icon:'💬', colour:'#4FA8FF',
+      blurb:'Keeps the department liked, which is worth more than it sounds.',
+      perk:'+30% user satisfaction, and morale falls slower' },
+    AUTOMATION: { key:'AUTOMATION', name:'Automation', icon:'🤖', colour:'#4FD6C9',
+      blurb:'Works the queue while everybody sleeps.',
+      perk:'+35% idle throughput' },
+    MANAGER:    { key:'MANAGER',    name:'Manager',    icon:'📋', colour:'#FFB347',
+      blurb:'Produces nothing alone. Makes everybody around them better.',
+      perk:'+10% output to every other member of staff' },
+  };
+
+  /* ---------- DEPARTMENT CHAPTERS ----------
+     The spine of the game. Each chapter caps how many people you can carry and
+     how far they can be developed, so the question is never "how many can I
+     collect" but "who are the best five".                                   */
+  const CHAPTERS = [
+    { n:1, name:'Small Helpdesk',  icon:'🛎️', capacity:5,  maxLevel:20,
+      goal:'Build a helpdesk that can be relied on.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:400 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:6000 },
+        { id:'sat',     text:'Hold morale at {n}%',        metric:'morale',    target:70 },
+      ],
+      unlocks:'Corporate IT — ten staff, and the Infrastructure department' },
+    { n:2, name:'Corporate IT',    icon:'🏢', capacity:10, maxLevel:30,
+      goal:'Support a company that keeps growing.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:2500 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:25000 },
+        { id:'auto',    text:'Reach {n} tickets an hour on the automated queue', metric:'idle', target:1200 },
+      ],
+      unlocks:'Regional IT — twenty staff, and Cybersecurity' },
+    { n:3, name:'Regional IT',     icon:'🏙️', capacity:20, maxLevel:40,
+      goal:'Hold several offices together at once.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:12000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:90000 },
+        { id:'inc',     text:'Win {n} critical incidents', metric:'incidents', target:30 },
+      ],
+      unlocks:'Global IT — thirty staff, Cloud and Automation' },
+    { n:4, name:'Global IT',       icon:'🌍', capacity:30, maxLevel:50,
+      goal:'Run it everywhere, at every hour.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:60000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:400000 },
+        { id:'rep',     text:'Reach {n} reputation',       metric:'rep',       target:50000 },
+      ],
+      unlocks:'IT Empire — fifty staff, and the ceiling comes off at level 70' },
+    { n:5, name:'IT Empire',       icon:'👑', capacity:50, maxLevel:70,
+      goal:'An IT organisation that mostly runs itself.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:250000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:2000000 },
+        { id:'rep',     text:'Reach {n} reputation',       metric:'rep',       target:250000 },
+      ],
+      unlocks:null },
+  ];
+
+  /* A letter for the department, from team power against the chapter target. */
+  const DEPT_GRADES = [
+    { at:1.60, g:'S' }, { at:1.15, g:'A' }, { at:0.80, g:'B' },
+    { at:0.50, g:'C' }, { at:0.25, g:'D' }, { at:0,    g:'E' },
+  ];
+
   /* ---------- DEPARTMENTS ----------
      Where you post people decides what the automated queue produces. Each
      department leans on one stat, so posting the right person matters as much
@@ -1541,6 +1705,8 @@ const DATA = (() => {
   ];
 
   /* ---------- MISSIONS ---------- */
+  /* Daily missions come in three weights. The hard ones are meant to take
+     most of a day's allowance, not ten minutes. */
   const MISSION_POOL = [
     { id:'m_tickets',  text:'Resolve {n} tickets',                 metric:'tickets',    base:20, icon:'🎫' },
     { id:'m_hardware', text:'Resolve {n} hardware tickets',        metric:'cat_hardware',base:8, icon:'🧰' },
@@ -1552,6 +1718,14 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
+    { id:'m_bigrun',   text:'Resolve {n} tickets',                  metric:'tickets',   base:90,  icon:'🎫', tier:'hard' },
+    { id:'m_bigcred',  text:'Earn {n} IT Credits',                  metric:'credits',   base:25000,icon:'💰', tier:'hard' },
+    { id:'m_bigxp',    text:'Earn {n} XP',                          metric:'xp',        base:12000,icon:'⭐', tier:'hard' },
+    { id:'m_bigdiag',  text:'Name the right cause {n} times',       metric:'diagnosed', base:8,   icon:'🔍', tier:'hard' },
+    { id:'m_bigincid', text:'Win {n} critical incidents',           metric:'incidents', base:4,   icon:'🚨', tier:'hard' },
+    { id:'m_bigstreak',text:'Hit a {n}-ticket clean streak',        metric:'streak',    base:35,  icon:'🔥', tier:'hard' },
+    { id:'m_bighappy', text:'Send {n} users away happy',            metric:'happy',     base:60,  icon:'😊', tier:'hard' },
+    { id:'m_bigbuild', text:'Upgrade the office {n} times',         metric:'builds',    base:4,   icon:'🏢', tier:'hard' },
     { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:3,  icon:'🔍' },
     { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
@@ -1596,7 +1770,8 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+           ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();
@@ -2156,7 +2331,7 @@ const Game = (() => {
       standard: {},
       buildings: { helpdesk: 1 },
       dept: {},
-      queue: [], streak: 0,
+      queue: [], streak: 0, chapter: 1,
       momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -2456,7 +2631,7 @@ const Game = (() => {
     let techOk = Math.random() < o.tech;
     let auto = false;
     if (!techOk && t.cat === 'display' && Math.random() < (bonus('autoDisplay') - 1)) { techOk = true; auto = true; }
-    const satOk = techOk && Math.random() < o.sat * (delegated ? 0.85 : 1);
+    const satOk = techOk && Math.random() < o.sat * roleSatMult(worker) * (delegated ? 0.85 : 1);
 
     const tiredMul = tired ? 0.35 : 1;
     const failMul = techOk ? 1 : 0.2;
@@ -2465,8 +2640,9 @@ const Game = (() => {
     const delMul = delegated ? 0.7 : 1;
     const mo = momentumMult(), mr = moraleMult();
 
+    const roleMul = roleTicketMult(worker, t.tier);
     let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit')
-      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr;
+      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr * roleMul;
     let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul * diagMul * mo;
     let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) * (delegated ? 0.7 : 1) : -1;
 
@@ -2585,20 +2761,120 @@ const Game = (() => {
     });
   }
 
-  const atMaxLevel = c => c.level >= DATA.MAX_CHAR_LEVEL;
+  const atMaxLevel = c => c.level >= maxStaffLevel();
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
   function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
+    const before = rankOf(c).name;
     S.credits -= levelCost(c); c.xp -= charXpNeed(c.level); c.level++;
     S.lifetime.levelups++; bump('levelups', 1);
+    if (rankOf(c).name !== before) emit('promoted', { char: c, rank: rankOf(c) });
     checkAchievements(); emit('change');
     return true;
   }
 
   /* ---------------- IDLE ENGINE ---------------- */
+  /* ---------------- CHAPTERS, RANKS AND ROLES ----------------
+     The department grows in chapters. Each one decides how many people you can
+     carry and how far they can be developed, so the game is about picking the
+     right handful rather than hoarding a list.                              */
+  const chapterNo = () => clamp(S.chapter || 1, 1, DATA.CHAPTERS.length);
+  const chapter = () => DATA.CHAPTERS[chapterNo() - 1];
+  const capacity = () => chapter().capacity;
+  const maxStaffLevel = () => Math.min(DATA.MAX_CHAR_LEVEL, chapter().maxLevel);
+  const atCapacity = () => S.roster.length >= capacity();
+
+  const rankOf = c => DATA.staffRank(c.level);
+  const roleOf = c => DATA.ROLES[def(c.defId).role] || DATA.ROLES.TECHNICIAN;
+
+  /* A manager produces nothing on their own and makes everyone else better. */
+  function managerBoost(forChar) {
+    if (forChar && def(forChar.defId).role === 'MANAGER') return 1;
+    const mgrs = S.roster.filter(c => def(c.defId).role === 'MANAGER'
+      && (!forChar || c.uid !== forChar.uid)).length;
+    return 1 + Math.min(0.5, mgrs * 0.10);
+  }
+
+  /* What a role is actually worth on a given ticket. */
+  function roleTicketMult(c, tier) {
+    const r = def(c.defId).role;
+    if (r === 'TECHNICIAN' && tier !== 'HARD') return 1.25;
+    if (r === 'SPECIALIST' && tier === 'HARD') return 1.35;
+    return 1;
+  }
+  const roleSatMult = c => def(c.defId).role === 'SUPPORT' ? 1.30 : 1;
+
+  /* Team power is what the staff screen leads on: everyone you employ. */
+  const teamPowerTotal = () => S.roster.reduce((a, c) => a + charPower(c), 0);
+
+  function deptGrade() {
+    const target = chapter().objectives.find(o => o.metric === 'power');
+    const ratio = target ? teamPowerTotal() / target.target : 1;
+    return (DATA.DEPT_GRADES.find(g => ratio >= g.at) || { g: 'E' }).g;
+  }
+
+  /* Progress against this chapter's objectives. */
+  function objectiveValue(metric) {
+    if (metric === 'tickets') return S.lifetime.tickets;
+    if (metric === 'power') return teamPowerTotal();
+    if (metric === 'morale') return Math.round(S.morale);
+    if (metric === 'idle') return Math.round(idleRate() * 60);
+    if (metric === 'incidents') return S.lifetime.incidents;
+    if (metric === 'rep') return S.reputation;
+    return 0;
+  }
+  function chapterProgress() {
+    return chapter().objectives.map(o => {
+      const have = objectiveValue(o.metric);
+      return { ...o, have, done: have >= o.target,
+               text: o.text.replace('{n}', fmt(o.target)) };
+    });
+  }
+  const canPromoteChapter = () =>
+    chapterNo() < DATA.CHAPTERS.length && chapterProgress().every(o => o.done);
+
+  function promoteChapter() {
+    if (!canPromoteChapter()) return null;
+    S.chapter = chapterNo() + 1;
+    const ch = chapter();
+    S.reputation += 500 * ch.n;
+    checkAchievements(); emit('change');
+    emit('chapter', ch);
+    return ch;
+  }
+
+  /* Letting somebody go. You get something back, which is what makes replacing
+     a middling technician with a specialist a real decision rather than a loss. */
+  function retireValue(c) {
+    let spent = 0;
+    for (let l = 1; l < c.level; l++) spent += Math.floor(60 * Math.pow(l, 1.45) * DATA.RARITY[c.rarity].mult);
+    return {
+      credits: Math.floor(spent * 0.6 + Game_hireRefund(c)),
+      xp: Math.floor(charXpNeed(c.level) * 0.5),
+      legacy: c.level >= 50 ? 1 : 0,
+    };
+  }
+  function Game_hireRefund(c) {
+    const d = def(c.defId);
+    return Math.floor((d.cost || 0) * 0.35);
+  }
+  function retireStaff(uid) {
+    const c = S.roster.find(x => x.uid === uid); if (!c) return null;
+    if (c.defId === 'hero') return null;                 // you cannot retire yourself
+    if (S.roster.length <= 1) return null;
+    const v = retireValue(c);
+    S.credits += v.credits;
+    S.legacy += v.legacy;
+    S.roster = S.roster.filter(x => x.uid !== uid);
+    if (S.activeId === uid) S.activeId = S.roster[0].uid;
+    grantStaffXp(v.xp);                                   // their experience stays behind
+    emit('change');
+    return { ...v, name: c.defId === 'hero' ? S.name : def(c.defId).name };
+  }
+
   /* ---------------- DEPARTMENTS ----------------
      A posting is only worth what the person brings to it. Fit compares their
      department stat against their own average, so a specialist posted to their
@@ -2638,7 +2914,9 @@ const Game = (() => {
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
+    if (def(c.defId).role === 'AUTOMATION') r *= 1.35;
     r *= deptBoost(c, 'rate');
+    r *= managerBoost(c);
     return r;
   }
   function idleRate() {                                   // tickets per minute
@@ -2708,12 +2986,12 @@ const Game = (() => {
     return Math.floor(d.cost * Math.pow(2.4, owned));
   }
   function canHire(d) {
-    return d.hireable && S.reputation >= d.repReq && S.credits >= hireCost(d);
+    return d.hireable && !atCapacity() && S.reputation >= d.repReq && S.credits >= hireCost(d);
   }
   function hire(defId) {
     const d = def(defId); if (!canHire(d)) return null;
     S.credits -= hireCost(d);
-    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, DATA.MAX_CHAR_LEVEL));
+    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, maxStaffLevel()));
     S.roster.push(c); S.unlocked[defId] = true;
     checkAchievements(); emit('change');
     return c;
@@ -2754,18 +3032,44 @@ const Game = (() => {
     });
     return Math.round(p);
   }
+  /* What finance will charge, and what they will give back. */
+  const procurePrice = eid => {
+    const e = eqDef(eid); if (!e) return Infinity;
+    return Math.round(DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06));
+  };
+  const canProcure = eid => {
+    const e = eqDef(eid); if (!e) return false;
+    return S.reputation >= DATA.PROCURE.repReq[e.rarity] && S.credits >= procurePrice(eid);
+  };
+  function procure(eid) {
+    if (!canProcure(eid)) return null;
+    S.credits -= procurePrice(eid);
+    const it = mkItem(eid);
+    S.inventory.push(it);
+    checkAchievements(); emit('change');
+    return it;
+  }
+  function disposeValue(it) {
+    const e = eqDef(it.eid); if (!e) return 0;
+    const base = DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06) * DATA.PROCURE.disposeShare;
+    return Math.round(base * (1 + (it.level - 1) * 0.35));
+  }
+
   function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
     S.credits -= cost; it.level++; emit('change'); return true;
   }
-  function scrapItem(itemUid) {
-    const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return;
+  /* Disposal. Asset recovery, not a bin. */
+  function disposeItem(itemUid) {
+    const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return null;
     const it = S.inventory[i];
     if (isStandard(it.uid)) withdrawStandard(eqDef(it.eid).slot);
-    S.credits += Math.floor(upgradeCost(it) * 0.4);
+    const back = disposeValue(it);
+    S.credits += back;
     S.inventory.splice(i, 1); emit('change');
+    return { back, name: eqDef(it.eid).name };
   }
 
   /* ---------------- BUILDINGS ---------------- */
@@ -2786,7 +3090,10 @@ const Game = (() => {
 
   /* ---------------- MISSIONS ---------------- */
   function rollMissions() {
-    const pool = [...DATA.MISSION_POOL].sort(() => Math.random() - 0.5).slice(0, 4);
+    // Always a couple of quick ones and at least one that takes real work.
+    const easy = DATA.MISSION_POOL.filter(m => !m.tier).sort(() => Math.random() - 0.5).slice(0, 3);
+    const hard = DATA.MISSION_POOL.filter(m => m.tier === 'hard').sort(() => Math.random() - 0.5).slice(0, 2);
+    const pool = [...easy, ...hard];
     const scale = 1 + S.level * 0.22;
     S.missions = pool.map(m => ({
       id: m.id, icon: m.icon, metric: m.metric,
@@ -2795,11 +3102,12 @@ const Game = (() => {
         ? m.text.replace('{n}', '1').replace(/(ticket|incident|time|user|employee)s\b/g, '$1')
         : m.text.replace('{n}', fmt(t)))(Math.max(1, Math.round(m.base * scale))),
       done: false, claimed: false,
+      tier: m.tier || 'normal',
       reward: {
-        credits: Math.round(400 * scale * (1 + Math.random() * 0.6)),
-        xp: Math.round(280 * scale),
-        rep: Math.round(12 * scale),
-        energy: 5,             // extra tickets on your allowance
+        credits: Math.round((m.tier === 'hard' ? 2600 : 400) * scale * (1 + Math.random() * 0.6)),
+        xp: Math.round((m.tier === 'hard' ? 1800 : 280) * scale),
+        rep: Math.round((m.tier === 'hard' ? 90 : 12) * scale),
+        energy: m.tier === 'hard' ? 12 : 5,
       }
     }));
     S.md = {};
@@ -2977,7 +3285,7 @@ const Game = (() => {
       v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
-      queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      queue: [], streak: 0, chapter: 1, momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
@@ -3067,8 +3375,11 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
+    chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
+    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
+    retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
-    upgradeItem, upgradeCost, scrapItem,
+    upgradeItem, upgradeCost, disposeItem, disposeValue, procure, procurePrice, canProcure,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,
@@ -3399,12 +3710,14 @@ const UI = (() => {
   /* Two ways to look at the same people: a sortable roster, or the department
      board showing who is posted where. View and sort are per-device taste, so
      they live in localStorage rather than the save. */
-  let staffView = 'list', staffSort = 'power';
+  let staffView = 'list', staffSort = 'power', gearSort = 'rarity';
   try {
     staffView = localStorage.getItem('ie-staff-view') || 'list';
     staffSort = localStorage.getItem('ie-staff-sort') || 'power';
+    gearSort = localStorage.getItem('ie-gear-sort') || 'rarity';
   } catch (e) { }
   function setStaffView(v) { staffView = v; try { localStorage.setItem('ie-staff-view', v); } catch (e) { } renderStaff(); }
+  function setGearSort(v) { gearSort = v; try { localStorage.setItem('ie-gear-sort', v); } catch (e) { } renderGear(); }
   function setStaffSort(v) { staffSort = v; try { localStorage.setItem('ie-staff-sort', v); } catch (e) { } renderStaff(); }
 
   const SORTS = [
@@ -3443,26 +3756,32 @@ const UI = (() => {
     const S = Game.state, d = Game.def(c.defId), isActive = c.uid === S.activeId;
     const need = Game.charXpNeed(c.level), can = Game.canLevel(c);
     const o = Game.staffOutput(c);
-    return `<div class="card col" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
+    const rank = Game.rankOf(c), role = Game.roleOf(c);
+    const maxed = Game.atMaxLevel(c);
+    return `<div class="card col staffcard" data-char="${c.uid}" style="${isActive ? 'border-color:var(--lamp)' : ''}">
       <div class="row">
-        <div class="avatar">${Art.portrait(d.art, c.uid)}<span class="lv${Game.atMaxLevel(c) ? ' max' : ''}">L${c.level}</span></div>
+        <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
           <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
-          <div class="role">${esc(d.role)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
-          <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          <div class="rankline" style="color:${rank.colour}">${esc(rank.name)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
+          <div class="badges">
+            <span class="rolechip" style="color:${role.colour};border-color:${role.colour}44;background:${role.colour}14">${role.icon} ${role.name}</span>
+            <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
+          </div>
         </div>
         <div style="text-align:right">
           <div class="pw">⚡ ${f(Game.charPower(c))}</div>
           <div class="tiny muted mono">${isActive ? 'your tickets' : f(o.credits * 3600) + ' cr/hr'}</div>
         </div>
       </div>
+      <div class="tiny muted" style="margin-top:6px">${esc(role.perk)}</div>
       <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
       <div class="row" style="margin-top:8px">
-        <div class="pbar ${Game.atMaxLevel(c) ? 'gold' : ''}" style="flex:1"><span style="width:${Game.atMaxLevel(c) ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
-        <span class="tiny mono muted">${Game.atMaxLevel(c) ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
-        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${Game.atMaxLevel(c) ? 'MAX' : 'LV UP'}</button>
+        <div class="pbar ${maxed ? 'gold' : ''}" style="flex:1"><span style="width:${maxed ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>
+        <span class="tiny mono muted">${maxed ? 'MAX' : f(c.xp) + '/' + f(need)}</span>
+        <button class="btn sm ${can ? 'teal' : 'off'}" data-levelup="${c.uid}">${maxed ? 'MAX' : 'LV UP'}</button>
       </div>
-      ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)} to reach LV.${c.level + 1}</div>`}
+      ${can ? '' : `<div class="blocked">${esc(levelBlocker(c).text)}${maxed ? '' : ` to reach LV.${c.level + 1}`}</div>`}
     </div>`;
   }
 
@@ -3522,12 +3841,60 @@ const UI = (() => {
         </div>
         <div style="text-align:right">
           ${locked ? `<div class="tiny mono" style="color:var(--alarm)">🔒 ${f(d.repReq)} REP</div>`
+          : Game.atCapacity() ? `<div class="tiny mono" style="color:var(--alarm)">NO DESK FREE</div>`
           : `<button class="btn gold sm ${S.credits < cost ? 'off' : ''}" data-hire="${d.id}">💰 ${f(cost)}</button>`}
         </div>
       </div>`;
     }).join('');
 
+    const ch = Game.chapter(), objs = Game.chapterProgress();
+    const canPromote = Game.canPromoteChapter();
+    const cap = Game.capacity(), grade = Game.deptGrade();
+
+    const chapterPanel = `
+      <div class="chapter ${canPromote ? 'ready' : ''}">
+        <div class="chapter-top">
+          <span class="chapter-ico">${ch.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div class="chapter-n">CHAPTER ${ch.n} OF ${DATA.CHAPTERS.length}</div>
+            <h3>${esc(ch.name)}</h3>
+          </div>
+          <div class="chapter-caps">
+            <div>staff to <b>L${Game.maxStaffLevel()}</b></div>
+            <div><b>${cap}</b> desks</div>
+          </div>
+        </div>
+        <p class="chapter-goal">${esc(ch.goal)}</p>
+        <div class="objs">${objs.map(o => `
+          <div class="obj ${o.done ? 'done' : ''}">
+            <span class="obj-tick">${o.done ? '✓' : ''}</span>
+            <div style="flex:1;min-width:0">
+              <div class="obj-text">${esc(o.text)}</div>
+              <div class="pbar" style="margin-top:4px"><span style="width:${Math.min(100, o.have / o.target * 100)}%"></span></div>
+            </div>
+            <span class="obj-n">${f(Math.min(o.have, o.target))}/${f(o.target)}</span>
+          </div>`).join('')}</div>
+        ${ch.unlocks ? `<p class="chapter-next">Next: ${esc(ch.unlocks)}</p>` : '<p class="chapter-next">The last chapter. Everything from here is yours to run.</p>'}
+        ${canPromote ? `<button class="btn gold cta" data-promote="1" style="margin-top:10px">PROMOTE THE DEPARTMENT</button>` : ''}
+      </div>`;
+
     $('#screen-staff').innerHTML = `
+      <div class="teamhead">
+        <div class="th-main">
+          <div class="th-lbl">TEAM POWER</div>
+          <div class="th-power">${f(Game.teamPowerTotal())}</div>
+        </div>
+        <div class="th-side">
+          <div class="th-stat"><b class="${S.roster.length >= cap ? 'full' : ''}">${S.roster.length}/${cap}</b><span>STAFF</span></div>
+          <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
+        </div>
+      </div>
+      <div class="teamstats">
+        <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
+        <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
+        <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
+      </div>
+      ${chapterPanel}
       <div class="sec-head"><h2>YOUR TEAM</h2><span>${workers} ON THE QUEUE · ${posted} POSTED</span></div>
       <div class="seg" style="margin:0 12px 10px">
         <button class="seg-btn ${staffView === 'list' ? 'on' : ''}" data-sview="list">BY PERSON</button>
@@ -3554,7 +3921,8 @@ const UI = (() => {
         <div class="list">${sortedRoster().map(staffCard).join('')}</div>
       `}
 
-      <div class="sec-head"><h2>RECRUITMENT</h2><span>REP ${f(S.reputation)}</span></div>
+      <div class="sec-head"><h2>RECRUITMENT</h2><span>${S.roster.length}/${cap} DESKS USED</span></div>
+      ${Game.atCapacity() ? `<p class="tiny" style="padding:0 14px 8px;margin:0;color:var(--lamp)">Every desk is taken. Retire somebody, or promote the department for more room.</p>` : ''}
       <div class="list">${hireable}</div>
       <div style="height:14px"></div>`;
   }
@@ -3658,6 +4026,11 @@ const UI = (() => {
         LEVEL UP · 💰 ${f(Game.levelCost(c))}</button>`}
       ${Game.canLevel(c) || Game.atMaxLevel(c) ? '' : `<div class="blocked">Still needs ${esc(levelBlocker(c).text)}. They earn XP from every ticket you work and from the automated queue — collect on the HQ tab.</div>`}
       ${c.uid === S.activeId ? '' : `<button class="btn teal cta" data-setactive="${c.uid}">PUT ON DUTY</button>`}
+      ${c.defId === 'hero' || S.roster.length <= 1 ? '' : (() => {
+        const v = Game.retireValue(c);
+        return `<button class="btn ghost cta" data-retire="${c.uid}" style="color:var(--muted)">
+          RETIRE · frees a desk, returns 💰${f(v.credits)}${v.legacy ? ' + ' + v.legacy + ' legacy' : ''}</button>`;
+      })()}
 
       <div class="sec-head" style="padding:14px 0 4px"><h2>STANDARD ISSUE</h2>
         <span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
@@ -3716,9 +4089,24 @@ const UI = (() => {
       </button>`;
     }).join('');
 
-    const sorted = [...S.inventory].sort((a, b) =>
-      (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0) ||
-      DATA.RARITY[Game.eqDef(b.eid).rarity].order - DATA.RARITY[Game.eqDef(a.eid).rarity].order || b.level - a.level);
+    // Sorted by rarity then slot, so the cupboard reads like a cupboard.
+    const rk = i => DATA.RARITY[Game.eqDef(i.eid).rarity].order;
+    const slotIdx = i => DATA.SLOTS.findIndex(s2 => s2.key === Game.eqDef(i.eid).slot);
+    const sorted = [...S.inventory].sort((a, b) => {
+      if (gearSort === 'type') return slotIdx(a) - slotIdx(b) || rk(b) - rk(a) || b.level - a.level;
+      return (Game.isStandard(b.uid) ? 1 : 0) - (Game.isStandard(a.uid) ? 1 : 0)
+        || rk(b) - rk(a) || slotIdx(a) - slotIdx(b) || b.level - a.level;
+    });
+    const grouped = gearSort === 'type'
+      ? DATA.SLOTS.map(sl => ({ head: sl.icon + ' ' + sl.label.toUpperCase(), items: sorted.filter(i => Game.eqDef(i.eid).slot === sl.key) })).filter(g => g.items.length)
+      : Object.values(DATA.RARITY).sort((a, b) => b.order - a.order)
+        .map(r => ({ head: r.label, colour: r.color, items: sorted.filter(i => Game.eqDef(i.eid).rarity === r.key) })).filter(g => g.items.length);
+
+    // What the budget will buy right now.
+    const shop = DATA.EQUIPMENT
+      .filter(e => S.reputation >= DATA.PROCURE.repReq[e.rarity])
+      .sort((a, b) => DATA.RARITY[b.rarity].order - DATA.RARITY[a.rarity].order)
+      .slice(0, 30);
 
     $('#screen-gear').innerHTML = `
       <div class="sec-head"><h2>STANDARD ISSUE</h2><span>${issued}/${DATA.SLOTS.length} FITTED</span></div>
@@ -3730,28 +4118,55 @@ const UI = (() => {
         <div class="pw">⚡ ${f(Game.standardPower())}</div>
       </div></div>
 
+      <div class="sec-head"><h2>PROCURE</h2><span>💰 ${f(S.credits)}</span></div>
+      <p class="tiny muted" style="padding:0 14px 8px;margin:0">Buy kit outright rather than waiting for it to drop. Better equipment needs more standing before finance will sign it off.</p>
+      <div class="list">${shop.map(e => {
+      const price = Game.procurePrice(e.id), afford = S.credits >= price;
+      const owned = S.inventory.filter(i => i.eid === e.id).length;
+      return `<div class="card col" style="border-color:${rarColor(e.rarity)}33">
+          <div class="spread">
+            <div style="min-width:0">
+              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity}</span>
+              ${owned ? `<span class="tiny muted" style="margin-left:6px">${owned} in the cupboard</span>` : ''}
+            </div>
+            <button class="btn gold sm ${afford ? '' : 'off'}" data-procure="${e.id}">💰 ${f(price)}</button>
+          </div>
+          <div class="tiny mono" style="margin-top:6px">${statLine(e, { level: 1 })}</div>
+          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+        </div>`;
+    }).join('')}</div>
+
       <div class="sec-head"><h2>STORE CUPBOARD</h2><span>${S.inventory.length} ITEMS</span></div>
-      <div class="list">${sorted.length ? sorted.map(i => {
+      <div class="sortbar">
+        <span class="sortbar-lbl">SORT</span>
+        <button class="sortchip ${gearSort === 'rarity' ? 'on' : ''}" data-gsort="rarity">Rarity</button>
+        <button class="sortchip ${gearSort === 'type' ? 'on' : ''}" data-gsort="type">Type</button>
+      </div>
+      ${grouped.length ? grouped.map(g => `
+        <div class="grouphead" ${g.colour ? `style="color:${g.colour}"` : ''}>${esc(g.head)} <i>${g.items.length}</i></div>
+        <div class="list">${g.items.map(i => {
       const e = Game.eqDef(i.eid), on = Game.isStandard(i.uid);
       const up = Game.upgradeCost(i);
       return `<div class="card col" style="border-color:${on ? rarColor(e.rarity) : 'var(--line)'}">
-          <div class="spread">
-            <div style="min-width:0">
-              <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s => s.key === e.slot).icon} ${esc(e.name)}</h3>
-              <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
-              ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
+            <div class="spread">
+              <div style="min-width:0">
+                <h3 style="font-family:var(--disp);font-size:14px;margin:0">${DATA.SLOTS.find(s2 => s2.key === e.slot).icon} ${esc(e.name)}</h3>
+                <span class="rar" style="color:${rarColor(e.rarity)};border:1px solid ${rarColor(e.rarity)}33;background:${rarColor(e.rarity)}14">${e.rarity} · LV.${i.level}</span>
+                ${on ? '<span class="tiny" style="color:var(--good);margin-left:6px">STANDARD ISSUE</span>' : ''}
+              </div>
             </div>
-          </div>
-          <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
-          <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
-            ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
+            <div class="tiny mono" style="margin-top:6px">${statLine(e, i)}</div>
+            <div class="tiny muted" style="margin-top:4px">${esc(e.effect)}</div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn sm ${S.credits < up || i.level >= 10 ? 'off' : 'gold'}" data-upgrade="${i.uid}">${i.level >= 10 ? 'MAX' : 'UPGRADE 💰' + f(up)}</button>
+              ${on ? `<button class="btn sm ghost" data-withdraw="${e.slot}">WITHDRAW</button>`
           : `<button class="btn sm teal" data-issue="${i.uid}">MAKE STANDARD</button>`}
-            <button class="btn sm ghost" data-scrap="${i.uid}" style="margin-left:auto">SCRAP</button>
-          </div>
-        </div>`;
-    }).join('') : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets and gear will turn up — the harder the ticket, the better the drop.</div>`}</div>
+              <button class="btn sm ghost" data-dispose="${i.uid}" style="margin-left:auto">DISPOSE 💰${f(Game.disposeValue(i))}</button>
+            </div>
+          </div>`;
+    }).join('')}`).join('')
+      : `<div class="empty"><span class="big">🧰</span>The cupboard is empty. Resolve tickets, or procure something above.</div>`}
       <div style="height:14px"></div>`;
   }
 
@@ -3934,7 +4349,7 @@ const UI = (() => {
            show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
-           postSheet, fillDeptSheet, setStaffView, setStaffSort, renderStaff,
+           postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
            loadBoard, get screen() { return screen; }, rarColor, stars };
 })();
 
@@ -4381,6 +4796,12 @@ const Onboard = (() => {
     setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
   });
 
+  Game.on('promoted', ({ char, rank }) => {
+    UI.beep('level');
+    const nm = char.defId === 'hero' ? Game.state.name : Game.def(char.defId).name;
+    toast('🎖️', 'PROMOTED TO ' + rank.name.toUpperCase(), `${nm} is now a ${rank.name} — stats up, and worth more to the department.`);
+  });
+
   Game.on('achievement', a => { UI.beep('great'); toast('🏅', a.name, `${a.desc}  +${a.rep} REP`); });
   Game.on('missiondone', m => { UI.beep('ok'); toast('📋', 'MISSION COMPLETE', m.text + ' — claim it on Missions.'); });
   Game.on('event', e => { UI.beep('alarm'); toast(e.icon, e.title, e.desc); UI.updateChips(); });
@@ -4530,7 +4951,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -4641,6 +5062,37 @@ const Onboard = (() => {
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
     if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.promote) {
+      const ch = Game.promoteChapter();
+      if (!ch) return UI.beep('fail');
+      UI.beep('level');
+      UI.sheet(`<span class="big-emoji">${ch.icon}</span>
+        <h3>PROMOTED TO ${esc(ch.name.toUpperCase())}</h3>
+        <p class="sub">Chapter ${ch.n} of ${DATA.CHAPTERS.length}</p>
+        <p class="tiny muted" style="text-align:center">${esc(ch.goal)}</p>
+        <div class="reward-line"><span class="rw-c">${ch.capacity} DESKS</span><span class="rw-x">STAFF TO L${ch.maxLevel}</span></div>
+        <button class="btn gold cta" data-close="1">GET TO WORK</button>`);
+      setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .45, '#FFB347', 28), 100);
+      return UI.show('staff');
+    }
+    if (d.retire) {
+      const c = Game.state.roster.find(x => x.uid === d.retire);
+      if (!c) return;
+      const v = Game.retireValue(c), nm = Game.def(c.defId).name;
+      return UI.sheet(`<span class="big-emoji">👋</span>
+        <h3>LET ${esc(nm)} GO?</h3>
+        <p class="sub">Frees a desk. There is no getting them back.</p>
+        <p class="tiny muted" style="text-align:center">Everything they learned stays with the department, and you recover part of what you put into them.</p>
+        <div class="reward-line"><span class="rw-c">+${f(v.credits)} CR</span><span class="rw-x">+${f(v.xp)} TRAINING XP</span>${v.legacy ? `<span class="rw-r">+${v.legacy} LEGACY</span>` : ''}</div>
+        <button class="btn cta" style="background:var(--alarm);color:#fff" data-retire-yes="${d.retire}">RETIRE THEM</button>
+        <button class="btn ghost cta" data-close="1">KEEP THEM</button>`);
+    }
+    if (d.retireYes) {
+      const r = Game.retireStaff(d.retireYes);
+      UI.closeSheet();
+      if (r) { UI.beep('ok'); toast('👋', 'RETIRED', `${r.name} left with a good reference. +${f(r.credits)} credits recovered.`); }
+      return UI.show('staff');
+    }
     if (d.post) return UI.postSheet(d.post);
     if (d.deptfill) return UI.fillDeptSheet(d.deptfill);
     if (d.assign !== undefined) {
@@ -4678,7 +5130,20 @@ const Onboard = (() => {
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
-    if (d.scrap) { Game.scrapItem(d.scrap); UI.beep('tap'); return UI.refresh(); }
+    if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.dispose) {
+      const r = Game.disposeItem(d.dispose);
+      if (r) { UI.beep('coin'); toast('♻️', 'DISPOSED', `${r.name} written off — ${f(r.back)} credits recovered.`); }
+      return UI.refresh();
+    }
+    if (d.procure) {
+      const it = Game.procure(d.procure);
+      if (!it) { UI.beep('fail'); return toast('💸', 'NOT APPROVED', 'Not enough credits, or not enough standing for that one yet.'); }
+      UI.beep('great');
+      const e = Game.eqDef(it.eid);
+      toast(DATA.SLOTS.find(x => x.key === e.slot).icon, 'PROCURED', `${e.name} is in the cupboard. Make it standard issue on this tab.`);
+      return UI.refresh();
+    }
     if (d.claim) {
       const r = Game.claimMission(d.claim);
       if (r) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.coins(t, 8); UI.floatText(b.left, b.top - 10, `+${f(r.credits)} CR`, 'var(--lamp)', 16); }

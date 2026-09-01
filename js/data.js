@@ -211,7 +211,7 @@ const DATA = (() => {
 
   /* How far a technician can be developed. Past this they are as good as the
      department can make them — bring somebody else on instead. */
-  const MAX_CHAR_LEVEL = 80;
+  const MAX_CHAR_LEVEL = 70;   // the ceiling in the last chapter
 
   /* Your hands-on allowance. You can personally work this many tickets an
      hour; the hour starts when you work your first one, and when it is up the
@@ -475,7 +475,7 @@ const DATA = (() => {
   /* base: stats at level 1. growth: gain per level. */
   const CHARACTERS = [
     {
-      id:'hero', name:'JASON', role:'You', rarity:'RARE', icon:'🧑‍💻',
+      id:'hero', name:'JASON', role:'You', rarity:'RARE', role:'TECHNICIAN', icon:'🧑‍💻',
       strength:'Learns from every single ticket',
       weakness:'Cannot be assigned to idle work — you do the tapping',
       personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
@@ -486,7 +486,7 @@ const DATA = (() => {
       cost:0, repReq:0, hireable:false
     },
     {
-      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', icon:'🔧',
+      id:'veteran', name:'THE VETERAN', role:'Hardware Specialist', rarity:'RARE', role:'TECHNICIAN', icon:'🔧',
       strength:'+25% hardware ticket resolution',
       weakness:'-10% automation efficiency',
       personality:'Has been here longer than the building. Owns a screwdriver older than the intern.',
@@ -498,7 +498,7 @@ const DATA = (() => {
       cost:1200, repReq:0, hireable:true
     },
     {
-      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', icon:'💬',
+      id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', role:'SUPPORT', icon:'💬',
       strength:'+30% user satisfaction on every ticket',
       weakness:'Lower raw technical power',
       personality:'Remembers everyone\'s birthday and their laptop asset tag. Users request them by name.',
@@ -510,7 +510,7 @@ const DATA = (() => {
       cost:900, repReq:0, hireable:true
     },
     {
-      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', icon:'🤖',
+      id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', role:'AUTOMATION', icon:'🤖',
       strength:'+40% idle ticket resolution',
       weakness:'-15% user satisfaction — the script does not say hello',
       personality:'Has not manually closed a ticket since 2021 and considers that a personality.',
@@ -522,7 +522,7 @@ const DATA = (() => {
       cost:4500, repReq:250, hireable:true
     },
     {
-      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', icon:'🚒',
+      id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', role:'SPECIALIST', icon:'🚒',
       strength:'+50% critical incident rewards',
       weakness:'Runs hot — no use to you on the quiet days',
       personality:'Calm in a crisis, unbearable on a quiet Tuesday. Keeps a go-bag under the desk.',
@@ -534,7 +534,7 @@ const DATA = (() => {
       cost:6000, repReq:500, hireable:true
     },
     {
-      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', icon:'🐣',
+      id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', role:'TECHNICIAN', icon:'🐣',
       strength:'Gains 60% more XP from everything',
       weakness:'Low starting stats. Very low.',
       personality:'Enthusiastic. Asks "why" until you question your career. Will be terrifying in two years.',
@@ -546,7 +546,7 @@ const DATA = (() => {
       cost:300, repReq:0, hireable:true
     },
     {
-      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', icon:'🦉',
+      id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', role:'AUTOMATION', icon:'🦉',
       strength:'+35% idle credits — does the maintenance window nobody wants',
       weakness:'-20% on active tickets before 11am',
       personality:'Communicates entirely in change tickets. Has never been seen in daylight.',
@@ -558,7 +558,7 @@ const DATA = (() => {
       cost:3200, repReq:150, hireable:true
     },
     {
-      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', icon:'🦅',
+      id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', role:'SPECIALIST', icon:'🦅',
       strength:'+60% on security tickets, +25% incident success',
       weakness:'Blocks things. Constantly. -10% satisfaction.',
       personality:'Trusts nobody, including you, including this sentence. Loves a good log file.',
@@ -570,7 +570,7 @@ const DATA = (() => {
       cost:18000, repReq:2000, hireable:true
     },
     {
-      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', icon:'🔮',
+      id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', role:'MANAGER', icon:'🔮',
       strength:'+25% to absolutely everything',
       weakness:'Costs a fortune and answers only in riddles',
       personality:'Nobody knows their job title. Nobody knows their manager. The outage stops when they arrive.',
@@ -644,6 +644,15 @@ const DATA = (() => {
       stats:{INVESTIGATION:8,MANAGEMENT:5}, effect:'Rescued from a director\'s desk during a refresh.' },
   ];
 
+  /* ---------- PROCUREMENT ----------
+     What the budget will stretch to. Better kit needs standing before finance
+     will sign it off, which is exactly how it works in real life. */
+  const PROCURE = {
+    price: { COMMON: 400, UNCOMMON: 1600, RARE: 7000, EPIC: 34000, LEGENDARY: 160000, MYTHIC: 800000 },
+    repReq: { COMMON: 0, UNCOMMON: 0, RARE: 250, EPIC: 1500, LEGENDARY: 8000, MYTHIC: 40000 },
+    disposeShare: 0.45,        // of what it would cost to buy new
+  };
+
   /* ---------- OFFICE / BUILDINGS ---------- */
   const BUILDINGS = [
     { id:'helpdesk',   name:'Helpdesk Counter',        icon:'🛎️', base:150,   growth:1.55, max:20, repReq:0,
@@ -672,6 +681,99 @@ const DATA = (() => {
       effect:'+25% to everything per level',           key:'all', per:0.25 },
   ];
 
+  /* ---------- CAREER RANKS ----------
+     A level is a number; a rank is a moment. Crossing one changes the title,
+     bumps stats and is worth stopping to look at.                          */
+  const RANKS_STAFF = [
+    { at:1,  name:'Junior Technician', short:'JR',   colour:'#8A93AD' },
+    { at:11, name:'Technician',        short:'TECH', colour:'#5FD37A' },
+    { at:21, name:'Senior Technician', short:'SNR',  colour:'#4FA8FF' },
+    { at:31, name:'Specialist',        short:'SPEC', colour:'#B67CFF' },
+    { at:41, name:'Team Lead',         short:'LEAD', colour:'#FFB347' },
+    { at:51, name:'Manager',           short:'MGR',  colour:'#FF9A5F' },
+    { at:61, name:'Director',          short:'DIR',  colour:'#FF5A9E' },
+  ];
+  const staffRank = lvl => {
+    let r = RANKS_STAFF[0];
+    RANKS_STAFF.forEach(x => { if (lvl >= x.at) r = x; });
+    return r;
+  };
+  const nextStaffRank = lvl => RANKS_STAFF.find(x => lvl < x.at) || null;
+
+  /* ---------- ROLES ----------
+     Five jobs, five reasons to hire. None is simply a better version of
+     another: a team of five Specialists closes hard tickets and starves.   */
+  const ROLES = {
+    TECHNICIAN: { key:'TECHNICIAN', name:'Technician', icon:'🔧', colour:'#5FD37A',
+      blurb:'The backbone. Gets through ordinary tickets faster than anyone.',
+      perk:'+25% on easy and medium tickets' },
+    SPECIALIST: { key:'SPECIALIST', name:'Specialist', icon:'🎯', colour:'#B67CFF',
+      blurb:'Wasted on a printer. Worth their salary the moment something big breaks.',
+      perk:'+35% on hard tickets and critical incidents' },
+    SUPPORT:    { key:'SUPPORT',    name:'Support',    icon:'💬', colour:'#4FA8FF',
+      blurb:'Keeps the department liked, which is worth more than it sounds.',
+      perk:'+30% user satisfaction, and morale falls slower' },
+    AUTOMATION: { key:'AUTOMATION', name:'Automation', icon:'🤖', colour:'#4FD6C9',
+      blurb:'Works the queue while everybody sleeps.',
+      perk:'+35% idle throughput' },
+    MANAGER:    { key:'MANAGER',    name:'Manager',    icon:'📋', colour:'#FFB347',
+      blurb:'Produces nothing alone. Makes everybody around them better.',
+      perk:'+10% output to every other member of staff' },
+  };
+
+  /* ---------- DEPARTMENT CHAPTERS ----------
+     The spine of the game. Each chapter caps how many people you can carry and
+     how far they can be developed, so the question is never "how many can I
+     collect" but "who are the best five".                                   */
+  const CHAPTERS = [
+    { n:1, name:'Small Helpdesk',  icon:'🛎️', capacity:5,  maxLevel:20,
+      goal:'Build a helpdesk that can be relied on.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:400 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:6000 },
+        { id:'sat',     text:'Hold morale at {n}%',        metric:'morale',    target:70 },
+      ],
+      unlocks:'Corporate IT — ten staff, and the Infrastructure department' },
+    { n:2, name:'Corporate IT',    icon:'🏢', capacity:10, maxLevel:30,
+      goal:'Support a company that keeps growing.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:2500 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:25000 },
+        { id:'auto',    text:'Reach {n} tickets an hour on the automated queue', metric:'idle', target:1200 },
+      ],
+      unlocks:'Regional IT — twenty staff, and Cybersecurity' },
+    { n:3, name:'Regional IT',     icon:'🏙️', capacity:20, maxLevel:40,
+      goal:'Hold several offices together at once.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:12000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:90000 },
+        { id:'inc',     text:'Win {n} critical incidents', metric:'incidents', target:30 },
+      ],
+      unlocks:'Global IT — thirty staff, Cloud and Automation' },
+    { n:4, name:'Global IT',       icon:'🌍', capacity:30, maxLevel:50,
+      goal:'Run it everywhere, at every hour.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:60000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:400000 },
+        { id:'rep',     text:'Reach {n} reputation',       metric:'rep',       target:50000 },
+      ],
+      unlocks:'IT Empire — fifty staff, and the ceiling comes off at level 70' },
+    { n:5, name:'IT Empire',       icon:'👑', capacity:50, maxLevel:70,
+      goal:'An IT organisation that mostly runs itself.',
+      objectives:[
+        { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:250000 },
+        { id:'power',   text:'Reach {n} team power',       metric:'power',     target:2000000 },
+        { id:'rep',     text:'Reach {n} reputation',       metric:'rep',       target:250000 },
+      ],
+      unlocks:null },
+  ];
+
+  /* A letter for the department, from team power against the chapter target. */
+  const DEPT_GRADES = [
+    { at:1.60, g:'S' }, { at:1.15, g:'A' }, { at:0.80, g:'B' },
+    { at:0.50, g:'C' }, { at:0.25, g:'D' }, { at:0,    g:'E' },
+  ];
+
   /* ---------- DEPARTMENTS ----------
      Where you post people decides what the automated queue produces. Each
      department leans on one stat, so posting the right person matters as much
@@ -697,6 +799,8 @@ const DATA = (() => {
   ];
 
   /* ---------- MISSIONS ---------- */
+  /* Daily missions come in three weights. The hard ones are meant to take
+     most of a day's allowance, not ten minutes. */
   const MISSION_POOL = [
     { id:'m_tickets',  text:'Resolve {n} tickets',                 metric:'tickets',    base:20, icon:'🎫' },
     { id:'m_hardware', text:'Resolve {n} hardware tickets',        metric:'cat_hardware',base:8, icon:'🧰' },
@@ -708,6 +812,14 @@ const DATA = (() => {
     { id:'m_build',    text:'Upgrade the office {n} times',        metric:'builds',     base:1,  icon:'🏢' },
     { id:'m_sat',      text:'Get {n} happy users',                 metric:'happy',      base:12, icon:'😊' },
     { id:'m_perfect',  text:'Resolve {n} tickets without a failure',metric:'streak',    base:10, icon:'🔥' },
+    { id:'m_bigrun',   text:'Resolve {n} tickets',                  metric:'tickets',   base:90,  icon:'🎫', tier:'hard' },
+    { id:'m_bigcred',  text:'Earn {n} IT Credits',                  metric:'credits',   base:25000,icon:'💰', tier:'hard' },
+    { id:'m_bigxp',    text:'Earn {n} XP',                          metric:'xp',        base:12000,icon:'⭐', tier:'hard' },
+    { id:'m_bigdiag',  text:'Name the right cause {n} times',       metric:'diagnosed', base:8,   icon:'🔍', tier:'hard' },
+    { id:'m_bigincid', text:'Win {n} critical incidents',           metric:'incidents', base:4,   icon:'🚨', tier:'hard' },
+    { id:'m_bigstreak',text:'Hit a {n}-ticket clean streak',        metric:'streak',    base:35,  icon:'🔥', tier:'hard' },
+    { id:'m_bighappy', text:'Send {n} users away happy',            metric:'happy',     base:60,  icon:'😊', tier:'hard' },
+    { id:'m_bigbuild', text:'Upgrade the office {n} times',         metric:'builds',    base:4,   icon:'🏢', tier:'hard' },
     { id:'m_diag',     text:'Name the right cause {n} times',        metric:'diagnosed', base:3,  icon:'🔍' },
     { id:'m_deleg',    text:'Hand {n} tickets to a colleague',       metric:'delegated', base:5,  icon:'👥' },
   ];
@@ -752,7 +864,8 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
+  return { RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+           ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
 })();

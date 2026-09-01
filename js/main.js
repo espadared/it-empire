@@ -262,6 +262,12 @@
     setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .55, '#FFB347', 26), 100);
   });
 
+  Game.on('promoted', ({ char, rank }) => {
+    UI.beep('level');
+    const nm = char.defId === 'hero' ? Game.state.name : Game.def(char.defId).name;
+    toast('🎖️', 'PROMOTED TO ' + rank.name.toUpperCase(), `${nm} is now a ${rank.name} — stats up, and worth more to the department.`);
+  });
+
   Game.on('achievement', a => { UI.beep('great'); toast('🏅', a.name, `${a.desc}  +${a.rep} REP`); });
   Game.on('missiondone', m => { UI.beep('ok'); toast('📋', 'MISSION COMPLETE', m.text + ' — claim it on Missions.'); });
   Game.on('event', e => { UI.beep('alarm'); toast(e.icon, e.title, e.desc); UI.updateChips(); });
@@ -411,7 +417,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-dept],[data-upgrade],[data-scrap],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell');
     if (!t) return;
     const d = t.dataset;
 
@@ -522,6 +528,37 @@
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
     if (d.sview) { UI.beep('tap'); return UI.setStaffView(d.sview); }
     if (d.ssort) { UI.beep('tap'); return UI.setStaffSort(d.ssort); }
+    if (d.promote) {
+      const ch = Game.promoteChapter();
+      if (!ch) return UI.beep('fail');
+      UI.beep('level');
+      UI.sheet(`<span class="big-emoji">${ch.icon}</span>
+        <h3>PROMOTED TO ${esc(ch.name.toUpperCase())}</h3>
+        <p class="sub">Chapter ${ch.n} of ${DATA.CHAPTERS.length}</p>
+        <p class="tiny muted" style="text-align:center">${esc(ch.goal)}</p>
+        <div class="reward-line"><span class="rw-c">${ch.capacity} DESKS</span><span class="rw-x">STAFF TO L${ch.maxLevel}</span></div>
+        <button class="btn gold cta" data-close="1">GET TO WORK</button>`);
+      setTimeout(() => UI.sparks(window.innerWidth / 2, window.innerHeight * .45, '#FFB347', 28), 100);
+      return UI.show('staff');
+    }
+    if (d.retire) {
+      const c = Game.state.roster.find(x => x.uid === d.retire);
+      if (!c) return;
+      const v = Game.retireValue(c), nm = Game.def(c.defId).name;
+      return UI.sheet(`<span class="big-emoji">👋</span>
+        <h3>LET ${esc(nm)} GO?</h3>
+        <p class="sub">Frees a desk. There is no getting them back.</p>
+        <p class="tiny muted" style="text-align:center">Everything they learned stays with the department, and you recover part of what you put into them.</p>
+        <div class="reward-line"><span class="rw-c">+${f(v.credits)} CR</span><span class="rw-x">+${f(v.xp)} TRAINING XP</span>${v.legacy ? `<span class="rw-r">+${v.legacy} LEGACY</span>` : ''}</div>
+        <button class="btn cta" style="background:var(--alarm);color:#fff" data-retire-yes="${d.retire}">RETIRE THEM</button>
+        <button class="btn ghost cta" data-close="1">KEEP THEM</button>`);
+    }
+    if (d.retireYes) {
+      const r = Game.retireStaff(d.retireYes);
+      UI.closeSheet();
+      if (r) { UI.beep('ok'); toast('👋', 'RETIRED', `${r.name} left with a good reference. +${f(r.credits)} credits recovered.`); }
+      return UI.show('staff');
+    }
     if (d.post) return UI.postSheet(d.post);
     if (d.deptfill) return UI.fillDeptSheet(d.deptfill);
     if (d.assign !== undefined) {
@@ -559,7 +596,20 @@
       c.dept = c.dept === d.dept ? null : d.dept; Game.save(); UI.beep('ok'); return UI.charSheet(d.for);
     }
     if (d.upgrade) { Game.upgradeItem(d.upgrade) ? UI.beep('coin') : UI.beep('fail'); return UI.refresh(); }
-    if (d.scrap) { Game.scrapItem(d.scrap); UI.beep('tap'); return UI.refresh(); }
+    if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }
+    if (d.dispose) {
+      const r = Game.disposeItem(d.dispose);
+      if (r) { UI.beep('coin'); toast('♻️', 'DISPOSED', `${r.name} written off — ${f(r.back)} credits recovered.`); }
+      return UI.refresh();
+    }
+    if (d.procure) {
+      const it = Game.procure(d.procure);
+      if (!it) { UI.beep('fail'); return toast('💸', 'NOT APPROVED', 'Not enough credits, or not enough standing for that one yet.'); }
+      UI.beep('great');
+      const e = Game.eqDef(it.eid);
+      toast(DATA.SLOTS.find(x => x.key === e.slot).icon, 'PROCURED', `${e.name} is in the cupboard. Make it standard issue on this tab.`);
+      return UI.refresh();
+    }
     if (d.claim) {
       const r = Game.claimMission(d.claim);
       if (r) { UI.beep('level'); const b = t.getBoundingClientRect(); UI.coins(t, 8); UI.floatText(b.left, b.top - 10, `+${f(r.credits)} CR`, 'var(--lamp)', 16); }

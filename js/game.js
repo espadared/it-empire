@@ -80,7 +80,7 @@ const Game = (() => {
       standard: {},
       buildings: { helpdesk: 1 },
       dept: {},
-      queue: [], streak: 0,
+      queue: [], streak: 0, chapter: 1,
       momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -380,7 +380,7 @@ const Game = (() => {
     let techOk = Math.random() < o.tech;
     let auto = false;
     if (!techOk && t.cat === 'display' && Math.random() < (bonus('autoDisplay') - 1)) { techOk = true; auto = true; }
-    const satOk = techOk && Math.random() < o.sat * (delegated ? 0.85 : 1);
+    const satOk = techOk && Math.random() < o.sat * roleSatMult(worker) * (delegated ? 0.85 : 1);
 
     const tiredMul = tired ? 0.35 : 1;
     const failMul = techOk ? 1 : 0.2;
@@ -389,8 +389,9 @@ const Game = (() => {
     const delMul = delegated ? 0.7 : 1;
     const mo = momentumMult(), mr = moraleMult();
 
+    const roleMul = roleTicketMult(worker, t.tier);
     let credits = T.credits * (1 + S.level * 0.17) * bonus('reward') * bonus('credit')
-      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr;
+      * bonus('cat_' + t.cat) * tiredMul * failMul * satMul * diagMul * delMul * mo * mr * roleMul;
     let xpv = T.xp * (1 + S.level * 0.11) * bonus('xp') * tiredMul * failMul * diagMul * mo;
     let rep = techOk ? T.rep * bonus('rep') * (satOk ? 1.5 : 0.6) * (delegated ? 0.7 : 1) : -1;
 
@@ -509,20 +510,120 @@ const Game = (() => {
     });
   }
 
-  const atMaxLevel = c => c.level >= DATA.MAX_CHAR_LEVEL;
+  const atMaxLevel = c => c.level >= maxStaffLevel();
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
   function levelCost(c) { return Math.floor(60 * Math.pow(c.level, 1.45) * DATA.RARITY[c.rarity].mult); }
   function levelUpChar(uidc) {
     const c = S.roster.find(x => x.uid === uidc); if (!c || !canLevel(c)) return false;
+    const before = rankOf(c).name;
     S.credits -= levelCost(c); c.xp -= charXpNeed(c.level); c.level++;
     S.lifetime.levelups++; bump('levelups', 1);
+    if (rankOf(c).name !== before) emit('promoted', { char: c, rank: rankOf(c) });
     checkAchievements(); emit('change');
     return true;
   }
 
   /* ---------------- IDLE ENGINE ---------------- */
+  /* ---------------- CHAPTERS, RANKS AND ROLES ----------------
+     The department grows in chapters. Each one decides how many people you can
+     carry and how far they can be developed, so the game is about picking the
+     right handful rather than hoarding a list.                              */
+  const chapterNo = () => clamp(S.chapter || 1, 1, DATA.CHAPTERS.length);
+  const chapter = () => DATA.CHAPTERS[chapterNo() - 1];
+  const capacity = () => chapter().capacity;
+  const maxStaffLevel = () => Math.min(DATA.MAX_CHAR_LEVEL, chapter().maxLevel);
+  const atCapacity = () => S.roster.length >= capacity();
+
+  const rankOf = c => DATA.staffRank(c.level);
+  const roleOf = c => DATA.ROLES[def(c.defId).role] || DATA.ROLES.TECHNICIAN;
+
+  /* A manager produces nothing on their own and makes everyone else better. */
+  function managerBoost(forChar) {
+    if (forChar && def(forChar.defId).role === 'MANAGER') return 1;
+    const mgrs = S.roster.filter(c => def(c.defId).role === 'MANAGER'
+      && (!forChar || c.uid !== forChar.uid)).length;
+    return 1 + Math.min(0.5, mgrs * 0.10);
+  }
+
+  /* What a role is actually worth on a given ticket. */
+  function roleTicketMult(c, tier) {
+    const r = def(c.defId).role;
+    if (r === 'TECHNICIAN' && tier !== 'HARD') return 1.25;
+    if (r === 'SPECIALIST' && tier === 'HARD') return 1.35;
+    return 1;
+  }
+  const roleSatMult = c => def(c.defId).role === 'SUPPORT' ? 1.30 : 1;
+
+  /* Team power is what the staff screen leads on: everyone you employ. */
+  const teamPowerTotal = () => S.roster.reduce((a, c) => a + charPower(c), 0);
+
+  function deptGrade() {
+    const target = chapter().objectives.find(o => o.metric === 'power');
+    const ratio = target ? teamPowerTotal() / target.target : 1;
+    return (DATA.DEPT_GRADES.find(g => ratio >= g.at) || { g: 'E' }).g;
+  }
+
+  /* Progress against this chapter's objectives. */
+  function objectiveValue(metric) {
+    if (metric === 'tickets') return S.lifetime.tickets;
+    if (metric === 'power') return teamPowerTotal();
+    if (metric === 'morale') return Math.round(S.morale);
+    if (metric === 'idle') return Math.round(idleRate() * 60);
+    if (metric === 'incidents') return S.lifetime.incidents;
+    if (metric === 'rep') return S.reputation;
+    return 0;
+  }
+  function chapterProgress() {
+    return chapter().objectives.map(o => {
+      const have = objectiveValue(o.metric);
+      return { ...o, have, done: have >= o.target,
+               text: o.text.replace('{n}', fmt(o.target)) };
+    });
+  }
+  const canPromoteChapter = () =>
+    chapterNo() < DATA.CHAPTERS.length && chapterProgress().every(o => o.done);
+
+  function promoteChapter() {
+    if (!canPromoteChapter()) return null;
+    S.chapter = chapterNo() + 1;
+    const ch = chapter();
+    S.reputation += 500 * ch.n;
+    checkAchievements(); emit('change');
+    emit('chapter', ch);
+    return ch;
+  }
+
+  /* Letting somebody go. You get something back, which is what makes replacing
+     a middling technician with a specialist a real decision rather than a loss. */
+  function retireValue(c) {
+    let spent = 0;
+    for (let l = 1; l < c.level; l++) spent += Math.floor(60 * Math.pow(l, 1.45) * DATA.RARITY[c.rarity].mult);
+    return {
+      credits: Math.floor(spent * 0.6 + Game_hireRefund(c)),
+      xp: Math.floor(charXpNeed(c.level) * 0.5),
+      legacy: c.level >= 50 ? 1 : 0,
+    };
+  }
+  function Game_hireRefund(c) {
+    const d = def(c.defId);
+    return Math.floor((d.cost || 0) * 0.35);
+  }
+  function retireStaff(uid) {
+    const c = S.roster.find(x => x.uid === uid); if (!c) return null;
+    if (c.defId === 'hero') return null;                 // you cannot retire yourself
+    if (S.roster.length <= 1) return null;
+    const v = retireValue(c);
+    S.credits += v.credits;
+    S.legacy += v.legacy;
+    S.roster = S.roster.filter(x => x.uid !== uid);
+    if (S.activeId === uid) S.activeId = S.roster[0].uid;
+    grantStaffXp(v.xp);                                   // their experience stays behind
+    emit('change');
+    return { ...v, name: c.defId === 'hero' ? S.name : def(c.defId).name };
+  }
+
   /* ---------------- DEPARTMENTS ----------------
      A posting is only worth what the person brings to it. Fit compares their
      department stat against their own average, so a specialist posted to their
@@ -562,7 +663,9 @@ const Game = (() => {
     let r = 3 + c.level * 0.45 + st.AUTOMATION * 0.16 + st.SPEED * 0.07;
     if (d.perks.idle) r *= (1 + d.perks.idle);
     if (d.perks.all) r *= (1 + d.perks.all);
+    if (def(c.defId).role === 'AUTOMATION') r *= 1.35;
     r *= deptBoost(c, 'rate');
+    r *= managerBoost(c);
     return r;
   }
   function idleRate() {                                   // tickets per minute
@@ -632,12 +735,12 @@ const Game = (() => {
     return Math.floor(d.cost * Math.pow(2.4, owned));
   }
   function canHire(d) {
-    return d.hireable && S.reputation >= d.repReq && S.credits >= hireCost(d);
+    return d.hireable && !atCapacity() && S.reputation >= d.repReq && S.credits >= hireCost(d);
   }
   function hire(defId) {
     const d = def(defId); if (!canHire(d)) return null;
     S.credits -= hireCost(d);
-    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, DATA.MAX_CHAR_LEVEL));
+    const c = mkChar(defId, clamp(Math.floor(S.level * 0.6), 1, maxStaffLevel()));
     S.roster.push(c); S.unlocked[defId] = true;
     checkAchievements(); emit('change');
     return c;
@@ -678,18 +781,44 @@ const Game = (() => {
     });
     return Math.round(p);
   }
+  /* What finance will charge, and what they will give back. */
+  const procurePrice = eid => {
+    const e = eqDef(eid); if (!e) return Infinity;
+    return Math.round(DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06));
+  };
+  const canProcure = eid => {
+    const e = eqDef(eid); if (!e) return false;
+    return S.reputation >= DATA.PROCURE.repReq[e.rarity] && S.credits >= procurePrice(eid);
+  };
+  function procure(eid) {
+    if (!canProcure(eid)) return null;
+    S.credits -= procurePrice(eid);
+    const it = mkItem(eid);
+    S.inventory.push(it);
+    checkAchievements(); emit('change');
+    return it;
+  }
+  function disposeValue(it) {
+    const e = eqDef(it.eid); if (!e) return 0;
+    const base = DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06) * DATA.PROCURE.disposeShare;
+    return Math.round(base * (1 + (it.level - 1) * 0.35));
+  }
+
   function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
     S.credits -= cost; it.level++; emit('change'); return true;
   }
-  function scrapItem(itemUid) {
-    const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return;
+  /* Disposal. Asset recovery, not a bin. */
+  function disposeItem(itemUid) {
+    const i = S.inventory.findIndex(x => x.uid === itemUid); if (i < 0) return null;
     const it = S.inventory[i];
     if (isStandard(it.uid)) withdrawStandard(eqDef(it.eid).slot);
-    S.credits += Math.floor(upgradeCost(it) * 0.4);
+    const back = disposeValue(it);
+    S.credits += back;
     S.inventory.splice(i, 1); emit('change');
+    return { back, name: eqDef(it.eid).name };
   }
 
   /* ---------------- BUILDINGS ---------------- */
@@ -710,7 +839,10 @@ const Game = (() => {
 
   /* ---------------- MISSIONS ---------------- */
   function rollMissions() {
-    const pool = [...DATA.MISSION_POOL].sort(() => Math.random() - 0.5).slice(0, 4);
+    // Always a couple of quick ones and at least one that takes real work.
+    const easy = DATA.MISSION_POOL.filter(m => !m.tier).sort(() => Math.random() - 0.5).slice(0, 3);
+    const hard = DATA.MISSION_POOL.filter(m => m.tier === 'hard').sort(() => Math.random() - 0.5).slice(0, 2);
+    const pool = [...easy, ...hard];
     const scale = 1 + S.level * 0.22;
     S.missions = pool.map(m => ({
       id: m.id, icon: m.icon, metric: m.metric,
@@ -719,11 +851,12 @@ const Game = (() => {
         ? m.text.replace('{n}', '1').replace(/(ticket|incident|time|user|employee)s\b/g, '$1')
         : m.text.replace('{n}', fmt(t)))(Math.max(1, Math.round(m.base * scale))),
       done: false, claimed: false,
+      tier: m.tier || 'normal',
       reward: {
-        credits: Math.round(400 * scale * (1 + Math.random() * 0.6)),
-        xp: Math.round(280 * scale),
-        rep: Math.round(12 * scale),
-        energy: 5,             // extra tickets on your allowance
+        credits: Math.round((m.tier === 'hard' ? 2600 : 400) * scale * (1 + Math.random() * 0.6)),
+        xp: Math.round((m.tier === 'hard' ? 1800 : 280) * scale),
+        rep: Math.round((m.tier === 'hard' ? 90 : 12) * scale),
+        energy: m.tier === 'hard' ? 12 : 5,
       }
     }));
     S.md = {};
@@ -901,7 +1034,7 @@ const Game = (() => {
       v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
-      queue: [], streak: 0, momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      queue: [], streak: 0, chapter: 1, momentum: 0, morale: 75, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
@@ -991,8 +1124,11 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, atMaxLevel,
+    chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
+    teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter,
+    retireValue, retireStaff, managerBoost, objectiveValue,
     issueStandard, withdrawStandard, standardItem, standardItems, isStandard, standardPower,
-    upgradeItem, upgradeCost, scrapItem,
+    upgradeItem, upgradeCost, disposeItem, disposeValue, procure, procurePrice, canProcure,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
     incidentReady, startIncident, incidentAnswer, incidentFinish,
