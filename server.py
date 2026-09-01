@@ -73,7 +73,8 @@ if DATABASE_URL:
     try:
         import psycopg
         from psycopg_pool import ConnectionPool
-        _pg = ConnectionPool(DATABASE_URL, min_size=1, max_size=4, kwargs={"autocommit": True})
+        _pg = ConnectionPool(DATABASE_URL, min_size=1, max_size=4, timeout=20,
+                             kwargs={"autocommit": True, "connect_timeout": 15})
     except Exception as exc:          # fall back rather than refuse to start
         print(f"[db] Postgres unavailable ({exc}); using local SQLite instead")
         _pg = None
@@ -540,8 +541,11 @@ class Handler(BaseHTTPRequestHandler):
     # -- api --
     def api_get(self, route):
         if route == "ping":
+            # Answers without touching the database on purpose: this is what
+            # the host polls to decide whether the service is up.
             return self.json(200, {"ok": True, "game": "IT Empire",
-                                   "store": "postgres" if _pg else "sqlite"})
+                                   "store": "postgres" if _pg else "sqlite",
+                                   "schema": "ready" if _ready else "warming"})
         if route == "state":
             row = session_player(self.token())
             if not row:
@@ -748,11 +752,27 @@ class Handler(BaseHTTPRequestHandler):
         return self.json(200, {"ok": True, "rev": new_rev, "now": int(time.time() * 1000)})
 
 
+def _warm_database():
+    """Prepare the schema in the background.
+
+    Deliberately not on the startup path: a sleeping or slow Postgres used to
+    block before the port was ever bound, so the host saw a service that never
+    came up and killed the deploy. The web server can serve the game while the
+    database wakes, and q() rebuilds the schema on first use anyway."""
+    try:
+        _ensure_schema()
+        print(f"[db] schema ready ({'Postgres' if _pg else 'SQLite'})", flush=True)
+    except Exception as exc:
+        print(f"[db] not ready yet ({exc}) — will retry on first use", flush=True)
+
+
 def main():
-    _ensure_schema()
     where = "Postgres" if _pg else f"SQLite ({_sqlite_path.name})"
-    print(f"IT Empire running on http://localhost:{PORT}  ·  saves in {where}")
-    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    # Bind first, so the host can see the service is alive straight away.
+    srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    print(f"IT Empire listening on 0.0.0.0:{PORT}  ·  saves in {where}", flush=True)
+    threading.Thread(target=_warm_database, daemon=True).start()
+    srv.serve_forever()
 
 
 if __name__ == "__main__":
