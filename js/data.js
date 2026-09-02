@@ -344,7 +344,14 @@ const DATA = (() => {
     'User learned something and told their whole floor.',
   ];
 
-  /* ---------- CRITICAL INCIDENTS ---------- */
+  /* ---------- CRITICAL INCIDENTS ----------
+     How often the alarm goes off. These were 180s to the first and 150-330s
+     between, which is an emergency every four minutes or so — often enough
+     that a crisis stopped reading as a crisis. Tripled. */
+  const INCIDENT_FIRST = 540 * 1000;          // 9 minutes into a new game
+  const INCIDENT_MIN = 450;                   // 7.5 minutes
+  const INCIDENT_SPREAD = 540;                // ...up to 16.5 minutes
+
   const INCIDENTS = [
     {
       id:'global_outage', title:'GLOBAL NETWORK OUTAGE', icon:'🌐',
@@ -1028,7 +1035,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+  return { INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
            ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };

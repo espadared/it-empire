@@ -324,6 +324,22 @@
       <button class="btn gold cta" data-close="1">GOT IT</button>`), 600);
   });
 
+  Game.on('allowancechanged', ({ from, to, level }) => {
+    if (to >= from) return;
+    setTimeout(() => UI.sheet(`<span class="big-emoji">🎫</span>
+      <h3>YOUR ALLOWANCE HAS SETTLED</h3>
+      <p class="sub">${f(from)} an hour → <b style="color:var(--lamp)">${f(to)} an hour</b></p>
+      <div class="whycard"><b>Why it went down</b>
+        <p>Your first days come with a much bigger allowance so you can learn the
+          job without the game stopping on you. As you level up it settles toward
+          the normal pace — by now you have colleagues working the queue while you
+          are away, which is where most of your income comes from.</p></div>
+      <div class="whycard"><b>You have not lost anything</b>
+        <p>Whatever is already in your allowance stays yours. The Break Room in
+          THE OFFICE adds more on top, permanently.</p></div>
+      <button class="btn gold cta" data-close="1">UNDERSTOOD</button>`), 1400);
+  });
+
   Game.on('tabunlock', def => {
     UI.beep('great');
     toast('🔓', def.label + ' UNLOCKED', def.why);

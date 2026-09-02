@@ -87,9 +87,10 @@ const Game = (() => {
       queue: [], streak: 0, chapter: 1,
       momentum: 0, morale: 100, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
+      lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
-      incident: null, incidentAt: Date.now() + 180000,
+      incident: null, incidentAt: Date.now() + DATA.INCIDENT_FIRST,
       recentEvents: [], recentIncidents: [],
       solveTimes: [], sinceDiag: 0, lastWasDiag: false,
       missions: null, missionsAt: 0,
@@ -627,7 +628,17 @@ const Game = (() => {
       // Deliberately no allowance here: thirty an hour has to mean thirty an
       // hour, or levelling quietly switches the limit off for new players.
     }
-    if (ups) emit('levelup', { level: S.level, title: title(S.level) });
+    if (ups) {
+      emit('levelup', { level: S.level, title: title(S.level) });
+      // The hourly allowance steps down as the player levels through the ramp.
+      // Silently it reads as a demotion — you saw 250 yesterday and 120 today.
+      // Say it once, each time it moves, so it reads as the settling-in period
+      // it actually is.
+      const now = quotaBase();
+      if (S.lastAllowance && S.lastAllowance !== now)
+        emit('allowancechanged', { from: S.lastAllowance, to: now, level: S.level });
+      S.lastAllowance = now;
+    }
   }
 
   /* Your people learn from the work. Shares are deliberately generous: with a
@@ -1431,7 +1442,7 @@ const Game = (() => {
     S.lifetime.peak = Math.max(S.lifetime.peak, S.credits);
     const drop = win && Math.random() < 0.55 ? dropItem('HARD') : null;
     S.incident = null;
-    S.incidentAt = Date.now() + (150 + Math.random() * 180) * 1000;
+    S.incidentAt = Date.now() + (DATA.INCIDENT_MIN + Math.random() * DATA.INCIDENT_SPREAD) * 1000;
     checkAchievements(); emit('change');
     return { win, credits, xp: xpv, rep, drop };
   }
@@ -1509,9 +1520,10 @@ const Game = (() => {
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, chapter: 1, momentum: 0, morale: 100, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
+      lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
-      incident: null, incidentAt: Date.now() + 180000,
+      incident: null, incidentAt: Date.now() + DATA.INCIDENT_FIRST,
       recentEvents: [], recentIncidents: [],
       solveTimes: [], sinceDiag: 0, lastWasDiag: false,
       missions: null, missionsAt: 0, md: {},
