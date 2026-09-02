@@ -222,7 +222,11 @@ const Game = (() => {
   const moraleMult = () => 0.55 + (S.morale / 100) * 0.9;             // 0.55 → 1.45
 
   function tierRoll() {
-    const l = S.level;
+    /* Paced against the technician on duty for the same reason the requirement
+       is: once the chapter caps their level, sending steadily harder work at a
+       person who cannot get any better only drains morale. */
+    const c = active();
+    const l = Math.min(S.level, c ? c.level + 2 : S.level);
     const wHard = l < 5 ? 0 : Math.min(0.32, (l - 4) * 0.025);
     const wMed = l < 2 ? 0 : Math.min(0.48, (l - 1) * 0.07);
     const r = Math.random();
@@ -369,7 +373,22 @@ const Game = (() => {
     emit('change');
   }
 
-  function requirement(tier) { return TIER[tier].n * (7 + S.level * 1.25); }
+  /* How hard a ticket is to fix.
+
+     This used to scale with the player's level, which rises forever, while the
+     technician actually working the ticket is capped by the current chapter.
+     Past that cap the job kept getting harder and the person doing it did not,
+     so odds fell away, morale drained, and Chapter 1 — which needs morale at
+     70 to promote and lift the cap — became unreachable. The cure was locked
+     behind the disease.
+
+     It now scales with whoever is at the desk, so difficulty and capability
+     rise together and stop together. Player level still drives rewards. */
+  function requirement(tier) {
+    const c = active();
+    const lv = c ? c.level : (S.level || 1);
+    return TIER[tier].n * (7 + lv * 1.25);
+  }
 
   /* diag: 1 you named the cause, 0 you guessed wrong, null not asked */
   function oddsFor(t, who, diag) {
@@ -429,7 +448,7 @@ const Game = (() => {
     if (diag === 1) momGain += 20;
     if (diag === 0) momGain -= 22;
     S.momentum = clamp(S.momentum + momGain, 0, MOMENTUM_MAX);
-    S.morale = clamp(S.morale + (satOk ? 1.6 : techOk ? 0.4 : -2.6), 0, 100);
+    S.morale = clamp(S.morale + (satOk ? 1.8 : techOk ? 0.5 : -1.6), 0, 100);
     S.lastAction = Date.now();
 
     S.credits += credits; S.reputation = Math.max(0, S.reputation + rep);
@@ -1355,8 +1374,8 @@ const Game = (() => {
     refreshQuota();
     // Morale drifts slowly back toward workable, so one bad session does not
     // sour the department forever — but it never drifts up into "great".
-    const rest = 60;
-    if (S.morale < rest) S.morale = Math.min(rest, S.morale + 0.045 * dt);
+    const rest = 72;
+    if (S.morale < rest) S.morale = Math.min(rest, S.morale + 0.09 * dt);
     else if (S.morale > 92) S.morale = Math.max(92, S.morale - 0.02 * dt);
     accrue(dt, false);
     maybeEvent(now);

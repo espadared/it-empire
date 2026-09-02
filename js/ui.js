@@ -280,6 +280,7 @@ const UI = (() => {
 
   function updateIdle() {
     const S = Game.state, per = Game.idlePerSec(), a = S.idleAcc, n = Game.staff().length;
+    renderGoal();
     $('#idleStrip').innerHTML = n === 0 ? `
       <div class="idle-head"><span>🤖</span> AUTOMATED QUEUE</div>
       <p class="idle-note">Nobody is working the queue but you. Hire your first colleague on the <b>STAFF</b> tab and tickets keep closing while you are away.</p>
@@ -1082,13 +1083,48 @@ const UI = (() => {
   }
 
   /* ================= SCREEN SWITCH ================= */
+  /* The friends' first complaint was that the game has no direction. It does —
+     chapters — but it was buried two screens deep behind a tab. This puts the
+     next thing you are working towards on the screen you are already looking
+     at. */
+  function renderGoal() {
+    const box = $('#goalStrip'); if (!box) return;
+    const S = Game.state, ch = Game.chapter(), objs = Game.chapterProgress();
+    const open = objs.filter(o => !o.done);
+    const done = objs.length - open.length;
+    if (Game.canPromoteChapter()) {
+      box.innerHTML = `<button class="goal ready" data-screen="staff">
+        <span class="goal-ico">${ch.icon}</span>
+        <div class="goal-body"><b>Chapter ${ch.n} is finished</b>
+          <span>Promote the department for more desks and higher levels</span></div>
+        <span class="goal-go">GO →</span></button>`;
+      return;
+    }
+    const next = open.sort((a, b) => (b.have / b.target) - (a.have / a.target))[0];
+    if (!next) { box.innerHTML = ''; return; }
+    const pct = Math.min(100, next.have / next.target * 100);
+    box.innerHTML = `<button class="goal" data-screen="staff">
+      <span class="goal-ico">${ch.icon}</span>
+      <div class="goal-body">
+        <b>Chapter ${ch.n} of ${DATA.CHAPTERS.length} · ${esc(ch.name)}</b>
+        <span>${esc(next.text)}</span>
+        <div class="pbar goal-bar"><span style="width:${pct}%"></span></div>
+      </div>
+      <span class="goal-n">${f(Math.min(next.have, next.target))}<small>/${f(next.target)}</small>
+        <em>${done}/${objs.length} done</em></span></button>`;
+  }
+
   function show(name) {
     screen = name;
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'screen-' + name));
     document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.screen === name));
     refresh();
     $('#screens').scrollTop = 0;
+    // the first time somebody opens a screen, say what it is for
+    if (typeof Tutor !== 'undefined' && !document.querySelector('.sheet')) Tutor.visit(name, sheet);
   }
+
+  const explain = () => typeof Tutor !== 'undefined' && Tutor.explain(screen, sheet);
 
   function refresh() {
     renderTop();
@@ -1101,7 +1137,7 @@ const UI = (() => {
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           show, refresh, explain, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
