@@ -286,7 +286,14 @@ const Game = (() => {
   const tabOpen = id => tabState(id).open;
 
   const quotaMax = () => quotaBase() + (S.buildings.break || 0) * DATA.QUOTA.perBreakRoom;
-  const quotaLeft = () => Math.max(0, Math.min(S.quotaLeft == null ? quotaMax() : S.quotaLeft, quotaMax()));
+  /* What is actually left. Deliberately NOT clamped to the current cap: the
+     cap falls as the player levels through the ramp, and clamping meant a
+     counter that froze at "120/120" while 210 tickets were still in the tank.
+     An allowance already granted is not taken back. */
+  const quotaLeft = () => Math.max(0, S.quotaLeft == null ? quotaMax() : S.quotaLeft);
+
+  /* What to draw the bar against, so it never overflows its own track. */
+  const quotaCap = () => Math.max(quotaMax(), quotaLeft());
   const quotaResetIn = () => Math.max(0, ((S.quotaEnds || 0) - Date.now()) / 1000);
   const hasQuota = () => quotaLeft() > 0;
 
@@ -319,6 +326,10 @@ const Game = (() => {
     save();
     return { credits, reputation, xp };
   }
+
+  /* The UI spots a tab opening; the engine is what announces it, so the sound
+     and the toast go through the same path as every other reward. */
+  function emitUnlock(def) { emit('tabunlock', def); }
 
   function grantQuota(n) {
     S.quotaLeft = Math.min(quotaMax(), (S.quotaLeft == null ? quotaMax() : S.quotaLeft) + n);
@@ -1557,7 +1568,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
+    emitUnlock, heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,

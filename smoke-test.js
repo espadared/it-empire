@@ -141,6 +141,26 @@ check('the level buttons never promise what they will not spend', () => {
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
+check('the ticket counter tells the truth all session', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'CNT', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+  let n = 0, last = Infinity;
+  // The allowance shrinks as the player levels through the ramp. What has
+  // already been granted must not be clawed back, and the number on screen
+  // must keep falling — it used to freeze at "120/120" with 210 still in hand.
+  while (Game.hasQuota() && S.queue[0] && n < 400) {
+    Game.resolveTicket(S.queue[0].uid); n++;
+    const left = Game.quotaLeft();
+    assert(left <= last, `the counter went up at ticket ${n}: ${last} -> ${left}`);
+    assert(left === S.quotaLeft, `counter says ${left} but ${S.quotaLeft} remain at ticket ${n}`);
+    assert(Game.quotaCap() >= left, `the bar would overflow at ticket ${n}`);
+    last = left;
+  }
+  assert(n >= 200, `a first session should be generous, got ${n} tickets`);
+  assert(Game.quotaLeft() === 0, 'the session should end at zero');
+});
+
 check('your own technician is never outgrown by a hire', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'HERO', spec: 'fixer', art: DATA.CHARACTERS[0].art });

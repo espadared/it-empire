@@ -3161,7 +3161,14 @@ const Game = (() => {
   const tabOpen = id => tabState(id).open;
 
   const quotaMax = () => quotaBase() + (S.buildings.break || 0) * DATA.QUOTA.perBreakRoom;
-  const quotaLeft = () => Math.max(0, Math.min(S.quotaLeft == null ? quotaMax() : S.quotaLeft, quotaMax()));
+  /* What is actually left. Deliberately NOT clamped to the current cap: the
+     cap falls as the player levels through the ramp, and clamping meant a
+     counter that froze at "120/120" while 210 tickets were still in the tank.
+     An allowance already granted is not taken back. */
+  const quotaLeft = () => Math.max(0, S.quotaLeft == null ? quotaMax() : S.quotaLeft);
+
+  /* What to draw the bar against, so it never overflows its own track. */
+  const quotaCap = () => Math.max(quotaMax(), quotaLeft());
   const quotaResetIn = () => Math.max(0, ((S.quotaEnds || 0) - Date.now()) / 1000);
   const hasQuota = () => quotaLeft() > 0;
 
@@ -3194,6 +3201,10 @@ const Game = (() => {
     save();
     return { credits, reputation, xp };
   }
+
+  /* The UI spots a tab opening; the engine is what announces it, so the sound
+     and the toast go through the same path as every other reward. */
+  function emitUnlock(def) { emit('tabunlock', def); }
 
   function grantQuota(n) {
     S.quotaLeft = Math.min(quotaMax(), (S.quotaLeft == null ? quotaMax() : S.quotaLeft) + n);
@@ -4432,7 +4443,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
+    emitUnlock, heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
@@ -4557,8 +4568,9 @@ const UI = (() => {
     $('#xpFill').style.width = Math.min(100, S.xp / need * 100) + '%';
     $('#xpLbl').textContent = f(S.xp) + '/' + f(need);
     const left = Game.quotaLeft(), max = Game.quotaMax();
-    $('#enFill').style.width = Math.min(100, left / max * 100) + '%';
-    $('#enLbl').textContent = left ? left + '/' + max : Game.fmtTime(Game.quotaResetIn());
+    const cap = Game.quotaCap();
+    $('#enFill').style.width = Math.min(100, left / cap * 100) + '%';
+    $('#enLbl').textContent = left ? left + '/' + cap : Game.fmtTime(Game.quotaResetIn());
     $('#resAllow').classList.toggle('spent', !left);
     const alerts = (S.missions || []).filter(m => m.done && !m.claimed).length + (Game.incidentReady() ? 1 : 0);
     $('#bellDot').style.display = alerts ? 'block' : 'none';
@@ -4640,7 +4652,7 @@ const UI = (() => {
       const per = Game.idlePerSec();
       box.innerHTML = `<div class="spent-card">
         <div class="spent-ico">🎫</div>
-        <h3>THAT IS YOUR THIRTY</h3>
+        <h3>THAT IS YOUR ${Game.quotaMax()}</h3>
         <p>You have worked your allowance for this hour. The queue is frozen —
            nothing will breach while you are off the floor.</p>
         <div class="spent-clock">BACK IN <b>${Game.fmtTime(Game.quotaResetIn())}</b></div>
@@ -5544,9 +5556,14 @@ const UI = (() => {
      at. */
   /* Tabs that have not been earned yet are visibly waiting rather than absent,
      so the player can see there is more coming. */
+  let navSeen = null;
   function paintNav() {
+    // A tab opening is a reward, and it used to happen in silence — the icon
+    // just quietly stopped being grey.
+    const openNow = new Set();
     document.querySelectorAll('#nav button').forEach(b => {
       const st = Game.tabState(b.dataset.screen);
+      if (st.open) openNow.add(b.dataset.screen);
       b.classList.toggle('locked', !st.open);
       let lk = b.querySelector('.navlock');
       if (!st.open) {
@@ -5554,6 +5571,13 @@ const UI = (() => {
         lk.textContent = '🔒';
       } else if (lk) lk.remove();
     });
+    if (navSeen) {
+      [...openNow].filter(id => !navSeen.has(id)).forEach(id => {
+        const def = (DATA.TABS || []).find(t => t.id === id);
+        if (def && Game.emitUnlock) Game.emitUnlock(def);
+      });
+    }
+    navSeen = openNow;
   }
 
   function renderGoal() {
@@ -6409,6 +6433,11 @@ const Onboard = (() => {
   // escalating) never draw one.
   Game.on('resolved', () => coopCredit(1));
 
+  Game.on('tabunlock', def => {
+    UI.beep('great');
+    toast('🔓', def.label + ' UNLOCKED', def.why);
+  });
+
   /* Your own rank moving is the payoff the whole premise promises, so it gets
      a moment rather than a silent stat change. */
   Game.on('heropromoted', ({ from, to }) => {
@@ -6430,7 +6459,7 @@ const Onboard = (() => {
     UI.beep('alarm');
     UI.sheet(`
       <span class="big-emoji">🎫</span>
-      <h3>THAT IS YOUR THIRTY</h3>
+      <h3>THAT IS YOUR ${Game.quotaMax()}</h3>
       <p class="sub">You have worked your allowance for this hour</p>
       <p class="tiny muted" style="text-align:center">The queue is frozen until it refills — nothing breaches while you are off the floor. Your team keeps working the automated queue the whole time, so there will be a pile of credits waiting when you get back.</p>
       <p class="tiny" style="text-align:center;color:var(--lamp);font-family:var(--disp);font-size:15px">BACK IN ${Game.fmtTime(Game.quotaResetIn())}</p>
@@ -6680,6 +6709,14 @@ const Onboard = (() => {
         case 'adopt-newer': {
           UI.closeSheet();
           location.reload();          // simplest correct thing: start from the server's copy
+          return;
+        }
+        case 'day-one-done': {
+          UI.closeSheet();
+          // now the guide for the screen they are standing on, which the
+          // day-one card would otherwise have talked over
+          if (Game.state.taught) delete Game.state.taught.hq;
+          setTimeout(() => UI.show('hq'), 220);
           return;
         }
         case 'coop-claim': {
@@ -7005,9 +7042,9 @@ const Onboard = (() => {
       <span class="big-emoji">${sp.icon}</span>
       <h3>DAY ONE ON THE HELPDESK</h3>
       <p class="sub">${esc(Game.state.name)} · ${esc(sp.name)}</p>
-      <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">RESOLVE TICKET</b> to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
+      <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">FIX IT</b> on any ticket to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
       <p class="tiny" style="text-align:center;color:var(--crt)">Somewhere above you, there is a CTO chair with your name on it.</p>
-      <button class="btn gold cta" data-close="1">CLOCK IN</button>`);
+      <button class="btn gold cta" data-act="day-one-done">CLOCK IN</button>`);
   }
 
   const dropSplash = () => {

@@ -105,8 +105,9 @@ const UI = (() => {
     $('#xpFill').style.width = Math.min(100, S.xp / need * 100) + '%';
     $('#xpLbl').textContent = f(S.xp) + '/' + f(need);
     const left = Game.quotaLeft(), max = Game.quotaMax();
-    $('#enFill').style.width = Math.min(100, left / max * 100) + '%';
-    $('#enLbl').textContent = left ? left + '/' + max : Game.fmtTime(Game.quotaResetIn());
+    const cap = Game.quotaCap();
+    $('#enFill').style.width = Math.min(100, left / cap * 100) + '%';
+    $('#enLbl').textContent = left ? left + '/' + cap : Game.fmtTime(Game.quotaResetIn());
     $('#resAllow').classList.toggle('spent', !left);
     const alerts = (S.missions || []).filter(m => m.done && !m.claimed).length + (Game.incidentReady() ? 1 : 0);
     $('#bellDot').style.display = alerts ? 'block' : 'none';
@@ -188,7 +189,7 @@ const UI = (() => {
       const per = Game.idlePerSec();
       box.innerHTML = `<div class="spent-card">
         <div class="spent-ico">🎫</div>
-        <h3>THAT IS YOUR THIRTY</h3>
+        <h3>THAT IS YOUR ${Game.quotaMax()}</h3>
         <p>You have worked your allowance for this hour. The queue is frozen —
            nothing will breach while you are off the floor.</p>
         <div class="spent-clock">BACK IN <b>${Game.fmtTime(Game.quotaResetIn())}</b></div>
@@ -1092,9 +1093,14 @@ const UI = (() => {
      at. */
   /* Tabs that have not been earned yet are visibly waiting rather than absent,
      so the player can see there is more coming. */
+  let navSeen = null;
   function paintNav() {
+    // A tab opening is a reward, and it used to happen in silence — the icon
+    // just quietly stopped being grey.
+    const openNow = new Set();
     document.querySelectorAll('#nav button').forEach(b => {
       const st = Game.tabState(b.dataset.screen);
+      if (st.open) openNow.add(b.dataset.screen);
       b.classList.toggle('locked', !st.open);
       let lk = b.querySelector('.navlock');
       if (!st.open) {
@@ -1102,6 +1108,13 @@ const UI = (() => {
         lk.textContent = '🔒';
       } else if (lk) lk.remove();
     });
+    if (navSeen) {
+      [...openNow].filter(id => !navSeen.has(id)).forEach(id => {
+        const def = (DATA.TABS || []).find(t => t.id === id);
+        if (def && Game.emitUnlock) Game.emitUnlock(def);
+      });
+    }
+    navSeen = openNow;
   }
 
   function renderGoal() {

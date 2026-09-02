@@ -304,6 +304,11 @@
   // escalating) never draw one.
   Game.on('resolved', () => coopCredit(1));
 
+  Game.on('tabunlock', def => {
+    UI.beep('great');
+    toast('🔓', def.label + ' UNLOCKED', def.why);
+  });
+
   /* Your own rank moving is the payoff the whole premise promises, so it gets
      a moment rather than a silent stat change. */
   Game.on('heropromoted', ({ from, to }) => {
@@ -325,7 +330,7 @@
     UI.beep('alarm');
     UI.sheet(`
       <span class="big-emoji">🎫</span>
-      <h3>THAT IS YOUR THIRTY</h3>
+      <h3>THAT IS YOUR ${Game.quotaMax()}</h3>
       <p class="sub">You have worked your allowance for this hour</p>
       <p class="tiny muted" style="text-align:center">The queue is frozen until it refills — nothing breaches while you are off the floor. Your team keeps working the automated queue the whole time, so there will be a pile of credits waiting when you get back.</p>
       <p class="tiny" style="text-align:center;color:var(--lamp);font-family:var(--disp);font-size:15px">BACK IN ${Game.fmtTime(Game.quotaResetIn())}</p>
@@ -575,6 +580,14 @@
         case 'adopt-newer': {
           UI.closeSheet();
           location.reload();          // simplest correct thing: start from the server's copy
+          return;
+        }
+        case 'day-one-done': {
+          UI.closeSheet();
+          // now the guide for the screen they are standing on, which the
+          // day-one card would otherwise have talked over
+          if (Game.state.taught) delete Game.state.taught.hq;
+          setTimeout(() => UI.show('hq'), 220);
           return;
         }
         case 'coop-claim': {
@@ -900,9 +913,9 @@
       <span class="big-emoji">${sp.icon}</span>
       <h3>DAY ONE ON THE HELPDESK</h3>
       <p class="sub">${esc(Game.state.name)} · ${esc(sp.name)}</p>
-      <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">RESOLVE TICKET</b> to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
+      <p class="tiny muted" style="text-align:center">Tap <b style="color:var(--lamp)">FIX IT</b> on any ticket to work the queue. Credits hire colleagues, colleagues work the queue while you are gone, and reputation opens up the rest of the company.</p>
       <p class="tiny" style="text-align:center;color:var(--crt)">Somewhere above you, there is a CTO chair with your name on it.</p>
-      <button class="btn gold cta" data-close="1">CLOCK IN</button>`);
+      <button class="btn gold cta" data-act="day-one-done">CLOCK IN</button>`);
   }
 
   const dropSplash = () => {
