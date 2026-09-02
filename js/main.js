@@ -304,6 +304,21 @@
   // escalating) never draw one.
   Game.on('resolved', () => coopCredit(1));
 
+  Game.on('moralefirst', ({ morale }) => {
+    setTimeout(() => UI.sheet(`<span class="big-emoji">😟</span>
+      <h3>THE TEAM IS FLAGGING</h3>
+      <p class="sub">Morale has dropped to ${morale}%.</p>
+      <div class="whycard"><b>What this is</b>
+        <p>How your users feel about the department. It falls when tickets are
+          botched or left to run out of time, and it quietly scales everything
+          you earn — so a flagging team is a poorer one.</p></div>
+      <div class="whycard"><b>How to bring it back</b>
+        <p>Fix tickets properly and stop letting them lapse. It recovers on its
+          own once you are on top of the queue again, and this meter goes away
+          when it does.</p></div>
+      <button class="btn gold cta" data-close="1">GOT IT</button>`), 600);
+  });
+
   Game.on('tabunlock', def => {
     UI.beep('great');
     toast('🔓', def.label + ' UNLOCKED', def.why);

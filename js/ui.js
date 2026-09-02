@@ -175,11 +175,11 @@ const UI = (() => {
         <div class="mbar"><span style="width:${pct}%"></span></div>
         <b>×${mo.toFixed(2)}</b>
       </div>
-      <div class="meter">
-        <span class="m-lbl">😊</span>
+      ${Game.moraleMatters() ? `<div class="meter morale-on">
+        <span class="m-lbl">😟</span>
         <div class="mbar morale"><span style="width:${S.morale}%"></span></div>
-        <b class="${S.morale < 35 ? 'bad' : ''}">${Math.round(S.morale)}%</b>
-      </div>`;
+        <b class="${S.morale < 45 ? 'bad' : ''}">${Math.round(S.morale)}%</b>
+      </div>` : ''}`;
   }
 
   function renderQueue() {
@@ -523,7 +523,9 @@ const UI = (() => {
       <div class="teamstats">
         <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
         <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>
-        <div><b>${Math.round(S.morale)}%</b><span>morale</span></div>
+        ${Game.moraleMatters()
+          ? `<div><b class="${S.morale < 45 ? 'alarm' : ''}">${Math.round(S.morale)}%</b><span>morale</span></div>`
+          : `<div><b>${f(Game.teamPowerTotal())}</b><span>team power</span></div>`}
       </div>
       ${(() => {
         const a = Game.advice();

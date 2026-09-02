@@ -85,7 +85,7 @@ const Game = (() => {
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0, chapter: 1,
-      momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      momentum: 0, morale: 100, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
@@ -246,6 +246,31 @@ const Game = (() => {
   /* Morale: what your users think of the department. Breaches and botched
      fixes cost it, and everything you earn is scaled by it. */
   const moraleMult = () => 0.55 + (S.morale / 100) * 0.9;             // 0.55 → 1.45
+
+  /* Whether morale is worth a player's attention.
+
+     In normal play it sits between 92 and 100 and never moves, so the meter
+     was a dial reporting a constant — screen space that taught nothing. It
+     only becomes information when something has gone wrong: breached tickets,
+     a run of failed fixes. So it stays out of the way until it drops, and then
+     it appears and says why.
+
+     Hysteresis on purpose: without it the meter would flicker in and out
+     around the threshold, which is worse than either state. */
+  let moraleShown = false;
+  function moraleMatters() {
+    const was = moraleShown;
+    if (S.morale < 90) moraleShown = true;
+    else if (S.morale >= 97) moraleShown = false;
+    // the first time it ever surfaces, explain it — a number that appears from
+    // nowhere and starts costing you credits is worse than no number at all
+    if (moraleShown && !was && S.taught && !S.taught.morale) {
+      S.taught.morale = 1;
+      save();
+      emit('moralefirst', { morale: Math.round(S.morale) });
+    }
+    return moraleShown;
+  }
 
   function tierRoll() {
     /* Paced against the technician on duty for the same reason the requirement
@@ -718,6 +743,7 @@ const Game = (() => {
     if (metric === 'tickets') return S.lifetime.tickets;
     if (metric === 'power') return teamPowerTotal();
     if (metric === 'morale') return Math.round(S.morale);
+    if (metric === 'staff') return S.roster.filter(c => c.defId !== 'hero').length;
     if (metric === 'idle') return Math.round(idleRate() * 60);
     if (metric === 'incidents') return S.lifetime.incidents;
     if (metric === 'rep') return S.reputation;
@@ -1481,7 +1507,7 @@ const Game = (() => {
       v: 1, name: 'JASON', level: 1, xp: 0, credits: 0, reputation: 0,
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
-      queue: [], streak: 0, chapter: 1, momentum: 0, morale: 75, busy: {}, lastAction: 0,
+      queue: [], streak: 0, chapter: 1, momentum: 0, morale: 100, busy: {}, lastAction: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
@@ -1567,7 +1593,7 @@ const Game = (() => {
     resolveTicket, delegate, escalateTicket, escalateCost, TIER, requirement,
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
-    momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
+    momentumMult, moraleMult, moraleMatters, MOMENTUM_MAX, QUEUE_SIZE, breach,
     emitUnlock, heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,

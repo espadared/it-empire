@@ -887,7 +887,11 @@ const DATA = (() => {
       objectives:[
         { id:'tickets', text:'Resolve {n} tickets',        metric:'tickets',   target:400 },
         { id:'power',   text:'Reach {n} team power',       metric:'power',     target:6000 },
-        { id:'sat',     text:'Hold morale at {n}%',        metric:'morale',    target:70 },
+        /* Was 'Hold morale at 70%'. Morale is hidden until it actually moves,
+           and a number the player cannot see must never be the thing standing
+           between them and the next chapter. Hiring is the lesson of this
+           chapter anyway: the queue should work without you. */
+        { id:'crew',    text:'Hire {n} colleagues',        metric:'staff',     target:3 },
       ],
       unlocks:'Corporate IT — ten staff, and the Infrastructure department' },
     { n:2, name:'Corporate IT',    icon:'🏢', capacity:10, maxLevel:30,

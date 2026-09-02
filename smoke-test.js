@@ -141,6 +141,34 @@ check('the level buttons never promise what they will not spend', () => {
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
+check('morale stays out of the way until it means something', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'MOR', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+
+  assert(S.morale >= 97, `a fresh department should not start unhappy, got ${S.morale}`);
+  assert(!Game.moraleMatters(), 'the meter should be hidden on a new save');
+
+  // it appears when something has actually gone wrong
+  S.morale = 85;
+  assert(Game.moraleMatters(), 'the meter should appear once morale drops');
+
+  // and does not flicker on the way back up
+  S.morale = 92; assert(Game.moraleMatters(), 'it should hold through the middle band');
+  S.morale = 96; assert(Game.moraleMatters(), 'it should still hold just under the reset');
+  S.morale = 98; assert(!Game.moraleMatters(), 'it should go away once recovered');
+  S.morale = 91; assert(!Game.moraleMatters(), 'and stay away until it drops properly again');
+  S.morale = 88; assert(Game.moraleMatters(), 'a real drop should bring it back');
+
+  // nothing the player cannot see may gate a chapter
+  DATA.CHAPTERS.forEach((c, i) => {
+    (c.objectives || []).forEach(o => {
+      assert(o.metric !== 'morale',
+        `chapter ${i + 1} gates on morale, which is hidden most of the time`);
+    });
+  });
+});
+
 check('the ticket counter tells the truth all session', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'CNT', spec: 'fixer', art: DATA.CHARACTERS[0].art });
