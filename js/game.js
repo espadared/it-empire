@@ -85,7 +85,7 @@ const Game = (() => {
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0, chapter: 1,
-      momentum: 0, morale: 100, busy: {}, lastAction: 0,
+      momentum: 0, morale: 100, busy: {}, lastAction: 0, expansion: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -193,8 +193,50 @@ const Game = (() => {
     const l = DATA.LEGACY.find(x => x.id === id);
     return (S.legacySpent[id] || 0) * l.per;
   }
+  /* ---------------- EXPANSION ----------------
+     The one purchase that never runs out. See DATA.EXPANSION. */
+  const expansionOwned = () => S.expansion || 0;
+
+  function expansionCost(n) {
+    const E = DATA.EXPANSION;
+    return Math.floor(E.base * Math.pow(E.growth, n == null ? expansionOwned() : n));
+  }
+
+  /* Past the written list the sites keep going, numbered, so the ladder has no
+     end in the fiction either. */
+  function expansionSite(n) {
+    const E = DATA.EXPANSION, list = E.sites;
+    const i = n == null ? expansionOwned() : n;
+    if (i < list.length) return { n: i + 1, name: list[i].name.replace(/\s+/g, ' '), blurb: list[i].blurb };
+    const last = list[list.length - 1];
+    const roman = ['II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+    const extra = i - list.length;
+    return {
+      n: i + 1,
+      name: last.name.replace(/\s+/g, ' ') + ' ' + (roman[extra] || '×' + (extra + 2)),
+      blurb: 'Another one. The empire does not stop growing.',
+    };
+  }
+
+  const expansionIdle = () => expansionOwned() * DATA.EXPANSION.idlePer;
+  const expansionDesks = () => Math.floor(expansionOwned() / DATA.EXPANSION.deskEvery);
+
+  function invest() {
+    const cost = expansionCost();
+    if (S.credits < cost) return null;
+    const site = expansionSite();
+    S.credits -= cost;
+    S.expansion = expansionOwned() + 1;
+    const desk = S.expansion % DATA.EXPANSION.deskEvery === 0;
+    emit('expanded', { site, cost, desk, owned: S.expansion });
+    emit('change');
+    save();
+    return { site, cost, desk };
+  }
+
   function bonus(key) {
     let b = 1;
+    if (key === 'idle') b += expansionIdle();
     // buildings
     DATA.BUILDINGS.forEach(bd => {
       const lv = S.buildings[bd.id] || 0; if (!lv) return;
@@ -663,8 +705,19 @@ const Game = (() => {
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
+  /* Levelling used to cost 90 x level^1.65 the whole way up. That is a
+     polynomial against an income that compounds, so by the mid-game a level
+     cost two minutes of idle and the decision went out of it.
+
+     Steeper, but only above level 25, and the two curves meet exactly there —
+     so nothing anybody has already built gets more expensive, and the change
+     is felt only where the old prices had stopped meaning anything. */
+  const COST_KNEE = 25;
   function levelCost(c) {
-    const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
+    const L = c.level;
+    const flat = 90 * Math.pow(Math.min(L, COST_KNEE), 1.65);
+    const steep = L > COST_KNEE ? Math.pow(L / COST_KNEE, 2.4) : 1;
+    const base = flat * steep * DATA.RARITY[c.rarity].mult;
     return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
   }
   /* Level somebody as far as their experience and your budget allow, stopping
@@ -716,7 +769,7 @@ const Game = (() => {
      right handful rather than hoarding a list.                              */
   const chapterNo = () => clamp(S.chapter || 1, 1, DATA.CHAPTERS.length);
   const chapter = () => DATA.CHAPTERS[chapterNo() - 1];
-  const capacity = () => chapter().capacity;
+  const capacity = () => chapter().capacity + expansionDesks();
   const maxStaffLevel = () => Math.min(DATA.MAX_CHAR_LEVEL, chapter().maxLevel);
   const atCapacity = () => S.roster.length >= capacity();
 
@@ -1275,7 +1328,14 @@ const Game = (() => {
     return Math.round(base * (1 + (it.level - 1) * 0.35));
   }
 
-  function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
+  /* Same treatment for gear, with the knee at 10. */
+  const GEAR_KNEE = 10;
+  function upgradeCost(it) {
+    const L = it.level;
+    const flat = 180 * Math.pow(Math.min(L, GEAR_KNEE), 1.5);
+    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.2) : 1;
+    return Math.floor(flat * steep * DATA.RARITY[eqDef(it.eid).rarity].mult);
+  }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
@@ -1519,6 +1579,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, chapter: 1, momentum: 0, morale: 100, busy: {}, lastAction: 0,
+      expansion: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -1610,7 +1671,8 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
-    chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
+    chapter, chapterNo, capacity, atCapacity,
+    expansionCost, expansionSite, expansionOwned, expansionIdle, expansionDesks, invest, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
     postingValue, postingYield, postingOptions, teamValueIfMoved, postingCtx,

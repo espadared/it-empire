@@ -1171,6 +1171,19 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .eotm-past div{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;
   color:var(--muted);padding:3px 0}
 
+/* the endless expansion */
+.expand{margin:0 12px 16px;border:1px solid var(--lamp-dim);border-radius:12px;
+  background:linear-gradient(180deg,rgba(240,169,74,.08),rgba(240,169,74,.03));padding:13px 14px}
+.expand-top{display:flex;gap:11px;align-items:flex-start;margin-bottom:11px}
+.expand-ico{font-size:24px;flex:0 0 auto}
+.expand-top b{display:block;font-family:var(--disp);font-size:14.5px;color:var(--lamp)}
+.expand-top span{display:block;font-size:12px;color:var(--muted);line-height:1.45;font-style:italic}
+.expand-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.expand-stats div{background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:8px 6px;text-align:center}
+.expand-stats b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
+.expand-stats span{display:block;font-size:9.5px;color:var(--faint);letter-spacing:.03em;margin-top:1px}
+
 </style>
 <div id="app">
 
@@ -1203,6 +1216,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
       <div class="idle-strip" id="idleStrip"></div>
       <div class="goal-strip" id="goalStrip"></div>
       <div class="coop-strip" id="coopStrip"></div>
+      <div class="sec-head"><h2>EXPANSION</h2><span>THE EMPIRE</span></div>
+      <div id="expandCard"></div>
       <div class="sec-head"><h2>THE OFFICE</h2><span>UPGRADES</span></div>
       <div class="list" id="buildList"></div>
       <div style="height:14px"></div>
@@ -1519,6 +1534,42 @@ const DATA = (() => {
     { id:'battle',   label:'BATTLE',   need:'level',   n:10,
       hint:'Reach level 10', why:'Wager credits on IT puzzles against other players.' },
   ];
+
+  /* ---------- EXPANSION ----------
+     The endless sink.
+
+     Everything else the game sells is finite — the office maxes out, gear runs
+     out of levels, a roster fills up. Idle income compounds and does not, so a
+     player who has bought everything is left watching a number climb with
+     nowhere for it to go. By day 21 the entire shopping list was three days of
+     income.
+
+     Each site costs 1.55x the last and gives a flat, non-compounding boost, so
+     the cost curve outruns the reward on purpose: it always absorbs whatever
+     the empire earns, and it never runs out. Every fifth one also adds a desk,
+     which is the part a player actually feels. */
+  const EXPANSION = {
+    base: 250000,
+    /* Tuned by simulation, not by taste. At 1.55 the ladder outran income
+       within a fortnight and simply stalled; at 1.28 the early sites come
+       within a session and the later ones are a real thing to save for. */
+    growth: 1.28,
+    idlePer: 0.04,            // +4% idle output each, added not compounded
+    deskEvery: 5,             // and a desk every fifth site
+    sites: [
+      { name: 'The Spare Desk',        blurb: 'You put a second desk in the corner. It begins.' },
+      { name: 'The Back Office',       blurb: 'A room with a door. Luxury.' },
+      { name: 'The Second Floor',      blurb: 'Upstairs is yours now.' },
+      { name: 'The Annexe',            blurb: 'The building next door had space going spare.' },
+      { name: 'The Satellite Office',  blurb: 'Across town, with its own kettle.' },
+      { name: 'The Regional Hub',      blurb: 'Three cities answer to this desk.' },
+      { name: 'The Data Centre',       blurb: 'Cold, loud, and entirely yours.' },
+      { name: 'The National Desk',     blurb: 'A country-wide helpdesk with your name on the org chart.' },
+      { name: 'The Follow-The-Sun    Rota', blurb: 'Somewhere in the world, your queue is always open.' },
+      { name: 'The Continental Office', blurb: 'Time zones are a scheduling problem, not a limit.' },
+      { name: 'The Global Operations   Centre', blurb: 'The wall of screens. The chair. All of it.' },
+    ],
+  };
 
   const QUOTA = {
     perHour: 30,
@@ -2269,7 +2320,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+  return { EXPANSION, INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
            ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };
@@ -3028,7 +3079,7 @@ const Game = (() => {
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0, chapter: 1,
-      momentum: 0, morale: 100, busy: {}, lastAction: 0,
+      momentum: 0, morale: 100, busy: {}, lastAction: 0, expansion: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -3136,8 +3187,50 @@ const Game = (() => {
     const l = DATA.LEGACY.find(x => x.id === id);
     return (S.legacySpent[id] || 0) * l.per;
   }
+  /* ---------------- EXPANSION ----------------
+     The one purchase that never runs out. See DATA.EXPANSION. */
+  const expansionOwned = () => S.expansion || 0;
+
+  function expansionCost(n) {
+    const E = DATA.EXPANSION;
+    return Math.floor(E.base * Math.pow(E.growth, n == null ? expansionOwned() : n));
+  }
+
+  /* Past the written list the sites keep going, numbered, so the ladder has no
+     end in the fiction either. */
+  function expansionSite(n) {
+    const E = DATA.EXPANSION, list = E.sites;
+    const i = n == null ? expansionOwned() : n;
+    if (i < list.length) return { n: i + 1, name: list[i].name.replace(/\s+/g, ' '), blurb: list[i].blurb };
+    const last = list[list.length - 1];
+    const roman = ['II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+    const extra = i - list.length;
+    return {
+      n: i + 1,
+      name: last.name.replace(/\s+/g, ' ') + ' ' + (roman[extra] || '×' + (extra + 2)),
+      blurb: 'Another one. The empire does not stop growing.',
+    };
+  }
+
+  const expansionIdle = () => expansionOwned() * DATA.EXPANSION.idlePer;
+  const expansionDesks = () => Math.floor(expansionOwned() / DATA.EXPANSION.deskEvery);
+
+  function invest() {
+    const cost = expansionCost();
+    if (S.credits < cost) return null;
+    const site = expansionSite();
+    S.credits -= cost;
+    S.expansion = expansionOwned() + 1;
+    const desk = S.expansion % DATA.EXPANSION.deskEvery === 0;
+    emit('expanded', { site, cost, desk, owned: S.expansion });
+    emit('change');
+    save();
+    return { site, cost, desk };
+  }
+
   function bonus(key) {
     let b = 1;
+    if (key === 'idle') b += expansionIdle();
     // buildings
     DATA.BUILDINGS.forEach(bd => {
       const lv = S.buildings[bd.id] || 0; if (!lv) return;
@@ -3606,8 +3699,19 @@ const Game = (() => {
   function canLevel(c) {
     return !atMaxLevel(c) && c.xp >= charXpNeed(c.level) && S.credits >= levelCost(c);
   }
+  /* Levelling used to cost 90 x level^1.65 the whole way up. That is a
+     polynomial against an income that compounds, so by the mid-game a level
+     cost two minutes of idle and the decision went out of it.
+
+     Steeper, but only above level 25, and the two curves meet exactly there —
+     so nothing anybody has already built gets more expensive, and the change
+     is felt only where the old prices had stopped meaning anything. */
+  const COST_KNEE = 25;
   function levelCost(c) {
-    const base = 90 * Math.pow(c.level, 1.65) * DATA.RARITY[c.rarity].mult;
+    const L = c.level;
+    const flat = 90 * Math.pow(Math.min(L, COST_KNEE), 1.65);
+    const steep = L > COST_KNEE ? Math.pow(L / COST_KNEE, 2.4) : 1;
+    const base = flat * steep * DATA.RARITY[c.rarity].mult;
     return Math.floor(base * (isPromotion(c.level) ? 4 : 1));
   }
   /* Level somebody as far as their experience and your budget allow, stopping
@@ -3659,7 +3763,7 @@ const Game = (() => {
      right handful rather than hoarding a list.                              */
   const chapterNo = () => clamp(S.chapter || 1, 1, DATA.CHAPTERS.length);
   const chapter = () => DATA.CHAPTERS[chapterNo() - 1];
-  const capacity = () => chapter().capacity;
+  const capacity = () => chapter().capacity + expansionDesks();
   const maxStaffLevel = () => Math.min(DATA.MAX_CHAR_LEVEL, chapter().maxLevel);
   const atCapacity = () => S.roster.length >= capacity();
 
@@ -4218,7 +4322,14 @@ const Game = (() => {
     return Math.round(base * (1 + (it.level - 1) * 0.35));
   }
 
-  function upgradeCost(it) { return Math.floor(180 * Math.pow(it.level, 1.5) * DATA.RARITY[eqDef(it.eid).rarity].mult); }
+  /* Same treatment for gear, with the knee at 10. */
+  const GEAR_KNEE = 10;
+  function upgradeCost(it) {
+    const L = it.level;
+    const flat = 180 * Math.pow(Math.min(L, GEAR_KNEE), 1.5);
+    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.2) : 1;
+    return Math.floor(flat * steep * DATA.RARITY[eqDef(it.eid).rarity].mult);
+  }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
     const cost = upgradeCost(it); if (S.credits < cost || it.level >= 10) return false;
@@ -4462,6 +4573,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, chapter: 1, momentum: 0, morale: 100, busy: {}, lastAction: 0,
+      expansion: 0,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -4553,7 +4665,8 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
-    chapter, chapterNo, capacity, atCapacity, maxStaffLevel, rankOf, roleOf,
+    chapter, chapterNo, capacity, atCapacity,
+    expansionCost, expansionSite, expansionOwned, expansionIdle, expansionDesks, invest, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
     postingValue, postingYield, postingOptions, teamValueIfMoved, postingCtx,
@@ -4867,6 +4980,7 @@ const UI = (() => {
 
   function updateBuildings() {
     const S = Game.state;
+    renderExpand();
     $('#buildList').innerHTML = DATA.BUILDINGS.map(b => {
       const lv = S.buildings[b.id] || 0;
       const locked = S.reputation < b.repReq;
@@ -5737,6 +5851,38 @@ const UI = (() => {
       });
     }
     navSeen = openNow;
+  }
+
+  /* The one purchase that never runs out. Everything else the game sells is
+     finite, and idle income is not, so without this a player who has bought
+     the lot is watching a number climb with nowhere for it to go. */
+  function renderExpand() {
+    const box = $('#expandCard'); if (!box) return;
+    const S = Game.state;
+    const cost = Game.expansionCost(), site = Game.expansionSite();
+    const owned = Game.expansionOwned();
+    const can = S.credits >= cost;
+    const next = (owned + 1) % DATA.EXPANSION.deskEvery === 0;
+    box.innerHTML = `<div class="expand">
+      <div class="expand-top">
+        <span class="expand-ico">🏙️</span>
+        <div style="flex:1;min-width:0">
+          <b>${esc(site.name)}</b>
+          <span>${esc(site.blurb)}</span>
+        </div>
+      </div>
+      <div class="expand-stats">
+        <div><b>${owned}</b><span>sites owned</span></div>
+        <div><b>+${Math.round(Game.expansionIdle() * 100)}%</b><span>idle output</span></div>
+        <div><b>+${Game.expansionDesks()}</b><span>extra desks</span></div>
+      </div>
+      <p class="tiny muted" style="margin:0 0 9px">
+        Every site adds <b style="color:var(--crt)">+${Math.round(DATA.EXPANSION.idlePer * 100)}% idle output</b> for good${next
+          ? ', and this one adds <b style="color:var(--lamp)">a desk</b>' : ''}.
+        There is no limit — each one costs more than the last.</p>
+      <button class="btn ${can ? 'gold' : 'off'} cta" data-invest="1">
+        ${can ? 'OPEN IT' : 'NEED'} 💰${f(cost)}</button>
+    </div>`;
   }
 
   function renderGoal() {
@@ -6861,7 +7007,7 @@ const Onboard = (() => {
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell,#help');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],[data-invest],#bell,#help');
     if (!t) return;
     const d = t.dataset;
 
@@ -6897,6 +7043,19 @@ const Onboard = (() => {
       UI.beep('tap');
       if (d.screen === 'rank') eotmRefresh();
       return UI.show(d.screen);
+    }
+    if (d.invest) {
+      const r = Game.invest();
+      if (!r) { UI.beep('fail'); return toast('🏙️', 'NOT ENOUGH CREDITS', 'Keep the queue moving and come back.'); }
+      UI.beep('great'); UI.refresh();
+      return UI.sheet(`<span class="big-emoji">🏙️</span>
+        <h3>${esc(r.site.name.toUpperCase())}</h3>
+        <p class="sub">${esc(r.site.blurb)}</p>
+        <div class="whycard"><b>What it gives you</b>
+          <p>+${Math.round(DATA.EXPANSION.idlePer * 100)}% idle output, permanently${r.desk
+            ? ', and a desk — you can hire one more person' : ''}.
+            You now hold ${Game.expansionOwned()} site${Game.expansionOwned() > 1 ? 's' : ''}.</p></div>
+        <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
     }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);

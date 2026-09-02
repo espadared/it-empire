@@ -1162,3 +1162,16 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .eotm-past b{display:block;font-size:9.5px;letter-spacing:.1em;color:var(--faint);margin-bottom:6px}
 .eotm-past div{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;
   color:var(--muted);padding:3px 0}
+
+/* the endless expansion */
+.expand{margin:0 12px 16px;border:1px solid var(--lamp-dim);border-radius:12px;
+  background:linear-gradient(180deg,rgba(240,169,74,.08),rgba(240,169,74,.03));padding:13px 14px}
+.expand-top{display:flex;gap:11px;align-items:flex-start;margin-bottom:11px}
+.expand-ico{font-size:24px;flex:0 0 auto}
+.expand-top b{display:block;font-family:var(--disp);font-size:14.5px;color:var(--lamp)}
+.expand-top span{display:block;font-size:12px;color:var(--muted);line-height:1.45;font-style:italic}
+.expand-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.expand-stats div{background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:8px 6px;text-align:center}
+.expand-stats b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
+.expand-stats span{display:block;font-size:9.5px;color:var(--faint);letter-spacing:.03em;margin-top:1px}

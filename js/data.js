@@ -286,6 +286,42 @@ const DATA = (() => {
       hint:'Reach level 10', why:'Wager credits on IT puzzles against other players.' },
   ];
 
+  /* ---------- EXPANSION ----------
+     The endless sink.
+
+     Everything else the game sells is finite — the office maxes out, gear runs
+     out of levels, a roster fills up. Idle income compounds and does not, so a
+     player who has bought everything is left watching a number climb with
+     nowhere for it to go. By day 21 the entire shopping list was three days of
+     income.
+
+     Each site costs 1.55x the last and gives a flat, non-compounding boost, so
+     the cost curve outruns the reward on purpose: it always absorbs whatever
+     the empire earns, and it never runs out. Every fifth one also adds a desk,
+     which is the part a player actually feels. */
+  const EXPANSION = {
+    base: 250000,
+    /* Tuned by simulation, not by taste. At 1.55 the ladder outran income
+       within a fortnight and simply stalled; at 1.28 the early sites come
+       within a session and the later ones are a real thing to save for. */
+    growth: 1.28,
+    idlePer: 0.04,            // +4% idle output each, added not compounded
+    deskEvery: 5,             // and a desk every fifth site
+    sites: [
+      { name: 'The Spare Desk',        blurb: 'You put a second desk in the corner. It begins.' },
+      { name: 'The Back Office',       blurb: 'A room with a door. Luxury.' },
+      { name: 'The Second Floor',      blurb: 'Upstairs is yours now.' },
+      { name: 'The Annexe',            blurb: 'The building next door had space going spare.' },
+      { name: 'The Satellite Office',  blurb: 'Across town, with its own kettle.' },
+      { name: 'The Regional Hub',      blurb: 'Three cities answer to this desk.' },
+      { name: 'The Data Centre',       blurb: 'Cold, loud, and entirely yours.' },
+      { name: 'The National Desk',     blurb: 'A country-wide helpdesk with your name on the org chart.' },
+      { name: 'The Follow-The-Sun    Rota', blurb: 'Somewhere in the world, your queue is always open.' },
+      { name: 'The Continental Office', blurb: 'Time zones are a scheduling problem, not a limit.' },
+      { name: 'The Global Operations   Centre', blurb: 'The wall of screens. The chair. All of it.' },
+    ],
+  };
+
   const QUOTA = {
     perHour: 30,
     windowMs: 60 * 60 * 1000,
@@ -1035,7 +1071,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+  return { EXPANSION, INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
            ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };

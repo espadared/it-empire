@@ -573,7 +573,7 @@
 
   /* ---------- INPUT ---------- */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],#bell,#help');
+    const t = e.target.closest('[data-screen],[data-act],[data-build],[data-hire],[data-levelup],[data-levelmax],[data-setactive],[data-char],[data-slot],[data-issue],[data-withdraw],[data-back],[data-sview],[data-ssort],[data-post],[data-deptfill],[data-assign],[data-promote],[data-retire],[data-retire-yes],[data-advice],[data-dept],[data-upgrade],[data-dispose],[data-procure],[data-gsort],[data-grarity],[data-gview],[data-gfilter],[data-gpick],[data-pick],[data-pickall],[data-disposemany],[data-disposemany-yes],[data-enter],[data-play],[data-bq],[data-led],[data-scram],[data-fault],[data-claim],[data-legacy],[data-close],[data-incopt],[data-fix],[data-delegate],[data-dele-go],[data-escalate],[data-diag],[data-giveup],[data-invest],#bell,#help');
     if (!t) return;
     const d = t.dataset;
 
@@ -609,6 +609,19 @@
       UI.beep('tap');
       if (d.screen === 'rank') eotmRefresh();
       return UI.show(d.screen);
+    }
+    if (d.invest) {
+      const r = Game.invest();
+      if (!r) { UI.beep('fail'); return toast('🏙️', 'NOT ENOUGH CREDITS', 'Keep the queue moving and come back.'); }
+      UI.beep('great'); UI.refresh();
+      return UI.sheet(`<span class="big-emoji">🏙️</span>
+        <h3>${esc(r.site.name.toUpperCase())}</h3>
+        <p class="sub">${esc(r.site.blurb)}</p>
+        <div class="whycard"><b>What it gives you</b>
+          <p>+${Math.round(DATA.EXPANSION.idlePer * 100)}% idle output, permanently${r.desk
+            ? ', and a desk — you can hire one more person' : ''}.
+            You now hold ${Game.expansionOwned()} site${Game.expansionOwned() > 1 ? 's' : ''}.</p></div>
+        <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
     }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);

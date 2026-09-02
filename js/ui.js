@@ -298,6 +298,7 @@ const UI = (() => {
 
   function updateBuildings() {
     const S = Game.state;
+    renderExpand();
     $('#buildList').innerHTML = DATA.BUILDINGS.map(b => {
       const lv = S.buildings[b.id] || 0;
       const locked = S.reputation < b.repReq;
@@ -1168,6 +1169,38 @@ const UI = (() => {
       });
     }
     navSeen = openNow;
+  }
+
+  /* The one purchase that never runs out. Everything else the game sells is
+     finite, and idle income is not, so without this a player who has bought
+     the lot is watching a number climb with nowhere for it to go. */
+  function renderExpand() {
+    const box = $('#expandCard'); if (!box) return;
+    const S = Game.state;
+    const cost = Game.expansionCost(), site = Game.expansionSite();
+    const owned = Game.expansionOwned();
+    const can = S.credits >= cost;
+    const next = (owned + 1) % DATA.EXPANSION.deskEvery === 0;
+    box.innerHTML = `<div class="expand">
+      <div class="expand-top">
+        <span class="expand-ico">🏙️</span>
+        <div style="flex:1;min-width:0">
+          <b>${esc(site.name)}</b>
+          <span>${esc(site.blurb)}</span>
+        </div>
+      </div>
+      <div class="expand-stats">
+        <div><b>${owned}</b><span>sites owned</span></div>
+        <div><b>+${Math.round(Game.expansionIdle() * 100)}%</b><span>idle output</span></div>
+        <div><b>+${Game.expansionDesks()}</b><span>extra desks</span></div>
+      </div>
+      <p class="tiny muted" style="margin:0 0 9px">
+        Every site adds <b style="color:var(--crt)">+${Math.round(DATA.EXPANSION.idlePer * 100)}% idle output</b> for good${next
+          ? ', and this one adds <b style="color:var(--lamp)">a desk</b>' : ''}.
+        There is no limit — each one costs more than the last.</p>
+      <button class="btn ${can ? 'gold' : 'off'} cta" data-invest="1">
+        ${can ? 'OPEN IT' : 'NEED'} 💰${f(cost)}</button>
+    </div>`;
   }
 
   function renderGoal() {

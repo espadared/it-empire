@@ -157,6 +157,55 @@ check('a partial art record cannot break the leaderboard', () => {
   });
 });
 
+check('there is always something left to spend credits on', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'ECON', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+
+  // the ladder never ends and always gets dearer
+  let last = 0;
+  for (let i = 0; i < 60; i++) {
+    const cost = Game.expansionCost(i);
+    assert(cost > last, `site ${i + 1} is not dearer than the one before`);
+    assert(Number.isFinite(cost), `site ${i + 1} priced at ${cost}`);
+    assert(Game.expansionSite(i).name, `site ${i + 1} has no name`);
+    last = cost;
+  }
+
+  // buying one costs what it says and gives what it promises
+  S.credits = Game.expansionCost() + 5;
+  const before = Game.bonus('idle'), cap = Game.capacity();
+  const r = Game.invest();
+  assert(r, 'could not buy a site with exactly enough credits');
+  assert(Math.round(S.credits) === 5, `paid the wrong amount, ${S.credits} left`);
+  assert(Game.bonus('idle') > before, 'buying a site did not raise idle output');
+  assert(Game.expansionOwned() === 1, 'the site was not recorded');
+
+  // and cannot be bought without the money
+  S.credits = 0;
+  assert(Game.invest() === null, 'bought a site with no credits');
+
+  // every fifth one is a desk
+  S.credits = 1e12;
+  while (Game.expansionOwned() < DATA.EXPANSION.deskEvery) Game.invest();
+  assert(Game.capacity() === cap + 1, 'the fifth site did not add a desk');
+
+  // the steepened curves meet the old ones at the knee, so nothing already
+  // built got more expensive
+  const c = Game.hire('veteran');
+  [5, 15, 25].forEach(L => {
+    c.level = L;
+    const old = Math.floor(90 * Math.pow(L, 1.65) * DATA.RARITY[c.rarity].mult
+      * (Game.isPromotion(L) ? 4 : 1));
+    assert(Math.abs(Game.levelCost(c) - old) <= 1,
+      `level ${L} changed price (${old} -> ${Game.levelCost(c)}) below the knee`);
+  });
+  c.level = 50;
+  const steepened = Game.levelCost(c);
+  const flatWouldBe = Math.floor(90 * Math.pow(50, 1.65) * DATA.RARITY[c.rarity].mult);
+  assert(steepened > flatWouldBe * 1.4, 'the curve above the knee is not steeper');
+});
+
 check('morale stays out of the way until it means something', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'MOR', spec: 'fixer', art: DATA.CHARACTERS[0].art });
