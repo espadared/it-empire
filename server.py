@@ -42,6 +42,8 @@ S_TABLE = "ie_sessions"
 A_TABLE = "ie_activity"
 R_TABLE = "ie_rooms"
 E_TABLE = "ie_entries"
+C_TABLE = "ie_coop"
+CP_TABLE = "ie_coop_parts"
 
 # The owner dashboard stays switched off on a host until a real key is set.
 # "localtest" only ever works on your own machine.
@@ -59,7 +61,7 @@ ACTIVE_GAP_MAX = 90
 SESSION_GAP = 30 * 60
 
 # A battle room stays open this long from its first entry, or until it fills.
-ROOM_HOURS = 6
+ROOM_HOURS = 24        # a full day, so a small group still meets in one room
 ROOM_MAX_ENTRIES = 8
 
 SESSION_DAYS = 90
@@ -136,6 +138,23 @@ SCHEMA_PG = (
           played_at timestamptz not null default now(),
           primary key (room_id, player_id)
         )""",
+    f"""create table if not exists {C_TABLE} (
+          id         bigserial primary key,
+          title      text not null,
+          blurb      text,
+          goal       bigint not null,
+          progress   bigint default 0,
+          started_at timestamptz not null default now(),
+          ends_at    timestamptz not null,
+          settled    boolean default false
+        )""",
+    f"""create table if not exists {CP_TABLE} (
+          event_id    bigint not null,
+          player_id   bigint not null,
+          contributed bigint default 0,
+          claimed     boolean default false,
+          primary key (event_id, player_id)
+        )""",
     f"create index if not exists {P_TABLE}_rep_idx on {P_TABLE} (reputation desc)",
 )
 
@@ -159,6 +178,14 @@ SCHEMA_LITE = (
     f"""create table if not exists {E_TABLE} (
           room_id integer not null, player_id integer not null, display text not null,
           ms integer, played_at text not null, primary key (room_id, player_id))""",
+    f"""create table if not exists {C_TABLE} (
+          id integer primary key autoincrement, title text not null, blurb text,
+          goal integer not null, progress integer default 0,
+          started_at text not null, ends_at text not null, settled integer default 0)""",
+    f"""create table if not exists {CP_TABLE} (
+          event_id integer not null, player_id integer not null,
+          contributed integer default 0, claimed integer default 0,
+          primary key (event_id, player_id))""",
 )
 
 _ready = False
@@ -456,6 +483,125 @@ def summarise(state: dict):
             hero.get("art"))
 
 
+# --- company-wide incident ------------------------------------------------
+
+# A shared goal every player pushes at the same time. The game had a scoreboard
+# and a wager, but nothing the group does together — nothing that makes one
+# player message another. Contributions are counted server-side from tickets
+# actually resolved, because a number the client reports is a number the client
+# can invent.
+
+COOP_EVENTS = [
+    ("Company-Wide Outage", "Half the building cannot log in. Everyone on deck."),
+    ("Ransomware Scare", "Suspicious traffic on the network. Clear the queue while security sweeps."),
+    ("Head Office Migration", "Every laptop moves to the new domain this week."),
+    ("Product Launch Day", "Ten thousand new users, and all of them have questions."),
+    ("The Great Windows Update", "It rolled out overnight. Nothing survived contact."),
+]
+COOP_HOURS = 48
+COOP_PER_PLAYER_CAP = 600        # what one committed player can carry over two days
+
+
+def _coop_current(create=True):
+    """The live event, creating a new one when the last has run its course."""
+    now = datetime.now(timezone.utc)
+    row = q(f"""select id, title, blurb, goal, progress, ends_at, settled
+                from {C_TABLE} order by id desc limit 1""", (), "one")
+    if row:
+        ends = _parse_ts(row[5])
+        if not _truthy_c(row[6]) and ends and ends > now:
+            return row
+        if not _truthy_c(row[6]) and ends and ends <= now:
+            q(f"update {C_TABLE} set settled = {TRUE} where id = %s", (row[0],))
+    if not create:
+        return None
+    players = (q(f"select count(*) from {P_TABLE}", (), "one") or [0])[0] or 1
+    # The goal has to be reachable by the people who actually turn up, not by
+    # everyone registered. At roughly a third of the per-player cap each, a
+    # group finishes it when about half of them play — and the keen ones can
+    # carry the rest, which is the point of a shared goal.
+    goal = max(300, min(40000, players * 200))
+    title, blurb = COOP_EVENTS[int(time.time() // (COOP_HOURS * 3600)) % len(COOP_EVENTS)]
+    q(f"""insert into {C_TABLE} (title, blurb, goal, progress, started_at, ends_at)
+          values (%s,%s,%s,0,%s,%s)""",
+      (title, blurb, goal, _now_iso(),
+       _iso(now + timedelta(hours=COOP_HOURS))))
+    return q(f"""select id, title, blurb, goal, progress, ends_at, settled
+                 from {C_TABLE} order by id desc limit 1""", (), "one")
+
+
+def _truthy_c(v):
+    return bool(v) and v not in (0, "0", "false", "f")
+
+
+def coop_view(player_id):
+    row = _coop_current()
+    if not row:
+        return None
+    eid, title, blurb, goal, progress, ends_at, _ = row
+    mine = q(f"""select contributed, claimed from {CP_TABLE}
+                 where event_id = %s and player_id = %s""", (eid, player_id), "one")
+    contributed = (mine[0] if mine else 0) or 0
+    claimed = _truthy_c(mine[1]) if mine else False
+    top = q(f"""select p.display, c.contributed from {CP_TABLE} c
+                join {P_TABLE} p on p.id = c.player_id
+                where c.event_id = %s order by c.contributed desc limit 5""",
+            (eid,), "all") or []
+    done = (progress or 0) >= goal
+    ends = _parse_ts(ends_at)
+    return {
+        "id": eid, "title": title, "blurb": blurb,
+        "goal": goal, "progress": min(progress or 0, goal),
+        "done": done,
+        "endsIn": max(0, int((ends - datetime.now(timezone.utc)).total_seconds())) if ends else 0,
+        "mine": contributed, "claimed": claimed,
+        "canClaim": bool(done and contributed > 0 and not claimed),
+        "reward": _coop_reward(contributed, goal),
+        "helpers": [{"name": r[0], "n": r[1]} for r in top],
+        "players": len(top),
+    }
+
+
+def _coop_reward(contributed, goal):
+    """Everyone who turned up gets something; the share scales with the work."""
+    if contributed <= 0:
+        return {"credits": 0, "rep": 0}
+    share = min(1.0, contributed / max(1, goal * 0.25))
+    return {"credits": int(4000 + 26000 * share), "rep": int(60 + 340 * share)}
+
+
+def coop_add(player_id, n):
+    row = _coop_current()
+    if not row:
+        return None
+    eid, _, _, goal, progress, _, _ = row
+    n = max(0, min(int(n or 0), 60))              # one batch is never a whole session
+    if not n:
+        return coop_view(player_id)
+    mine = q(f"""select contributed from {CP_TABLE}
+                 where event_id = %s and player_id = %s""", (eid, player_id), "one")
+    have = (mine[0] if mine else 0) or 0
+    n = max(0, min(n, COOP_PER_PLAYER_CAP - have))
+    if n:
+        if mine:
+            q(f"""update {CP_TABLE} set contributed = contributed + %s
+                  where event_id = %s and player_id = %s""", (n, eid, player_id))
+        else:
+            q(f"""insert into {CP_TABLE} (event_id, player_id, contributed)
+                  values (%s,%s,%s)""", (eid, player_id, n))
+        q(f"update {C_TABLE} set progress = progress + %s where id = %s", (n, eid))
+    return coop_view(player_id)
+
+
+def coop_claim(player_id):
+    view = coop_view(player_id)
+    if not view or not view["canClaim"]:
+        return None
+    q(f"""update {CP_TABLE} set claimed = {TRUE}
+          where event_id = %s and player_id = %s""", (view["id"], player_id))
+    return view["reward"]
+
+
 # --- http -------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
@@ -624,6 +770,12 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- api --
     def api_get(self, route):
+        if route == "coop":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Sign in again.")
+            return self.json(200, {"ok": True, "coop": coop_view(row[0])})
+
         if route == "ping":
             # Answers without touching the database on purpose: this is what
             # the host polls to decide whether the service is up.
@@ -730,6 +882,24 @@ class Handler(BaseHTTPRequestHandler):
                                    "state": _json_out(saved[0]) if saved else None,
                                    "rev": (saved[1] or 0) if saved else 0,
                                    "now": int(time.time() * 1000)})
+
+        if route == "coop":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            n = int(data.get("n") or 0)
+            view = coop_add(row[0], n) if n else coop_view(row[0])
+            return self.json(200, {"ok": True, "coop": view})
+
+        if route == "coop-claim":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            reward = coop_claim(row[0])
+            if not reward:
+                return self.fail(409, "There is nothing to collect.")
+            return self.json(200, {"ok": True, "reward": reward,
+                                   "coop": coop_view(row[0])})
 
         if route == "battle-enter":
             row = session_player(self.token())

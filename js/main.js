@@ -126,6 +126,58 @@
     `, { grab: false, live: true });
   }
 
+  /* ---------------- COMPANY-WIDE INCIDENT ----------------
+     A goal the whole group pushes at once. Contributions are batched rather
+     than sent per ticket, so a busy session is a handful of requests. */
+  let coop = null, coopPending = 0, coopTimer = 0;
+
+  function coopPaint() {
+    const box = document.querySelector('#coopStrip'); if (!box) return;
+    if (!coop) { box.innerHTML = ''; return; }
+    const pct = Math.min(100, coop.progress / coop.goal * 100);
+    const hrs = Math.floor(coop.endsIn / 3600);
+    box.innerHTML = `<div class="coop ${coop.done ? 'done' : ''}">
+      <div class="coop-top">
+        <span class="coop-ico">${coop.done ? '🎉' : '🚨'}</span>
+        <div style="flex:1;min-width:0">
+          <b>${esc(coop.title)}</b>
+          <span>${esc(coop.blurb)}</span>
+        </div>
+        <span class="coop-time">${coop.done ? 'DONE' : hrs + 'h left'}</span>
+      </div>
+      <div class="pbar coop-bar"><span style="width:${pct}%"></span></div>
+      <div class="coop-foot">
+        <span>${f(coop.progress)} / ${f(coop.goal)} tickets — everyone together</span>
+        <span class="coop-mine">you: ${f(coop.mine)}</span>
+      </div>
+      ${coop.helpers && coop.helpers.length > 1
+        ? `<div class="coop-helpers">${coop.helpers.map(h =>
+            `<span>${esc(h.name)} ${f(h.n)}</span>`).join('')}</div>` : ''}
+      ${coop.canClaim
+        ? `<button class="btn gold cta" data-act="coop-claim" style="margin-top:10px">
+             COLLECT YOUR SHARE · 💰${f(coop.reward.credits)} · 🏆${f(coop.reward.rep)}</button>`
+        : coop.done && coop.claimed
+          ? '<p class="tiny muted" style="margin:8px 0 0">Collected. The next one starts soon.</p>'
+          : coop.done && !coop.mine
+            ? '<p class="tiny muted" style="margin:8px 0 0">Finished without you this time.</p>' : ''}
+    </div>`;
+  }
+
+  function coopRefresh() {
+    if (!Net.online) return;
+    Net.coop(0).then(c => { if (c) { coop = c; coopPaint(); } });
+  }
+
+  function coopCredit(n) {
+    if (!Net.online) return;
+    coopPending += n || 1;
+    clearTimeout(coopTimer);
+    coopTimer = setTimeout(() => {
+      const send = Math.min(coopPending, 60); coopPending = 0;
+      Net.coop(send).then(c => { if (c) { coop = c; coopPaint(); } });
+    }, 4000);
+  }
+
   function answerDiagnosis(tuid, ok, idx) {
     if (working.has(tuid)) return;
     working.add(tuid);
@@ -136,17 +188,38 @@
     });
     UI.beep(ok ? 'great' : 'fail');
     if (!ok) UI.shake();
+    const t = Game.ticketBy(tuid);
+    const why = t && t.why;
+    const right = t && (t.causes || []).find(c => c.ok);
     setTimeout(() => {
       try {
-        UI.closeSheet();
         const card = cardOf(tuid);
         const res = Game.resolveTicket(tuid, { diag: ok ? 1 : 0 });
-        if (res) showResult(res, card);
+        // Teach the reasoning, right or wrong. Getting it right and not knowing
+        // why you were right is the same as guessing.
+        if (why) { showWhy(ok, right, why, () => { if (res) showResult(res, card); }); }
+        else { UI.closeSheet(); if (res) showResult(res, card); }
       } finally {
         stopWorking(tuid);
       }
     }, 700);
   }
+
+  /* The explanation card. This is the part of the game that is actually about
+     IT rather than about numbers going up, so it is worth a screen of its own
+     rather than a line in a toast. */
+  function showWhy(ok, right, why, done) {
+    UI.sheet(`<span class="big-emoji">${ok ? '✅' : '💡'}</span>
+      <h3>${ok ? 'Correct' : 'The answer was'}</h3>
+      <p class="diag-answer" style="margin:2px 0 0">${esc(right ? right.t : '')}</p>
+      <div class="whycard">
+        <b>Why</b>
+        <p>${esc(why)}</p>
+      </div>
+      <button class="btn gold cta" data-act="why-done">${ok ? 'NEXT TICKET' : 'GOT IT'}</button>`);
+    whyDone = done;
+  }
+  let whyDone = null;
 
   /* Admitting you are stuck. It costs reputation — more on the big ones — but
      far less than letting it breach, and you are told what it actually was,
@@ -161,7 +234,8 @@
       b.disabled = true;
     });
     const btn = document.querySelector('[data-giveup]');
-    if (btn) btn.outerHTML = `<p class="diag-answer">It was <b>${esc(right.t)}</b></p>`;
+    if (btn) btn.outerHTML = `<p class="diag-answer">It was <b>${esc(right.t)}</b></p>`
+      + (t.why ? `<div class="whycard"><b>Why</b><p>${esc(t.why)}</p></div>` : '');
     // the free back-out is gone the moment you commit to handing it up
     const back = document.querySelector('#modal [data-close]');
     if (back) back.remove();
@@ -224,6 +298,11 @@
       UI.refresh();
     } finally { working.delete(tuid); }
   }
+
+  // Every resolved ticket counts toward the company-wide incident. Hooked to
+  // the engine event, not the result card, because some routes (delegating,
+  // escalating) never draw one.
+  Game.on('resolved', () => coopCredit(1));
 
   Game.on('quotaspent', () => {
     UI.beep('alarm');
@@ -458,7 +537,19 @@
     if (d.giveup) return giveUp(d.giveup);
     if (d.escalate) return doEscalate(d.escalate);
     if (d.diag) return answerDiagnosis(d.diag, d.ok === '1', d.i);
-    if (d.screen) { UI.beep('tap'); return UI.show(d.screen); }
+    if (d.screen) {
+      const st = Game.tabState(d.screen);
+      if (!st.open) {
+        UI.beep('fail');
+        return UI.sheet(`<span class="big-emoji">🔒</span>
+          <h3>${esc(st.def.label)} is not open yet</h3>
+          <p class="sub">${esc(st.def.why)}</p>
+          <div class="whycard"><b>To unlock</b><p>${esc(st.def.hint)} —
+            you are at ${Game.f ? Game.f(st.have) : st.have} of ${st.need}.</p></div>
+          <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
+      }
+      UI.beep('tap'); return UI.show(d.screen);
+    }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);
 
@@ -467,6 +558,22 @@
         case 'adopt-newer': {
           UI.closeSheet();
           location.reload();          // simplest correct thing: start from the server's copy
+          return;
+        }
+        case 'coop-claim': {
+          Net.coopClaim().then(r => {
+            if (!r || !r.reward) return toast('🚨', 'NOTHING TO COLLECT', 'It may already be claimed.');
+            Game.grantReward({ credits: r.reward.credits, reputation: r.reward.rep });
+            coop = r.coop; coopPaint();
+            toast('🎉', 'INCIDENT CLOSED',
+              `The whole company pulled together. +${f(r.reward.credits)} credits, +${f(r.reward.rep)} reputation.`);
+          });
+          return;
+        }
+        case 'why-done': {
+          UI.closeSheet();
+          const fn = whyDone; whyDone = null;
+          if (fn) fn();
           return;
         }
         case 'collect': return collect();
@@ -791,6 +898,8 @@
     dropSplash();
     UI.buildStage();
     UI.show('hq');
+    coopRefresh();
+    setInterval(coopRefresh, 90000);
     if (res && res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
     else if (opts.fresh) setTimeout(firstShift, 350);
     if (!running) {

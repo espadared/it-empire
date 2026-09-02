@@ -1094,3 +1094,37 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .goal-n em{display:block;font-style:normal;font-size:9px;color:var(--faint);
   font-family:var(--body);letter-spacing:.04em;margin-top:2px;white-space:nowrap}
 .goal-go{flex:0 0 auto;font-family:var(--disp);font-size:12px;color:var(--lamp)}
+
+/* the teaching card after a diagnosis */
+.whycard{
+  text-align:left;margin:14px 0 4px;padding:13px 15px;border-radius:11px;
+  border:1px solid var(--crt-dim);background:rgba(79,214,201,.08);
+}
+.whycard b{
+  display:block;font-family:var(--disp);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--crt);margin-bottom:6px;
+}
+.whycard p{margin:0;font-size:13.5px;line-height:1.6;color:var(--text)}
+
+/* tabs still to come */
+#nav button.locked{opacity:.42}
+#nav button.locked i{filter:grayscale(1)}
+#nav button .navlock{position:absolute;top:4px;right:calc(50% - 20px);font-size:9px;opacity:.9}
+#nav button{position:relative}
+
+/* the company-wide incident everyone pushes at once */
+.coop-strip{padding:0 12px;margin:0 0 10px}
+.coop{border:1px solid #7A2F3355;background:rgba(255,90,95,.07);border-radius:12px;padding:12px 13px}
+.coop.done{border-color:#2F6B41;background:rgba(95,211,122,.09)}
+.coop-top{display:flex;align-items:flex-start;gap:10px}
+.coop-ico{font-size:20px;flex:0 0 auto}
+.coop-top b{display:block;font-family:var(--disp);font-size:13.5px;color:var(--text)}
+.coop-top span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.coop-time{flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--alarm)}
+.coop.done .coop-time{color:var(--good)}
+.coop-bar{margin:10px 0 6px;height:7px}
+.coop-foot{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.coop-mine{color:var(--lamp)}
+.coop-helpers{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.coop-helpers span{font-size:10px;font-family:var(--mono);color:var(--muted);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;background:var(--panel)}

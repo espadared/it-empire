@@ -115,6 +115,15 @@ const Net = (() => {
     set onConflict(fn) { onConflict = fn; },
     get stopped() { return stopped; },
     get online() { return online; },
+    coop(n) {
+      if (!online || !token) return Promise.resolve(null);
+      return api('coop', { method: 'POST', body: JSON.stringify({ n: n || 0 }) })
+        .then(r => (r && r.coop) || null).catch(() => null);
+    },
+    coopClaim() {
+      if (!online || !token) return Promise.resolve(null);
+      return api('coop-claim', { method: 'POST', body: '{}' }).catch(() => null);
+    },
     get token() { return token; },
     get player() { return player; },
   };

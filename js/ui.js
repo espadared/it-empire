@@ -1087,6 +1087,20 @@ const UI = (() => {
      chapters — but it was buried two screens deep behind a tab. This puts the
      next thing you are working towards on the screen you are already looking
      at. */
+  /* Tabs that have not been earned yet are visibly waiting rather than absent,
+     so the player can see there is more coming. */
+  function paintNav() {
+    document.querySelectorAll('#nav button').forEach(b => {
+      const st = Game.tabState(b.dataset.screen);
+      b.classList.toggle('locked', !st.open);
+      let lk = b.querySelector('.navlock');
+      if (!st.open) {
+        if (!lk) { lk = document.createElement('span'); lk.className = 'navlock'; b.appendChild(lk); }
+        lk.textContent = '🔒';
+      } else if (lk) lk.remove();
+    });
+  }
+
   function renderGoal() {
     const box = $('#goalStrip'); if (!box) return;
     const S = Game.state, ch = Game.chapter(), objs = Game.chapterProgress();
@@ -1118,6 +1132,7 @@ const UI = (() => {
     screen = name;
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'screen-' + name));
     document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.screen === name));
+    paintNav();
     refresh();
     $('#screens').scrollTop = 0;
     // the first time somebody opens a screen, say what it is for
@@ -1127,6 +1142,7 @@ const UI = (() => {
   const explain = () => typeof Tutor !== 'undefined' && Tutor.explain(screen, sheet);
 
   function refresh() {
+    paintNav();
     renderTop();
     if (screen === 'hq') renderHQ();
     else if (screen === 'staff') renderStaff();
@@ -1137,7 +1153,7 @@ const UI = (() => {
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, explain, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           show, refresh, explain, paintNav, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,

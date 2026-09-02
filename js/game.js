@@ -86,7 +86,7 @@ const Game = (() => {
       dept: {},
       queue: [], streak: 0, chapter: 1,
       momentum: 0, morale: 75, busy: {}, lastAction: 0,
-      quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
+      quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
@@ -240,7 +240,26 @@ const Game = (() => {
      work your first one; when it runs out the allowance comes back in full.
      The automated queue never stops, so the reason to come back is that your
      team has been earning the whole time. */
-  const quotaMax = () => DATA.QUOTA.perHour + (S.buildings.break || 0) * DATA.QUOTA.perBreakRoom;
+  /* The allowance a player of this level gets each hour. See QUOTA.ramp. */
+  function quotaBase() {
+    const ramp = DATA.QUOTA.ramp;
+    if (!ramp || !ramp.length) return DATA.QUOTA.perHour;
+    let per = ramp[0].per;
+    ramp.forEach(step => { if ((S.level || 1) >= step.level) per = step.per; });
+    return per;
+  }
+  /* Whether a tab has been earned yet, and what is still needed if not. */
+  function tabState(id) {
+    const def = (DATA.TABS || []).find(t => t.id === id);
+    if (!def || !def.need) return { open: true, def };
+    const have = def.need === 'tickets' ? (S.lifetime.tickets || 0)
+      : def.need === 'gear' ? (S.inventory || []).length
+      : (S.level || 1);
+    return { open: have >= def.n, have, need: def.n, def };
+  }
+  const tabOpen = id => tabState(id).open;
+
+  const quotaMax = () => quotaBase() + (S.buildings.break || 0) * DATA.QUOTA.perBreakRoom;
   const quotaLeft = () => Math.max(0, Math.min(S.quotaLeft == null ? quotaMax() : S.quotaLeft, quotaMax()));
   const quotaResetIn = () => Math.max(0, ((S.quotaEnds || 0) - Date.now()) / 1000);
   const hasQuota = () => quotaLeft() > 0;
@@ -262,6 +281,17 @@ const Game = (() => {
     S.quotaLeft = Math.max(0, S.quotaLeft - (n || 1));
     if (S.quotaLeft === 0) emit('quotaspent', { back: quotaResetIn() });
     return S.quotaLeft;
+  }
+
+  /* A payout that did not come from a ticket — a shared incident reward, say.
+     Goes through the same books so the totals and the save stay honest. */
+  function grantReward({ credits = 0, reputation = 0, xp = 0 } = {}) {
+    if (credits) { S.credits += credits; S.lifetime.credits = (S.lifetime.credits || 0) + credits; }
+    if (reputation) S.reputation = Math.max(0, S.reputation + reputation);
+    if (xp) addXp(xp);
+    emit('change');
+    save();
+    return { credits, reputation, xp };
   }
 
   function grantQuota(n) {
@@ -1411,7 +1441,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, chapter: 1, momentum: 0, morale: 75, busy: {}, lastAction: 0,
-      quotaLeft: DATA.QUOTA.perHour, quotaEnds: 0,
+      quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
       event: null, eventAt: Date.now() + 150000,
       incident: null, incidentAt: Date.now() + 180000,
@@ -1496,7 +1526,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    quotaMax, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
+    grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
