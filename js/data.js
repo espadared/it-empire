@@ -322,6 +322,37 @@ const DATA = (() => {
     ],
   };
 
+  /* ---------- CONSEQUENCES ----------
+     Nothing in this game could ever be lost. The worst mistake available cost
+     thirty-eight seconds of income, reputation floored at zero, and being away
+     was completely free — so there was never a reason to pay attention.
+
+     These three are deliberately things the player CAUSES and can prevent,
+     never a tax on simply being absent, and none of them delete progress that
+     has been earned. */
+
+  const OVERTIME = {
+    /* How much work one person can carry before it starts to tell. Push a
+       small team hard and they slow down; keep pushing and somebody leaves.
+       The answer is always to hire, which is the decision this creates. */
+    comfortable: 0.6,        // share of desks that should be filled
+    rise: 0.9,               // fatigue a minute with every desk empty
+    fall: 1.6,               // recovery a minute once properly staffed
+    warnAt: 55,              // "they are flagging"
+    seriousAt: 80,           // "somebody is going to walk"
+    quitAfterMin: 45,        // minutes pinned at the top before a resignation
+    worstOutput: 0.45,       // a fully burnt-out person works at 45%
+    restCost: 240000,        // pay for cover and send the team home
+  };
+
+  const ESCALATION = {
+    /* A critical incident used to wait politely forever. Now it goes bad. */
+    graceMin: 25,            // you get a while to notice
+    repPerHour: 0.06,        // then it bleeds a share of your standing
+    maxHours: 8,             // after which it burns out on its own, expensively
+    burnoutRepShare: 0.12,
+  };
+
   const QUOTA = {
     perHour: 30,
     windowMs: 60 * 60 * 1000,
@@ -1071,7 +1102,7 @@ const DATA = (() => {
     { id:'sf', name:'San Francisco',  icon:'🇺🇸', repReq:500000, note:'Everyone is a developer with local admin. Good luck.' },
   ];
 
-  return { EXPANSION, INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
+  return { OVERTIME, ESCALATION, EXPANSION, INCIDENT_FIRST, INCIDENT_MIN, INCIDENT_SPREAD, TABS, RARITY, STATS, STAT_ICON, TITLES, RANKS, TICKETS, SLA, SLA_URGENT, DIAGNOSE_CHANCE, DIAGNOSE_MIN, DIAGNOSE_MAX, DIAGNOSE_PITY, QUOTA, MAX_CHAR_LEVEL, RANKS_STAFF, staffRank, nextStaffRank,
            ROLES, CHAPTERS, DEPT_GRADES, PROCURE, TICKET_FLAVOUR, SAT_FAILS, SAT_WINS,
            INCIDENTS, EVENTS, CHARACTERS, SLOTS, EQUIPMENT, BUILDINGS, DEPARTMENTS,
            MISSION_POOL, ACHIEVEMENTS, LEGACY, WORLD };

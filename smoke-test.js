@@ -159,6 +159,69 @@ check('a partial art record cannot break the leaderboard', () => {
   });
 });
 
+check('neglect actually costs something now', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'RISK', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+  S.level = 40; S.credits = 1e10; S.reputation = 100000; S.chapter = 2;
+
+  // A properly staffed department never strains.
+  ['veteran', 'hawk', 'people', 'intern', 'nightowl', 'firefighter', 'automation']
+    .forEach(id => { const c = Game.hire(id); if (c) c.level = 30; });
+  for (let m = 0; m < 180; m++) Game.accrue(60, false);
+  assert(Game.teamFatigue() < 5,
+    `a full team should not tire, got ${Game.teamFatigue().toFixed(0)}`);
+
+  // A skeleton crew does, and eventually somebody leaves.
+  Game.newGame(null, { name: 'RISK2', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const T = Game.state;
+  T.level = 40; T.credits = 1e10; T.reputation = 100000; T.chapter = 2;
+  // two, not one: the game deliberately refuses to take your last colleague
+  ['veteran', 'intern'].forEach(id => Game.hire(id));
+  let quit = false;
+  Game.on('resigned', () => { quit = true; });
+  let warned = false;
+  for (let m = 0; m < 400 && !quit; m++) {
+    Game.accrue(60, false);
+    if (Game.teamFatigue() >= DATA.OVERTIME.warnAt) warned = true;
+  }
+  assert(warned, 'a skeleton crew never even showed strain');
+  assert(quit, 'a skeleton crew ran for over six hours and nobody left');
+
+  // resting clears it, and costs
+  Game.newGame(null, { name: 'RISK3', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const U = Game.state;
+  U.level = 40; U.credits = 1e10; U.chapter = 2; U.reputation = 100000;
+  Game.hire('veteran');
+  for (let m = 0; m < 150; m++) Game.accrue(60, false);
+  const tired = Game.teamFatigue();
+  assert(tired > 30, `expected a tired team, got ${tired.toFixed(0)}`);
+  const before = U.credits;
+  assert(Game.restTeam(), 'could not send a tired team home with plenty of credits');
+  assert(Math.round(before - U.credits) === DATA.OVERTIME.restCost, 'rest charged the wrong amount');
+  assert(Game.teamFatigue() === 0, 'resting did not clear the strain');
+  U.credits = 0;
+  assert(Game.restTeam() === null, 'sent the team home with no money');
+
+  // an unanswered incident bleeds standing, and a fresh one does not
+  Game.newGame(null, { name: 'RISK4', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const V = Game.state;
+  V.level = 40; V.reputation = 50000; V.incident = null;
+  V.incidentAt = Date.now() - 1000;
+  const fresh = Game.incidentPressure();
+  assert(fresh && fresh.grace, 'a brand new incident should be inside its grace period');
+  V.incidentAt = Date.now() - (DATA.ESCALATION.graceMin + 90) * 60000;
+  const late = Game.incidentPressure();
+  assert(late && !late.grace && late.perHour > 0,
+    'an ignored incident is not costing anything');
+  // tick() only ever advances a few seconds, so the meaningful test is the
+  // catch-up applied when somebody comes back to an incident they ignored
+  const repBefore = V.reputation;
+  V.lastTick = Date.now() - 30000;
+  Game.tick();
+  assert(V.reputation < repBefore, 'an ignored incident did not take reputation while playing');
+});
+
 check('progress has a ceiling and cannot run away', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'CAP', spec: 'fixer', art: DATA.CHARACTERS[0].art });

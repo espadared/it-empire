@@ -457,6 +457,17 @@ const UI = (() => {
         </div>
       </div>
       <div class="tiny muted" style="margin-top:6px">${esc(role.perk)}</div>
+      ${(() => {
+        const f = Game.fatigueOf(c);
+        if (f < 25) return '';
+        const O = DATA.OVERTIME;
+        const tone = f >= O.seriousAt ? 'bad' : f >= O.warnAt ? 'warn' : '';
+        const say = f >= O.seriousAt ? 'Ready to walk' : f >= O.warnAt ? 'Flagging' : 'Tiring';
+        return `<div class="fatigue ${tone}">
+          <span>${say}</span>
+          <div class="mbar"><span style="width:${f}%"></span></div>
+          <b>${Math.round(Game.tiredMult(c) * 100)}% output</b></div>`;
+      })()}
       ${c.defId === 'hero' && Game.heroLearning() >= 0.01 ? `<div class="tiny" style="color:var(--crt);margin-top:3px">
         📈 Learns from every ticket — +${Math.round(Game.heroLearning() * 100)}% to every stat,
         earned over ${f(Game.state.lifetime.tickets || 0)} tickets</div>` : ''}
@@ -510,6 +521,8 @@ const UI = (() => {
       </div>`;
     }).join('');
   }
+
+  const f2 = n => f(n);
 
   function renderStaff() {
     const S = Game.state;
@@ -578,6 +591,25 @@ const UI = (() => {
           <div class="th-stat"><b class="grade g-${grade}">${grade}</b><span>DEPT RANK</span></div>
         </div>
       </div>
+      ${(() => {
+        const O = DATA.OVERTIME, f = Game.teamFatigue();
+        if (f < 25) return '';
+        const cap = Game.capacity(), have = Game.staff().length;
+        const need = Math.max(0, Math.ceil(cap * O.comfortable) - have);
+        const canRest = S.credits >= O.restCost;
+        return `<div class="strain ${f >= O.seriousAt ? 'bad' : ''}">
+          <div class="strain-top"><span>😮‍💨</span>
+            <div style="flex:1;min-width:0">
+              <b>${f >= O.seriousAt ? 'Somebody is going to walk' : 'The team is stretched'}</b>
+              <span>${have} of ${cap} desks filled. ${need
+                ? `Hire ${need} more and they will recover on their own.`
+                : 'They will recover now the desks are filled.'}</span>
+            </div>
+            <b class="strain-n">${Math.round(f)}%</b></div>
+          <button class="btn ${canRest ? 'gold' : 'off'} cta" data-act="rest" style="margin-top:9px">
+            SEND THEM HOME EARLY · 💰${f2(O.restCost)}</button>
+        </div>`;
+      })()}
       <div class="teamstats">
         <div><b>${f(idle.t * 3600)}</b><span>tickets/hr</span></div>
         <div><b>${f(idle.c * 3600)}</b><span>credits/hr</span></div>

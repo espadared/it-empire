@@ -345,6 +345,39 @@
   // escalating) never draw one.
   Game.on('resolved', () => coopCredit(1));
 
+  Game.on('resigned', ({ name }) => {
+    UI.beep('alarm'); UI.shake();
+    UI.sheet(`<span class="big-emoji">🚪</span>
+      <h3 style="color:var(--alarm)">${esc(name.toUpperCase())} HAS RESIGNED</h3>
+      <p class="sub">They were run into the ground and nobody hired help.</p>
+      <div class="whycard"><b>What happened</b>
+        <p>They sat at full strain for ${DATA.OVERTIME.quitAfterMin} minutes with most of
+          the desks empty. You were warned twice on the staff screen.</p></div>
+      <div class="whycard"><b>How to stop it happening again</b>
+        <p>Keep at least ${Math.round(DATA.OVERTIME.comfortable * 100)}% of your desks filled,
+          or send the team home early when they are flagging. The Break Room helps too.</p></div>
+      <button class="btn gold cta" data-close="1">UNDERSTOOD</button>`);
+  });
+
+  Game.on('rested', ({ cost }) => {
+    UI.beep('great');
+    toast('😌', 'EVERYONE HOME EARLY', `${f(cost)} credits for cover. They are fresh again.`);
+    UI.refresh();
+  });
+
+  Game.on('incidentlost', ({ rep }) => {
+    UI.beep('alarm'); UI.shake();
+    UI.sheet(`<span class="big-emoji">🔥</span>
+      <h3 style="color:var(--alarm)">NOBODY CAME</h3>
+      <p class="sub">The incident burned itself out. It cost ${f(rep)} reputation.</p>
+      <div class="whycard"><b>What this was</b>
+        <p>A critical incident left unanswered bleeds your standing every hour, and
+          after ${DATA.ESCALATION.maxHours} hours it resolves itself badly. Reputation is
+          what keeps your departments open and your best people hireable.</p></div>
+      <button class="btn gold cta" data-close="1">I WILL BE QUICKER</button>`);
+    UI.refresh();
+  });
+
   Game.on('moralefirst', ({ morale }) => {
     setTimeout(() => UI.sheet(`<span class="big-emoji">😟</span>
       <h3>THE TEAM IS FLAGGING</h3>
@@ -700,6 +733,13 @@
           });
           return;
         }
+        case 'rest': {
+          const r = Game.restTeam();
+          if (!r) { UI.beep('fail'); return toast('😮‍💨', 'NOT ENOUGH CREDITS',
+            `Sending everybody home costs ${f(DATA.OVERTIME.restCost)}.`); }
+          UI.refresh();
+          return;
+        }
         case 'coop-claim': {
           Net.coopClaim().then(r => {
             if (!r || !r.reward) return toast('🚨', 'NOTHING TO COLLECT', 'It may already be claimed.');
@@ -1024,6 +1064,19 @@
         warned = true; openIncidentWarning();
       }
       if (!Game.incidentReady()) warned = false;
+      // once it is past its grace period it is actively costing standing, so
+      // say so on the screen rather than leaving it to be discovered later
+      const p = Game.incidentPressure();
+      const bar = document.querySelector('#escStrip');
+      if (bar) {
+        bar.innerHTML = (p && !p.grace)
+          ? `<button class="incalert" data-act="incident">
+               <span class="incalert-ico">🔥</span>
+               <div style="flex:1;min-width:0"><b>Incident unanswered for ${Math.round(p.hours * 60 + DATA.ESCALATION.graceMin)} minutes</b>
+                 <span>Costing about ${f(p.perHour)} reputation an hour until somebody handles it</span></div>
+               <span class="incalert-go">GO →</span></button>`
+          : '';
+      }
       if (Date.now() > Game.state.missionsAt) { Game.rollMissions(); toast('📋', 'NEW DAILY MISSIONS', 'Fresh objectives are up.'); UI.refresh(); }
     }
     requestAnimationFrame(loop);

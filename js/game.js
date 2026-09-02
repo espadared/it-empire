@@ -1198,8 +1198,30 @@ const Game = (() => {
     };
   }
 
+  /* How stretched the department is.
+
+     Measured as desks filled against desks available, NOT as raw ticket
+     throughput: throughput runs to thousands a minute by the mid-game, so any
+     absolute threshold is meaningless within a day. Staffing is scale-free —
+     it means the same thing in chapter one and chapter five — and it points at
+     the decision this whole mechanic exists to create, which is hire someone. */
+  function staffingLevel() {
+    const cap = capacity();
+    if (!cap) return 1;
+    return staff().length / cap;
+  }
+
+  const fatigueOf = c => Math.max(0, Math.min(100, c.fatigue || 0));
+
+  /* Output falls away as somebody tires, down to OVERTIME.worstOutput. */
+  function tiredMult(c) {
+    const f = fatigueOf(c) / 100;
+    return 1 - f * (1 - DATA.OVERTIME.worstOutput);
+  }
+
   function staffOutput(c) {
-    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4) * roleSpread().mult * deptCover().mult;
+    const rate = staffRate(c) * bonus('idle') * (1 + (bonus('automation') - 1) * 0.4)
+      * roleSpread().mult * deptCover().mult * tiredMult(c);
     return {
       rate,
       credits: rate * idleCreditsPerTicket() * deptBoost(c, 'credits'),
@@ -1225,7 +1247,68 @@ const Game = (() => {
   }
   const offlineCapHours = () => 8 + (S.buildings.autolab || 0) + (S.buildings.noc || 0) * 0.5;
 
+  /* Fatigue rises when the team is stretched and falls when it is not. The
+     Break Room helps, which is what a break room is for. */
+  function tickFatigue(seconds) {
+    const crew = staff();
+    if (!crew.length || seconds <= 0) return;
+    const O = DATA.OVERTIME;
+    const mins = seconds / 60;
+    const relief = 1 + (S.buildings.break || 0) * 0.12;
+    // below the comfortable share of desks filled, the ones who are there
+    // carry the difference
+    const staffed = staffingLevel() * relief;
+    const over = staffed >= O.comfortable ? 0 : (O.comfortable - staffed) / O.comfortable;
+    let quit = null;
+    crew.forEach(c => {
+      const was = fatigueOf(c);
+      const delta = over > 0
+        ? O.rise * over * mins
+        : -O.fall * mins * relief;
+      c.fatigue = Math.max(0, Math.min(100, was + delta));
+      // pinned at the top for long enough and somebody hands in their notice
+      if (c.fatigue >= 100) {
+        c.pinned = (c.pinned || 0) + mins;
+        if (c.pinned >= O.quitAfterMin && !quit && crew.length > 1) quit = c;
+      } else if (c.fatigue < O.seriousAt) {
+        c.pinned = 0;
+      }
+    });
+    if (quit) resign(quit);
+  }
+
+  /* The only thing in the game that takes somebody away from you — and it is
+     warned twice, caused by a choice, and fixable by hiring or resting. */
+  function resign(c) {
+    const i = S.roster.findIndex(x => x.uid === c.uid);
+    if (i < 0) return;
+    S.roster.splice(i, 1);
+    if (S.activeId === c.uid) S.activeId = (S.roster[0] || {}).uid;
+    S.reputation = Math.max(0, S.reputation - Math.round(S.reputation * 0.03));
+    emit('resigned', { char: c, name: def(c.defId).name });
+    emit('change');
+    save();
+  }
+
+  /* Send everybody home early. Costs real money, clears the strain. */
+  function restTeam() {
+    const cost = DATA.OVERTIME.restCost;
+    if (S.credits < cost || !staff().length) return null;
+    S.credits -= cost;
+    staff().forEach(c => { c.fatigue = 0; c.pinned = 0; });
+    emit('rested', { cost });
+    emit('change'); save();
+    return { cost };
+  }
+
+  const teamFatigue = () => {
+    const crew = staff();
+    if (!crew.length) return 0;
+    return crew.reduce((n, c) => n + fatigueOf(c), 0) / crew.length;
+  };
+
   function accrue(seconds, offline) {
+    tickFatigue(seconds);
     if (!staff().length || seconds <= 0) return null;
     const p = idlePerSec();
     const mul = offline ? 0.75 : 1;
@@ -1484,6 +1567,62 @@ const Game = (() => {
 
   /* ---------------- CRITICAL INCIDENTS ---------------- */
   const incidentReady = () => S.level >= 3 && !S.incident && Date.now() > S.incidentAt;
+
+  /* An incident used to wait politely forever, so there was never a reason to
+     come back for one. Left alone past a grace period it starts costing
+     standing every hour, and eventually burns out on its own — expensively.
+     This is the game's main pressure to actually turn up. */
+  function incidentPressure() {
+    if (!incidentReady()) return null;
+    const E = DATA.ESCALATION;
+    const waiting = (Date.now() - S.incidentAt) / 60000;          // minutes
+    if (waiting < E.graceMin) {
+      return { waiting, grace: true, minsLeft: Math.ceil(E.graceMin - waiting) };
+    }
+    const hours = (waiting - E.graceMin) / 60;
+    return { waiting, grace: false, hours,
+             burning: Math.min(hours / E.maxHours, 1),
+             perHour: Math.round(S.reputation * E.repPerHour) };
+  }
+
+  /* Charged as time passes, not in a lump, so it is visible while it happens
+     and can be stopped by turning up. */
+  /* The same charge as tickEscalation, applied in one go for time spent away.
+     Capped so a fortnight's absence is a setback, not a wipeout. */
+  function catchUpEscalation(seconds) {
+    const p = incidentPressure();
+    if (!p || p.grace || seconds <= 0) return 0;
+    const E = DATA.ESCALATION;
+    const hours = Math.min(seconds / 3600, E.maxHours);
+    const before = S.reputation;
+    S.reputation = Math.max(0, S.reputation * Math.pow(1 - E.repPerHour, hours));
+    if (p.hours >= E.maxHours) {
+      S.reputation = Math.max(0, S.reputation - Math.round(S.reputation * E.burnoutRepShare));
+      S.incidentAt = Date.now() + (DATA.INCIDENT_MIN + Math.random() * DATA.INCIDENT_SPREAD) * 1000;
+    }
+    return Math.round(before - S.reputation);
+  }
+
+  function tickEscalation(seconds) {
+    const p = incidentPressure();
+    if (!p || p.grace) return;
+    const E = DATA.ESCALATION;
+    const lost = S.reputation * E.repPerHour * (seconds / 3600);
+    if (lost > 0) {
+      S.reputation = Math.max(0, S.reputation - lost);
+      S.escBled = (S.escBled || 0) + lost;
+    }
+    if (p.hours >= E.maxHours) {
+      // nobody came. It resolves itself, badly.
+      const hit = Math.round(S.reputation * E.burnoutRepShare);
+      S.reputation = Math.max(0, S.reputation - hit);
+      S.incidentAt = Date.now() + (DATA.INCIDENT_MIN + Math.random() * DATA.INCIDENT_SPREAD) * 1000;
+      const bled = Math.round(S.escBled || 0);
+      S.escBled = 0;
+      emit('incidentlost', { rep: hit + bled });
+      emit('change'); save();
+    }
+  }
   function startIncident() {
     S.recentIncidents = S.recentIncidents || [];
     const d = pickFresh(DATA.INCIDENTS, S.recentIncidents, 5);
@@ -1503,6 +1642,8 @@ const Game = (() => {
     inc.step++;
     return { ok, done: inc.step >= inc.steps.length };
   }
+  function clearEscalation() { S.escBled = 0; }
+
   function incidentFinish(forceFail) {
     const inc = S.incident; if (!inc) return null;
     const win = !forceFail && Math.random() < inc.chance;
@@ -1561,6 +1702,7 @@ const Game = (() => {
     if (S.morale < rest) S.morale = Math.min(rest, S.morale + 0.09 * dt);
     else if (S.morale > 92) S.morale = Math.max(92, S.morale - 0.02 * dt);
     accrue(dt, false);
+    tickEscalation(dt);
     maybeEvent(now);
     if (S.incident && now > S.incident.endsAt) emit('incidenttimeout');
     return dt;
@@ -1667,7 +1809,15 @@ const Game = (() => {
       const away = Math.max(0, (now - (s.savedAt || s.lastTick || now)) / 1000);
       const capped = Math.min(away, offlineCapHours() * 3600);
       S.lastTick = Date.now();
-      if (capped > 60 && staff().length) { accrue(capped, true); return { away: capped, offline: true }; }
+      // An incident left unanswered has to cost something while you are away —
+      // that is the entire point of it. Catching up only the earnings and not
+      // the consequences would make absence free again.
+      const bled = catchUpEscalation(capped);
+      if (capped > 60 && staff().length) {
+        accrue(capped, true);
+        return { away: capped, offline: true, bled };
+      }
+      return { away: capped, bled };
       return { away: capped };
     } catch (e) { return { needsCharacter: true, broken: true }; }
   }
@@ -1682,7 +1832,8 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, moraleMatters, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    emitUnlock, heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
+    accrue, emitUnlock, heroRarity, heroLearning, syncHero, grantReward, staffingLevel, fatigueOf, tiredMult, teamFatigue, restTeam,
+    tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
@@ -1696,7 +1847,7 @@ const Game = (() => {
     upgradeItem, upgradeCost, disposeItem, disposeMany, disposeValue, procure, procurePrice, canProcure, ownsItem,
     build, buildCost, canBuild,
     rollMissions, claimMission, checkAchievements, metricValue,
-    incidentReady, startIncident, incidentAnswer, incidentFinish,
+    incidentReady, incidentPressure, clearEscalation, startIncident, incidentAnswer, incidentFinish,
     reorgReady, reorgGain, reorg, spendLegacy, mkItem,
   };
 })();
