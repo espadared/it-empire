@@ -221,6 +221,13 @@ def _ensure_schema():
                     c.execute(stmt)
                 # tables that predate the revision guard
                 c.execute(f"alter table {P_TABLE} add column if not exists rev bigint default 0")
+                # `ranked` is set from the admin console but READ by the public
+                # leaderboard, so it belongs to the game's own schema. Left in
+                # the admin module it would be missing whenever the admin
+                # schema had not run — and q()'s repair path only rebuilds this
+                # one, so a cold or slow database would break the leaderboard
+                # for every player.
+                c.execute(f"alter table {P_TABLE} add column if not exists ranked boolean default true")
         else:
             with _sqlite_lock, sqlite3.connect(_sqlite_path) as c:
                 for stmt in SCHEMA_LITE:
@@ -228,6 +235,8 @@ def _ensure_schema():
                 cols = [r[1] for r in c.execute(f"pragma table_info({P_TABLE})")]
                 if "rev" not in cols:
                     c.execute(f"alter table {P_TABLE} add column rev integer default 0")
+                if "ranked" not in cols:
+                    c.execute(f"alter table {P_TABLE} add column ranked integer default 1")
         _ready = True
 
 
@@ -560,7 +569,8 @@ def coop_view(player_id):
     claimed = _truthy_c(mine[1]) if mine else False
     top = q(f"""select p.display, c.contributed from {CP_TABLE} c
                 join {P_TABLE} p on p.id = c.player_id
-                where c.event_id = %s order by c.contributed desc limit 5""",
+                where c.event_id = %s and coalesce(p.ranked, {TRUE}) = {TRUE}
+                order by c.contributed desc limit 5""",
             (eid,), "all") or []
     done = (progress or 0) >= goal
     ends = _parse_ts(ends_at)
@@ -683,7 +693,8 @@ def _eotm_settle():
             continue                      # already settled
         board = q(f"""select e.player_id, p.reputation - e.base_rep
                       from {EM_TABLE} e join {P_TABLE} p on p.id = e.player_id
-                      where e.month = %s order by 2 desc""", (past,), "all") or []
+                      where e.month = %s and coalesce(p.ranked, {TRUE}) = {TRUE}
+                      order by 2 desc""", (past,), "all") or []
         board = [b for b in board if (b[1] or 0) > 0]
         if not board:
             # nobody earned anything; mark it closed so it is not rechecked
@@ -706,7 +717,8 @@ def eotm_view(player_id):
 
     board = q(f"""select p.id, p.display, p.reputation - e.base_rep, p.level
                   from {EM_TABLE} e join {P_TABLE} p on p.id = e.player_id
-                  where e.month = %s order by 3 desc limit 25""", (key,), "all") or []
+                  where e.month = %s and coalesce(p.ranked, {TRUE}) = {TRUE}
+                  order by 3 desc limit 25""", (key,), "all") or []
     standings, mine, place = [], 0, None
     for i, (pid, name, gain, lvl) in enumerate(board):
         gain = max(0, gain or 0)
@@ -991,8 +1003,14 @@ class Handler(BaseHTTPRequestHandler):
                                    "now": int(time.time() * 1000)})
 
         if route == "leaderboard":
+            # `ranked = false` hides an account from every board without
+            # touching its save. Used for the owner's own long-running account,
+            # which would otherwise sit permanently at the top and make the
+            # leaderboard pointless for everybody else.
             rows = q(f"""select display, level, reputation, tickets, spec, art, updated_at
-                         from {P_TABLE} order by reputation desc, tickets desc limit 50""",
+                         from {P_TABLE}
+                         where coalesce(ranked, {TRUE}) = {TRUE}
+                         order by reputation desc, tickets desc limit 50""",
                      (), "all") or []
             return self.json(200, {"ok": True, "players": [player_public(r) for r in rows]})
         return self.fail(404, "Not found")

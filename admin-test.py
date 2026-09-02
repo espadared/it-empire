@@ -286,6 +286,30 @@ def main():
     s, _ = Client()("POST", "/api/login", {"name": "Subject", "password": "playerpw123"})
     check("the player can sign in again", s == 200)
 
+    print("\nRANKING VISIBILITY")
+    s, _ = sup("POST", f"/admin/api/player/{pid}/ranking", {"ranked": False})
+    check("hiding a player needs a reason", s == 400, f"got {s}")
+    s, _ = sup("POST", f"/admin/api/player/{pid}/ranking",
+               {"ranked": False, "reason": "owner account"})
+    check("a player can be hidden from the rankings", s == 200, f"got {s}")
+    s, d = anon("GET", "/api/leaderboard")
+    check("they disappear from the leaderboard",
+          not any(p["name"] == "Subject" for p in d.get("players", [])))
+    s, d = sup("GET", f"/admin/api/player/{pid}")
+    check("their save and progress are untouched",
+          d["has_state"] and d["reputation"] is not None and d["ranked"] is False)
+    s, _ = Client()("POST", "/api/login", {"name": "Subject", "password": "playerpw123"})
+    check("they can still sign in and play", s == 200, f"got {s}")
+    s, _ = cs("POST", f"/admin/api/player/{pid}/ranking",
+              {"ranked": True, "reason": "x"})
+    check("support may NOT change the rankings", s == 403, f"got {s}")
+    s, _ = sup("POST", f"/admin/api/player/{pid}/ranking",
+               {"ranked": True, "reason": "done testing"})
+    check("showing them again is one click back", s == 200)
+    s, d = anon("GET", "/api/leaderboard")
+    check("and they reappear on the leaderboard",
+          any(p["name"] == "Subject" for p in d.get("players", [])))
+
     print("\nSOFT DELETE")
     s, _ = sup("POST", f"/admin/api/player/{pid}/deactivate", {"reason": "Requested"})
     check("an account can be deactivated", s == 200)
@@ -304,7 +328,8 @@ def main():
     check("entries are recorded", s == 200 and len(d["entries"]) > 15, f"{len(d['entries'])}")
     for want in ["Add IT Credits", "Set IT Credits", "Temporary ban issued", "Ban lifted",
                  "Restored progress from snapshot", "Created administrator",
-                 "Deactivated account", "Failed sign-in"]:
+                 "Deactivated account", "Failed sign-in",
+                 "Hidden from rankings", "Shown in rankings"]:
         check(f"logged: {want}", any(want in a for a in actions))
     entry = next(e for e in d["entries"] if "Add IT Credits" in e["action"])
     check("an entry carries admin, before, after and reason",

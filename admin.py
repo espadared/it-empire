@@ -67,6 +67,7 @@ PERMISSIONS = {
     "players.ban.temp":        "Issue a temporary ban",
     "players.ban.perm":        "Issue a permanent ban",
     "players.unban":           "Lift a ban or suspension",
+    "players.rankings":        "Show or hide a player in the public rankings",
     "players.deactivate":      "Soft-delete (deactivate) an account",
     "players.delete":          "Permanently delete an account",
     "content.manage":          "Edit game content",
@@ -86,6 +87,7 @@ ROLES = {
         "players.reset.tutorial", "players.reset.run", "players.restore",
         "players.resource.add", "players.resource.remove",
         "players.suspend", "players.ban.temp", "players.unban",
+        "players.rankings",
         "content.manage", "events.run", "analytics.view", "logs.view",
     ],
     # Deliberately cannot set absolute values, cannot ban permanently, and
@@ -246,6 +248,8 @@ def _build_schema():
         q(stmt)
     # the player table predates any notion of an account being anything other
     # than live, so soft delete and suspension are added here
+    # `ranked` is created by the game's own schema, because the public
+    # leaderboard reads it. Only the console's own columns are added here.
     for col, decl in (("status", "text"), ("status_note", "text")):
         try:
             if _is_pg:
@@ -383,6 +387,10 @@ def _jout(value):
 
 
 TRUE = "true" if False else None      # replaced below once _is_pg is known
+
+
+def _true_sql():
+    return 'true' if _is_pg else '1'
 
 
 def _true():
@@ -649,7 +657,8 @@ def _activity(player_id, days=30):
 
 def _player_full(pid):
     row = q(f"""select id, name_key, display, created_at, updated_at, level,
-                       reputation, tickets, spec, rev, state, status, status_note
+                       reputation, tickets, spec, rev, state, status, status_note,
+                       coalesce(ranked, {_true_sql()})
                 from {P_TABLE} where id = %s""", (pid,), "one")
     if not row:
         return None
@@ -669,6 +678,7 @@ def _player_full(pid):
         "level": row[5], "reputation": row[6], "tickets": row[7],
         "spec": row[8], "rev": row[9],
         "status": row[11] or "active", "status_note": row[12],
+        "ranked": _truthy(row[13]),
         "sessions": (sessions or [0])[0],
         "ban": ban, "ban_history": ban_history,
         "progression": {
@@ -1045,6 +1055,35 @@ def _reset(actor, pid, body, ip):
     return 200, {"ok": True}
 
 
+def _ranking(actor, pid, body, ip):
+    """Show or hide one account in the public boards.
+
+    Nothing about the player's own game changes — they keep every credit, every
+    level and their whole save, and they still see their own figures. They are
+    simply not listed for anybody else, and cannot win the month. The reason a
+    game needs this is the owner's own account: a year of testing sitting
+    permanently at the top makes the leaderboard meaningless for the friends it
+    is supposed to be for.
+    """
+    if not can(actor, "players.rankings"):
+        return 403, {"error": "Your role cannot change the rankings."}
+    show = bool(body.get("ranked"))
+    reason = (body.get("reason") or "").strip()
+    if not reason:
+        return 400, {"error": "A reason is required."}
+    row = q(f"select name_key, coalesce(ranked, {_true_sql()}) from {P_TABLE} where id = %s",
+            (pid,), "one")
+    if not row:
+        return 404, {"error": "No such player."}
+    was = _truthy(row[1])
+    q(f"update {P_TABLE} set ranked = %s where id = %s",
+      (_true() if show else _false(), pid))
+    _audit(actor, "Shown in rankings" if show else "Hidden from rankings",
+           "player", pid, row[0],
+           "listed" if was else "hidden", "listed" if show else "hidden", reason, ip)
+    return 200, {"ok": True, "ranked": show}
+
+
 def _deactivate(actor, pid, body, ip):
     """Soft delete. The row and the save both stay exactly where they are."""
     if not can(actor, "players.deactivate"):
@@ -1336,7 +1375,7 @@ def handle(method, route, body, token, ip, ua, params):
             return 400, {"error": f'Type "{phrase}" to confirm this.'}, None
 
         fn = {"resource": _resource, "ban": _ban, "unban": _unban,
-              "restore": _restore, "reset": _reset,
+              "restore": _restore, "reset": _reset, "ranking": _ranking,
               "deactivate": _deactivate, "reactivate": _reactivate}.get(act)
         if not fn:
             return 404, {"error": "Unknown action."}, None

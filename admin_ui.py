@@ -491,6 +491,7 @@ function drawPlayer(p, tab) {
       <button class="btn sm" id="back">← All players</button> ${st}
       ${p.sessions ? `<span class="pill info">${p.sessions} open session${p.sessions>1?'s':''}</span>` : ''}
       ${!p.has_state ? '<span class="pill warn">No save yet</span>' : ''}
+      ${p.ranked === false ? '<span class="pill grey">Hidden from rankings</span>' : ''}
     </div>
     <div class="tabs">${tabs.map(t =>
       `<button data-tab="${t}" class="${t===tab?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div>
@@ -626,6 +627,25 @@ function renderActions(p) {
         <button class="btn sm" data-reset="${k}">Run</button></div>`).join('')}
     </div></div>`);
   }
+  if (can('players.rankings')) {
+    blocks.push(`<div class="card"><h3>Public rankings</h3><div class="body">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="flex:1">
+          <b style="font-weight:600">${p.ranked === false
+            ? 'Hidden from the leaderboard and Employee of the Month'
+            : 'Listed on the leaderboard and Employee of the Month'}</b>
+          <div class="note">Their own game is untouched either way — every credit,
+            level and save stays, and they still see their own figures. Hiding
+            only stops them being listed for other players, and stops them
+            winning the month. Use it for your own test or owner account, which
+            would otherwise sit at the top permanently.</div>
+        </div>
+        <button class="btn ${p.ranked === false ? 'primary' : ''}" data-rank="${p.ranked === false ? 1 : 0}">
+          ${p.ranked === false ? 'Show them again' : 'Hide from rankings'}</button>
+      </div>
+    </div></div>`);
+  }
+
   const bans = [];
   if (can('players.suspend')) bans.push(['suspend', 'Suspend (hours)']);
   if (can('players.ban.temp')) bans.push(['temporary', 'Temporary ban (hours)']);
@@ -658,6 +678,23 @@ function wireActions(p) {
   const ub = t.querySelector('[data-unban]');
   if (ub) ub.onclick = () => simpleDialog(p, 'Lift the ban', 'unban', {},
     'The player can sign in again immediately.');
+  const rk = t.querySelector('[data-rank]');
+  if (rk) rk.onclick = () => {
+    const show = rk.dataset.rank === '1';
+    modal(show ? 'Show this player in the rankings' : 'Hide this player from the rankings',
+      diffBlock('Public listing', `${p.display} (#${p.id})`,
+        show ? 'hidden' : 'listed', show ? 'listed' : 'hidden') +
+      `<div class="note">Their save, credits and progress are not touched. This only
+        controls whether other players see them on the leaderboard, in Employee of the
+        Month, and among the incident helpers.</div>
+       <label>Reason</label><textarea id="rr2" placeholder="e.g. owner's own account"></textarea>`,
+      async v => {
+        await api(`player/${p.id}/ranking`, { method: 'POST', body: {
+          ranked: show, reason: v.querySelector('#rr2').value } });
+        openPlayer(p.id);
+      }, show ? 'Show them' : 'Hide them');
+  };
+
   const de = t.querySelector('[data-deact]');
   if (de) de.onclick = () => simpleDialog(p, 'Deactivate this account', 'deactivate', {},
     'The account and its save are kept exactly as they are. It can be reactivated at any time.');
