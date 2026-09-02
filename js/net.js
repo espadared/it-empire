@@ -124,6 +124,14 @@ const Net = (() => {
       if (!online || !token) return Promise.resolve(null);
       return api('coop-claim', { method: 'POST', body: '{}' }).catch(() => null);
     },
+    eotm() {
+      if (!online || !token) return Promise.resolve(null);
+      return api('eotm').then(r => (r && r.eotm) || null).catch(() => null);
+    },
+    eotmClaim() {
+      if (!online || !token) return Promise.resolve(null);
+      return api('eotm-claim', { method: 'POST', body: '{}' }).catch(() => null);
+    },
     get token() { return token; },
     get player() { return player; },
   };

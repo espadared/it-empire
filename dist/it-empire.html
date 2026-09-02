@@ -1144,6 +1144,33 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .teamstats b.alarm{color:var(--alarm)}
 @keyframes moraleIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
+/* employee of the month */
+.eotm{margin:0 12px 16px;border:1px solid var(--line);border-radius:12px;
+  background:var(--panel);padding:13px 14px}
+.eotm-top{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+.eotm-ico{font-size:24px;flex:0 0 auto}
+.eotm-top b{display:block;font-family:var(--disp);font-size:14px;color:var(--lamp)}
+.eotm-top span{display:block;font-size:12px;color:var(--muted);line-height:1.45}
+.eotm-prize{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 12px;margin-bottom:10px;border-radius:9px;
+  background:rgba(240,169,74,.10);border:1px solid rgba(240,169,74,.30)}
+.eotm-prize span{font-size:12px;color:var(--muted)}
+.eotm-prize b{font-family:var(--mono);font-size:15px;color:var(--lamp)}
+.eotm-row{display:flex;align-items:center;gap:10px;padding:7px 4px;
+  border-bottom:1px solid var(--line-2, #232C46)}
+.eotm-row:last-of-type{border-bottom:0}
+.eotm-row.you{background:rgba(240,169,74,.08);border-radius:7px;
+  box-shadow:inset 0 0 0 1px rgba(240,169,74,.28)}
+.eotm-pos{width:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.eotm-pos.medal{font-size:15px}
+.eotm-name{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eotm-row.you .eotm-name{color:var(--lamp);font-weight:700}
+.eotm-gain{font-family:var(--mono);font-size:12.5px;color:var(--rep)}
+.eotm-past{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.eotm-past b{display:block;font-size:9.5px;letter-spacing:.1em;color:var(--faint);margin-bottom:6px}
+.eotm-past div{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;
+  color:var(--muted);padding:3px 0}
+
 </style>
 <div id="app">
 
@@ -2469,8 +2496,22 @@ const BATTLE = (() => {
    ============================================================ */
 const Art = (() => {
 
+  /* A safe default for every field a person needs. An account created without
+     a full art record — or one written by an older version of the game — used
+     to throw here, and because the leaderboard draws everybody's portrait,
+     one malformed record broke the whole ranking screen for every player
+     looking at it. Missing fields are filled rather than fatal. */
+  const DEFAULT_ART = {
+    skin: '#F1C398', hair: '#3A2A22', hairStyle: 'short',
+    shirt: '#3D6FE0', accent: '#2B4EA8',
+    glasses: false, headset: false, beard: false,
+  };
+  const safeArt = a => Object.assign({}, DEFAULT_ART, a || {});
+
   const shade = (hex, amt) => {
+    if (typeof hex !== 'string' || hex[0] !== '#') hex = DEFAULT_ART.skin;
     const n = parseInt(hex.slice(1), 16);
+    if (!Number.isFinite(n)) return hex;
     let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     r = Math.max(0, Math.min(255, Math.round(r + amt)));
     g = Math.max(0, Math.min(255, Math.round(g + amt)));
@@ -2509,6 +2550,7 @@ const Art = (() => {
   /* ---------------- PERSON ---------------- */
   /* a = art config; opts.pose = 'idle' | 'work'; opts.id for unique gradient ids */
   function person(a, opts = {}) {
+    a = safeArt(a);
     const id = opts.id || ('p' + Math.random().toString(36).slice(2, 7));
     const skinD = shade(a.skin, -34), skinL = shade(a.skin, 20);
     const shirtD = shade(a.shirt, -34), shirtL = shade(a.shirt, 22);
@@ -2878,6 +2920,14 @@ const Net = (() => {
     coopClaim() {
       if (!online || !token) return Promise.resolve(null);
       return api('coop-claim', { method: 'POST', body: '{}' }).catch(() => null);
+    },
+    eotm() {
+      if (!online || !token) return Promise.resolve(null);
+      return api('eotm').then(r => (r && r.eotm) || null).catch(() => null);
+    },
+    eotmClaim() {
+      if (!online || !token) return Promise.resolve(null);
+      return api('eotm-claim', { method: 'POST', body: '{}' }).catch(() => null);
     },
     get token() { return token; },
     get player() { return player; },
@@ -5506,6 +5556,57 @@ const UI = (() => {
   }
 
   /* ================= RANKING ================= */
+  /* EMPLOYEE OF THE MONTH
+     Scored on reputation earned this month rather than the all-time total.
+     A lifetime board is won by whoever signed up first and never changes
+     hands, so everyone else stops looking at it; this resets every month and
+     gives the whole group a reason to come back. */
+  let eotm = null;
+  const setEotm = d => { eotm = d; if (screen === 'rank') renderRanking(); };
+
+  function eotmPanel() {
+    if (typeof Net === 'undefined' || !Net.online) return '';
+    if (!eotm) return `<div class="sec-head"><h2>EMPLOYEE OF THE MONTH</h2></div>
+      <div class="eotm"><div class="empty">Checking the noticeboard…</div></div>`;
+    const days = Math.floor(eotm.endsIn / 86400);
+    const hours = Math.floor((eotm.endsIn % 86400) / 3600);
+    const left = days > 0 ? `${days}d ${hours}h left` : `${hours}h left`;
+    const rows = eotm.standings.slice(0, 8).map((p, i) => `
+      <div class="eotm-row ${p.you ? 'you' : ''}">
+        <span class="eotm-pos ${i < 3 ? 'medal' : ''}">${['🥇','🥈','🥉'][i] || (i + 1)}</span>
+        <span class="eotm-name">${esc(p.name)}${p.you ? ' · you' : ''}</span>
+        <span class="eotm-gain">+${f(p.gain)}</span>
+      </div>`).join('');
+
+    const claim = (eotm.unclaimed || []).length
+      ? `<button class="btn gold cta" data-act="eotm-claim" style="margin-top:10px">
+           COLLECT ${eotm.unclaimed.length > 1 ? eotm.unclaimed.length + ' PRIZES' : esc(eotm.unclaimed[0].monthName.toUpperCase())}
+           · 💰${f(eotm.unclaimed.reduce((a, u) => a + u.prize, 0))}</button>` : '';
+
+    const past = (eotm.past || []).length
+      ? `<div class="eotm-past"><b>PREVIOUS WINNERS</b>${eotm.past.map(w =>
+          `<div><span>${esc(w.monthName)}</span><span>🏆 ${esc(w.name)}</span>
+            <span class="mono">+${f(w.gain)}</span></div>`).join('')}</div>` : '';
+
+    return `<div class="sec-head"><h2>EMPLOYEE OF THE MONTH</h2><span>${esc(left.toUpperCase())}</span></div>
+      <div class="eotm">
+        <div class="eotm-top">
+          <span class="eotm-ico">🏅</span>
+          <div style="flex:1;min-width:0">
+            <b>${esc(eotm.monthName)}</b>
+            <span>Most reputation earned this month takes the prize. Everyone starts level on the first.</span>
+          </div>
+        </div>
+        ${eotm.projectedPrize ? `<div class="eotm-prize">
+          <span>Prize as it stands</span><b>💰 ${f(eotm.projectedPrize)}</b></div>` : ''}
+        ${rows || '<div class="empty">Nobody has earned any reputation yet this month. Be first.</div>'}
+        ${eotm.place ? `<p class="tiny muted" style="margin:8px 0 0">You are
+          ${eotm.place === 1 ? 'leading' : 'in place ' + eotm.place} with ${f(eotm.mine)} reputation earned.</p>` : ''}
+        ${claim}
+        ${past}
+      </div>`;
+  }
+
   function renderRanking() {
     const S = Game.state, r = Game.rank(S.reputation), nx = Game.nextRank(S.reputation);
     const L = S.lifetime;
@@ -5553,7 +5654,7 @@ const UI = (() => {
     }).join('') : '<div class="empty"><span class="big">👥</span>Nobody else has clocked in yet. You are employee number one.</div>')
       : '<div class="empty">Fetching the company directory…</div>'}</div>`;
 
-    $('#screen-rank').innerHTML = company + `
+    $('#screen-rank').innerHTML = eotmPanel() + company + `
       <div class="sec-head"><h2>REPUTATION</h2><span>${f(S.reputation)} REP</span></div>
       <div class="list"><div class="card col">
         <div class="spread"><h3 style="font-family:var(--disp);font-size:17px;margin:0;color:var(--rep)">${esc(r.name)}</h3>
@@ -5671,7 +5772,7 @@ const UI = (() => {
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, explain, paintNav, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           show, refresh, explain, paintNav, setEotm, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,
@@ -6331,6 +6432,11 @@ const Onboard = (() => {
     </div>`;
   }
 
+  function eotmRefresh() {
+    if (!Net.online) return;
+    Net.eotm().then(d => { if (d) UI.setEotm(d); });
+  }
+
   function coopRefresh() {
     if (!Net.online) return;
     Net.coop(0).then(c => { if (c) { coop = c; coopPaint(); } });
@@ -6753,7 +6859,9 @@ const Onboard = (() => {
             you are at ${Game.f ? Game.f(st.have) : st.have} of ${st.need}.</p></div>
           <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
       }
-      UI.beep('tap'); return UI.show(d.screen);
+      UI.beep('tap');
+      if (d.screen === 'rank') eotmRefresh();
+      return UI.show(d.screen);
     }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);
@@ -6771,6 +6879,24 @@ const Onboard = (() => {
           // day-one card would otherwise have talked over
           if (Game.state.taught) delete Game.state.taught.hq;
           setTimeout(() => UI.show('hq'), 220);
+          return;
+        }
+        case 'eotm-claim': {
+          Net.eotmClaim().then(r => {
+            if (!r || !r.won) return toast('🏅', 'NOTHING TO COLLECT', 'It may already be claimed.');
+            Game.grantReward({ credits: r.won.credits });
+            UI.setEotm(r.eotm);
+            const best = r.won.months.reduce((a, m) => Math.min(a, m.place), 9);
+            UI.sheet(`<span class="big-emoji">${best === 1 ? '🏅' : best === 2 ? '🥈' : '🥉'}</span>
+              <h3>${best === 1 ? 'EMPLOYEE OF THE MONTH' : 'ON THE PODIUM'}</h3>
+              <p class="sub">${r.won.months.map(m =>
+                `${esc(m.month)} · place ${m.place}`).join('<br>')}</p>
+              <div class="whycard"><b>Your prize</b>
+                <p>💰 ${f(r.won.credits)} credits, paid into your account.</p></div>
+              <p class="tiny muted" style="text-align:center">A new month has already started.
+                Everyone is back to zero.</p>
+              <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
+          });
           return;
         }
         case 'coop-claim': {
@@ -7113,6 +7239,8 @@ const Onboard = (() => {
     UI.show('hq');
     coopRefresh();
     setInterval(coopRefresh, 90000);
+    eotmRefresh();
+    setInterval(eotmRefresh, 300000);
     if (res && res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
     else if (opts.fresh) setTimeout(firstShift, 350);
     if (!running) {

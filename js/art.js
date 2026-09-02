@@ -4,8 +4,22 @@
    ============================================================ */
 const Art = (() => {
 
+  /* A safe default for every field a person needs. An account created without
+     a full art record — or one written by an older version of the game — used
+     to throw here, and because the leaderboard draws everybody's portrait,
+     one malformed record broke the whole ranking screen for every player
+     looking at it. Missing fields are filled rather than fatal. */
+  const DEFAULT_ART = {
+    skin: '#F1C398', hair: '#3A2A22', hairStyle: 'short',
+    shirt: '#3D6FE0', accent: '#2B4EA8',
+    glasses: false, headset: false, beard: false,
+  };
+  const safeArt = a => Object.assign({}, DEFAULT_ART, a || {});
+
   const shade = (hex, amt) => {
+    if (typeof hex !== 'string' || hex[0] !== '#') hex = DEFAULT_ART.skin;
     const n = parseInt(hex.slice(1), 16);
+    if (!Number.isFinite(n)) return hex;
     let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     r = Math.max(0, Math.min(255, Math.round(r + amt)));
     g = Math.max(0, Math.min(255, Math.round(g + amt)));
@@ -44,6 +58,7 @@ const Art = (() => {
   /* ---------------- PERSON ---------------- */
   /* a = art config; opts.pose = 'idle' | 'work'; opts.id for unique gradient ids */
   function person(a, opts = {}) {
+    a = safeArt(a);
     const id = opts.id || ('p' + Math.random().toString(36).slice(2, 7));
     const skinD = shade(a.skin, -34), skinL = shade(a.skin, 20);
     const shirtD = shade(a.shirt, -34), shirtL = shade(a.shirt, 22);

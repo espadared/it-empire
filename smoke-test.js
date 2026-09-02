@@ -141,6 +141,22 @@ check('the level buttons never promise what they will not spend', () => {
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
+check('a partial art record cannot break the leaderboard', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const fs = require('fs');
+  const Art = eval(fs.readFileSync(dir + 'art.js', 'utf8') + '; Art');
+  // The ranking screen draws a portrait for every player. One account with a
+  // missing or malformed art record used to throw inside the colour helper and
+  // take the whole screen down for everybody looking at it.
+  [{}, null, undefined, { skin: '#F1C398' }, { skin: 'nonsense', shirt: '#fff' },
+   { hairStyle: 'short' }].forEach((art, i) => {
+    let out = null;
+    try { out = Art.portrait(art, 't' + i); }
+    catch (e) { throw new Error('art record #' + i + ' threw: ' + e.message); }
+    assert(out && out.length > 200, 'art record #' + i + ' produced nothing');
+  });
+});
+
 check('morale stays out of the way until it means something', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'MOR', spec: 'fixer', art: DATA.CHARACTERS[0].art });

@@ -44,6 +44,7 @@ R_TABLE = "ie_rooms"
 E_TABLE = "ie_entries"
 C_TABLE = "ie_coop"
 CP_TABLE = "ie_coop_parts"
+EM_TABLE = "ie_eotm"
 
 # The owner dashboard stays switched off on a host until a real key is set.
 # "localtest" only ever works on your own machine.
@@ -155,6 +156,16 @@ SCHEMA_PG = (
           claimed     boolean default false,
           primary key (event_id, player_id)
         )""",
+    f"""create table if not exists {EM_TABLE} (
+          month      text not null,
+          player_id  bigint not null,
+          base_rep   bigint not null,
+          place      int,
+          prize      bigint default 0,
+          claimed    boolean default false,
+          primary key (month, player_id)
+        )""",
+    f"create index if not exists {EM_TABLE}_m_idx on {EM_TABLE} (month)",
     f"create index if not exists {P_TABLE}_rep_idx on {P_TABLE} (reputation desc)",
 )
 
@@ -186,6 +197,10 @@ SCHEMA_LITE = (
           event_id integer not null, player_id integer not null,
           contributed integer default 0, claimed integer default 0,
           primary key (event_id, player_id))""",
+    f"""create table if not exists {EM_TABLE} (
+          month text not null, player_id integer not null, base_rep integer not null,
+          place integer, prize integer default 0, claimed integer default 0,
+          primary key (month, player_id))""",
 )
 
 _ready = False
@@ -602,6 +617,149 @@ def coop_claim(player_id):
     return view["reward"]
 
 
+# --- employee of the month --------------------------------------------------
+
+# A monthly contest on reputation. Deliberately scored on reputation *gained
+# during the month*, not on the all-time total: a lifetime leaderboard is won
+# by whoever signed up first and never changes hands, so everybody else stops
+# looking at it. Gain resets the race every month, which is the point — it is
+# meant to bring people back, not to crown the incumbent again.
+#
+# Each player's baseline is recorded the first time they are seen in a month.
+# Nobody is scored on a month they were not around for.
+
+EOTM_PLACES = 3                    # winner plus two, so a five-person group has a race
+EOTM_SHARE = [1.0, 0.35, 0.15]
+
+
+def _month_key(when=None):
+    d = (when or datetime.now(timezone.utc)).astimezone(SG)
+    return f"{d.year:04d}-{d.month:02d}"
+
+
+def _month_ends(key):
+    y, m = (int(x) for x in key.split("-"))
+    nxt = datetime(y + (m == 12), 1 if m == 12 else m + 1, 1, tzinfo=SG)
+    return nxt.astimezone(timezone.utc)
+
+
+def _eotm_prize(gain):
+    """Scaled to the effort that won it, so it stays worth having as the
+    economy grows, with a floor so an early quiet month still pays."""
+    return int(max(200_000, min(100_000_000, gain * 400)))
+
+
+def _eotm_touch(player_id, rep):
+    """Record where this player started the month.
+
+    The baseline follows reputation downwards. A player who reorganises the
+    department — the game's prestige — has their reputation reset, which would
+    otherwise leave them scoring against a baseline they can never reach again
+    and locked out of the contest for the rest of the month. Rebasing means
+    they simply start the race again from where they now stand.
+    """
+    key = _month_key()
+    rep = int(rep or 0)
+    row = q(f"select base_rep from {EM_TABLE} where month = %s and player_id = %s",
+            (key, player_id), "one")
+    if not row:
+        q(f"""insert into {EM_TABLE} (month, player_id, base_rep)
+              values (%s,%s,%s)""", (key, player_id, rep))
+    elif (row[0] or 0) > rep:
+        q(f"update {EM_TABLE} set base_rep = %s where month = %s and player_id = %s",
+          (rep, key, player_id))
+    return key
+
+
+def _eotm_settle():
+    """Close out any month that has finished. Safe to call on every request:
+    it only does work when an unsettled month has actually ended."""
+    key = _month_key()
+    rows = q(f"select distinct month from {EM_TABLE} where month <> %s", (key,), "all") or []
+    for (past,) in rows:
+        done = q(f"select count(*) from {EM_TABLE} where month = %s and place is not null",
+                 (past,), "one")
+        if done and done[0]:
+            continue                      # already settled
+        board = q(f"""select e.player_id, p.reputation - e.base_rep
+                      from {EM_TABLE} e join {P_TABLE} p on p.id = e.player_id
+                      where e.month = %s order by 2 desc""", (past,), "all") or []
+        board = [b for b in board if (b[1] or 0) > 0]
+        if not board:
+            # nobody earned anything; mark it closed so it is not rechecked
+            q(f"update {EM_TABLE} set place = 0 where month = %s", (past,))
+            continue
+        top = board[0][1] or 0
+        for i, (pid, gain) in enumerate(board[:EOTM_PLACES]):
+            prize = int(_eotm_prize(top) * EOTM_SHARE[i])
+            q(f"""update {EM_TABLE} set place = %s, prize = %s
+                  where month = %s and player_id = %s""", (i + 1, prize, past, pid))
+        for pid, _ in board[EOTM_PLACES:]:
+            q(f"update {EM_TABLE} set place = 0 where month = %s and player_id = %s",
+              (past, pid))
+
+
+def eotm_view(player_id):
+    _eotm_settle()
+    row = q(f"select reputation from {P_TABLE} where id = %s", (player_id,), "one")
+    key = _eotm_touch(player_id, (row or [0])[0])
+
+    board = q(f"""select p.id, p.display, p.reputation - e.base_rep, p.level
+                  from {EM_TABLE} e join {P_TABLE} p on p.id = e.player_id
+                  where e.month = %s order by 3 desc limit 25""", (key,), "all") or []
+    standings, mine, place = [], 0, None
+    for i, (pid, name, gain, lvl) in enumerate(board):
+        gain = max(0, gain or 0)
+        standings.append({"id": pid, "name": name, "gain": gain, "level": lvl,
+                          "you": pid == player_id})
+        if pid == player_id:
+            mine, place = gain, i + 1
+
+    # anything already won and not yet collected
+    unpaid = q(f"""select month, place, prize from {EM_TABLE}
+                   where player_id = %s and place > 0 and prize > 0 and claimed = {FALSE}
+                   order by month desc""", (player_id,), "all") or []
+
+    past = q(f"""select e.month, p.display, e.prize, p.reputation - e.base_rep
+                 from {EM_TABLE} e join {P_TABLE} p on p.id = e.player_id
+                 where e.place = 1 and e.month <> %s order by e.month desc limit 6""",
+             (key,), "all") or []
+
+    ends = _month_ends(key)
+    leader = standings[0]["gain"] if standings else 0
+    return {
+        "month": key,
+        "monthName": datetime.strptime(key, "%Y-%m").strftime("%B %Y"),
+        "endsIn": max(0, int((ends - datetime.now(timezone.utc)).total_seconds())),
+        "standings": standings,
+        "mine": mine, "place": place, "players": len(standings),
+        "projectedPrize": _eotm_prize(leader) if leader else 0,
+        "shares": EOTM_SHARE,
+        "unclaimed": [{"month": m,
+                       "monthName": datetime.strptime(m, "%Y-%m").strftime("%B %Y"),
+                       "place": pl, "prize": pz} for m, pl, pz in unpaid],
+        "past": [{"month": m,
+                  "monthName": datetime.strptime(m, "%Y-%m").strftime("%B %Y"),
+                  "name": n, "prize": pz, "gain": max(0, g or 0)} for m, n, pz, g in past],
+    }
+
+
+def eotm_claim(player_id):
+    _eotm_settle()
+    rows = q(f"""select month, place, prize from {EM_TABLE}
+                 where player_id = %s and place > 0 and prize > 0 and claimed = {FALSE}""",
+             (player_id,), "all") or []
+    if not rows:
+        return None
+    total, months = 0, []
+    for month, place, prize in rows:
+        q(f"""update {EM_TABLE} set claimed = {TRUE}
+              where month = %s and player_id = %s""", (month, player_id))
+        total += int(prize or 0)
+        months.append({"month": month, "place": place, "prize": int(prize or 0)})
+    return {"credits": total, "months": months}
+
+
 # --- http -------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
@@ -776,6 +934,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.fail(401, "Sign in again.")
             return self.json(200, {"ok": True, "coop": coop_view(row[0])})
 
+        if route == "eotm":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Sign in again.")
+            return self.json(200, {"ok": True, "eotm": eotm_view(row[0])})
+
         if route == "ping":
             # Answers without touching the database on purpose: this is what
             # the host polls to decide whether the service is up.
@@ -890,6 +1054,16 @@ class Handler(BaseHTTPRequestHandler):
             n = int(data.get("n") or 0)
             view = coop_add(row[0], n) if n else coop_view(row[0])
             return self.json(200, {"ok": True, "coop": view})
+
+        if route == "eotm-claim":
+            row = session_player(self.token())
+            if not row:
+                return self.fail(401, "Your session expired. Sign in again.")
+            won = eotm_claim(row[0])
+            if not won:
+                return self.fail(409, "There is nothing to collect.")
+            return self.json(200, {"ok": True, "won": won,
+                                   "eotm": eotm_view(row[0])})
 
         if route == "coop-claim":
             row = session_player(self.token())

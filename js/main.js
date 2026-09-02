@@ -163,6 +163,11 @@
     </div>`;
   }
 
+  function eotmRefresh() {
+    if (!Net.online) return;
+    Net.eotm().then(d => { if (d) UI.setEotm(d); });
+  }
+
   function coopRefresh() {
     if (!Net.online) return;
     Net.coop(0).then(c => { if (c) { coop = c; coopPaint(); } });
@@ -585,7 +590,9 @@
             you are at ${Game.f ? Game.f(st.have) : st.have} of ${st.need}.</p></div>
           <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
       }
-      UI.beep('tap'); return UI.show(d.screen);
+      UI.beep('tap');
+      if (d.screen === 'rank') eotmRefresh();
+      return UI.show(d.screen);
     }
     if (d.close) return UI.closeSheet();
     if (d.incopt != null) return answerIncident(+d.incopt);
@@ -603,6 +610,24 @@
           // day-one card would otherwise have talked over
           if (Game.state.taught) delete Game.state.taught.hq;
           setTimeout(() => UI.show('hq'), 220);
+          return;
+        }
+        case 'eotm-claim': {
+          Net.eotmClaim().then(r => {
+            if (!r || !r.won) return toast('🏅', 'NOTHING TO COLLECT', 'It may already be claimed.');
+            Game.grantReward({ credits: r.won.credits });
+            UI.setEotm(r.eotm);
+            const best = r.won.months.reduce((a, m) => Math.min(a, m.place), 9);
+            UI.sheet(`<span class="big-emoji">${best === 1 ? '🏅' : best === 2 ? '🥈' : '🥉'}</span>
+              <h3>${best === 1 ? 'EMPLOYEE OF THE MONTH' : 'ON THE PODIUM'}</h3>
+              <p class="sub">${r.won.months.map(m =>
+                `${esc(m.month)} · place ${m.place}`).join('<br>')}</p>
+              <div class="whycard"><b>Your prize</b>
+                <p>💰 ${f(r.won.credits)} credits, paid into your account.</p></div>
+              <p class="tiny muted" style="text-align:center">A new month has already started.
+                Everyone is back to zero.</p>
+              <button class="btn gold cta" data-close="1">BACK TO WORK</button>`);
+          });
           return;
         }
         case 'coop-claim': {
@@ -945,6 +970,8 @@
     UI.show('hq');
     coopRefresh();
     setInterval(coopRefresh, 90000);
+    eotmRefresh();
+    setInterval(eotmRefresh, 300000);
     if (res && res.offline && Game.state.idleAcc.c >= 1) setTimeout(() => welcomeBack(res.away), 500);
     else if (opts.fresh) setTimeout(firstShift, 350);
     if (!running) {

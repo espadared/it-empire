@@ -1006,6 +1006,57 @@ const UI = (() => {
   }
 
   /* ================= RANKING ================= */
+  /* EMPLOYEE OF THE MONTH
+     Scored on reputation earned this month rather than the all-time total.
+     A lifetime board is won by whoever signed up first and never changes
+     hands, so everyone else stops looking at it; this resets every month and
+     gives the whole group a reason to come back. */
+  let eotm = null;
+  const setEotm = d => { eotm = d; if (screen === 'rank') renderRanking(); };
+
+  function eotmPanel() {
+    if (typeof Net === 'undefined' || !Net.online) return '';
+    if (!eotm) return `<div class="sec-head"><h2>EMPLOYEE OF THE MONTH</h2></div>
+      <div class="eotm"><div class="empty">Checking the noticeboard…</div></div>`;
+    const days = Math.floor(eotm.endsIn / 86400);
+    const hours = Math.floor((eotm.endsIn % 86400) / 3600);
+    const left = days > 0 ? `${days}d ${hours}h left` : `${hours}h left`;
+    const rows = eotm.standings.slice(0, 8).map((p, i) => `
+      <div class="eotm-row ${p.you ? 'you' : ''}">
+        <span class="eotm-pos ${i < 3 ? 'medal' : ''}">${['🥇','🥈','🥉'][i] || (i + 1)}</span>
+        <span class="eotm-name">${esc(p.name)}${p.you ? ' · you' : ''}</span>
+        <span class="eotm-gain">+${f(p.gain)}</span>
+      </div>`).join('');
+
+    const claim = (eotm.unclaimed || []).length
+      ? `<button class="btn gold cta" data-act="eotm-claim" style="margin-top:10px">
+           COLLECT ${eotm.unclaimed.length > 1 ? eotm.unclaimed.length + ' PRIZES' : esc(eotm.unclaimed[0].monthName.toUpperCase())}
+           · 💰${f(eotm.unclaimed.reduce((a, u) => a + u.prize, 0))}</button>` : '';
+
+    const past = (eotm.past || []).length
+      ? `<div class="eotm-past"><b>PREVIOUS WINNERS</b>${eotm.past.map(w =>
+          `<div><span>${esc(w.monthName)}</span><span>🏆 ${esc(w.name)}</span>
+            <span class="mono">+${f(w.gain)}</span></div>`).join('')}</div>` : '';
+
+    return `<div class="sec-head"><h2>EMPLOYEE OF THE MONTH</h2><span>${esc(left.toUpperCase())}</span></div>
+      <div class="eotm">
+        <div class="eotm-top">
+          <span class="eotm-ico">🏅</span>
+          <div style="flex:1;min-width:0">
+            <b>${esc(eotm.monthName)}</b>
+            <span>Most reputation earned this month takes the prize. Everyone starts level on the first.</span>
+          </div>
+        </div>
+        ${eotm.projectedPrize ? `<div class="eotm-prize">
+          <span>Prize as it stands</span><b>💰 ${f(eotm.projectedPrize)}</b></div>` : ''}
+        ${rows || '<div class="empty">Nobody has earned any reputation yet this month. Be first.</div>'}
+        ${eotm.place ? `<p class="tiny muted" style="margin:8px 0 0">You are
+          ${eotm.place === 1 ? 'leading' : 'in place ' + eotm.place} with ${f(eotm.mine)} reputation earned.</p>` : ''}
+        ${claim}
+        ${past}
+      </div>`;
+  }
+
   function renderRanking() {
     const S = Game.state, r = Game.rank(S.reputation), nx = Game.nextRank(S.reputation);
     const L = S.lifetime;
@@ -1053,7 +1104,7 @@ const UI = (() => {
     }).join('') : '<div class="empty"><span class="big">👥</span>Nobody else has clocked in yet. You are employee number one.</div>')
       : '<div class="empty">Fetching the company directory…</div>'}</div>`;
 
-    $('#screen-rank').innerHTML = company + `
+    $('#screen-rank').innerHTML = eotmPanel() + company + `
       <div class="sec-head"><h2>REPUTATION</h2><span>${f(S.reputation)} REP</span></div>
       <div class="list"><div class="card col">
         <div class="spread"><h3 style="font-family:var(--disp);font-size:17px;margin:0;color:var(--rep)">${esc(r.name)}</h3>
@@ -1171,7 +1222,7 @@ const UI = (() => {
   }
 
   return { $, el, esc, clock, sheet, closeSheet, isPaused, floatText, burstFloats, coins, sparks, shake, beep,
-           show, refresh, explain, paintNav, renderTop, renderHQ, buildStage, updateHero, updateMini,
+           show, refresh, explain, paintNav, setEotm, renderTop, renderHQ, buildStage, updateHero, updateMini,
            renderQueue, tickQueueUI, updateMeters, ticketRewards,
            updateIdle, updateBuildings, updateChips, charSheet, pickItemSheet, say,
            postSheet, fillDeptSheet, setStaffView, setStaffSort, setGearSort, renderStaff, renderGear,

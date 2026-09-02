@@ -1135,3 +1135,30 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .meter.morale-on .m-lbl{filter:none}
 .teamstats b.alarm{color:var(--alarm)}
 @keyframes moraleIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* employee of the month */
+.eotm{margin:0 12px 16px;border:1px solid var(--line);border-radius:12px;
+  background:var(--panel);padding:13px 14px}
+.eotm-top{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+.eotm-ico{font-size:24px;flex:0 0 auto}
+.eotm-top b{display:block;font-family:var(--disp);font-size:14px;color:var(--lamp)}
+.eotm-top span{display:block;font-size:12px;color:var(--muted);line-height:1.45}
+.eotm-prize{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 12px;margin-bottom:10px;border-radius:9px;
+  background:rgba(240,169,74,.10);border:1px solid rgba(240,169,74,.30)}
+.eotm-prize span{font-size:12px;color:var(--muted)}
+.eotm-prize b{font-family:var(--mono);font-size:15px;color:var(--lamp)}
+.eotm-row{display:flex;align-items:center;gap:10px;padding:7px 4px;
+  border-bottom:1px solid var(--line-2, #232C46)}
+.eotm-row:last-of-type{border-bottom:0}
+.eotm-row.you{background:rgba(240,169,74,.08);border-radius:7px;
+  box-shadow:inset 0 0 0 1px rgba(240,169,74,.28)}
+.eotm-pos{width:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.eotm-pos.medal{font-size:15px}
+.eotm-name{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eotm-row.you .eotm-name{color:var(--lamp);font-weight:700}
+.eotm-gain{font-family:var(--mono);font-size:12.5px;color:var(--rep)}
+.eotm-past{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.eotm-past b{display:block;font-size:9.5px;letter-spacing:.1em;color:var(--faint);margin-bottom:6px}
+.eotm-past div{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;
+  color:var(--muted);padding:3px 0}
