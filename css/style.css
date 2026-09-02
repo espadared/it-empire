@@ -1178,3 +1178,13 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 
 /* which way a sort is pointing */
 .sortchip i{font-style:normal;font-family:var(--mono);font-size:9px;opacity:.75;margin-left:5px}
+
+/* the explanation switch, top right of its own card */
+.why-toggle{
+  position:absolute;top:12px;right:12px;z-index:2;
+  border:1px solid var(--crt-dim);background:rgba(79,214,201,.10);color:var(--crt);
+  border-radius:99px;padding:5px 10px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.06em;
+}
+.why-toggle:active{transform:scale(.94)}
+.sheet{position:relative}

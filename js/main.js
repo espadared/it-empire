@@ -240,8 +240,17 @@
   /* The explanation card. This is the part of the game that is actually about
      IT rather than about numbers going up, so it is worth a screen of its own
      rather than a line in a toast. */
+  /* Whether the explanation appears at all. Some players want to learn the
+     reasoning; some just want to clear the queue. Both are reasonable, so it
+     is a switch rather than a decision made for them. Kept on the save so it
+     follows them between devices. */
+  const wantsWhy = () => Game.state.showWhy !== false;
+
   function showWhy(ok, right, why, done) {
-    UI.sheet(`<span class="big-emoji">${ok ? '✅' : '💡'}</span>
+    if (!wantsWhy()) { UI.closeSheet(); if (done) done(); return; }
+    UI.sheet(`
+      <button class="why-toggle" data-act="why-off" title="Stop showing these">💡 ON</button>
+      <span class="big-emoji">${ok ? '✅' : '💡'}</span>
       <h3>${ok ? 'Correct' : 'The answer was'}</h3>
       <p class="diag-answer" style="margin:2px 0 0">${esc(right ? right.t : '')}</p>
       <div class="whycard">
@@ -586,6 +595,11 @@
       </div>
       <div class="row" style="margin-top:12px;gap:8px">
         <button class="btn sm" data-act="mute" style="flex:1">${muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
+        <button class="btn sm" data-act="${wantsWhy() ? 'why-off' : 'why-on'}" style="flex:1">${
+          wantsWhy() ? '💡 EXPLANATIONS ON' : '💡 EXPLANATIONS OFF'}</button>
+      </div>
+      <p class="tiny muted" style="text-align:center;margin:6px 0 0">Explanations tell you why a diagnosis was right. Turn them off to resolve straight away.</p>
+      <div class="row" style="margin-top:10px;gap:8px">
         <button class="btn sm ghost" data-act="reset" style="flex:1;color:var(--alarm)">START OVER</button>
       </div>
       ${Net.online ? `<div class="acct">
@@ -696,6 +710,22 @@
           });
           return;
         }
+        case 'why-off': {
+          Game.state.showWhy = false; Game.save();
+          UI.beep('tap');
+          UI.closeSheet();
+          const fn = whyDone; whyDone = null;
+          if (fn) fn();
+          toast('💡', 'EXPLANATIONS OFF',
+            'Diagnoses will resolve straight away. Turn them back on from the 🔔 menu.');
+          return;
+        }
+        case 'why-on': {
+          Game.state.showWhy = true; Game.save();
+          UI.beep('tap'); UI.closeSheet();
+          toast('💡', 'EXPLANATIONS ON', 'You will see why each answer was right.');
+          return;
+        }
         case 'why-done': {
           UI.closeSheet();
           const fn = whyDone; whyDone = null;
@@ -782,7 +812,7 @@
       }
       UI.refresh();
       // Never replace the promotion card with the character sheet.
-      if (sheetWasOpen && ok && !promoted) UI.charSheet(d.levelup);
+      if (sheetWasOpen && ok && !promoted) UI.charSheet(d.levelup, { replace: true });
       return;
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
@@ -893,7 +923,7 @@
           ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
           : `${r.gained} levels for ${f(r.spent)} credits.`);
       UI.refresh();
-      if (sheetWasOpen) UI.charSheet(d.levelmax);
+      if (sheetWasOpen) UI.charSheet(d.levelmax, { replace: true });
       return;
     }
     if (d.upgrade) {

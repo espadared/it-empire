@@ -1187,6 +1187,16 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 /* which way a sort is pointing */
 .sortchip i{font-style:normal;font-family:var(--mono);font-size:9px;opacity:.75;margin-left:5px}
 
+/* the explanation switch, top right of its own card */
+.why-toggle{
+  position:absolute;top:12px;right:12px;z-index:2;
+  border:1px solid var(--crt-dim);background:rgba(79,214,201,.10);color:var(--crt);
+  border-radius:99px;padding:5px 10px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.06em;
+}
+.why-toggle:active{transform:scale(.94)}
+.sheet{position:relative}
+
 </style>
 <div id="app">
 
@@ -3089,7 +3099,7 @@ const Game = (() => {
       buildings: { helpdesk: 1 },
       dept: {},
       queue: [], streak: 0, chapter: 1,
-      momentum: 0, morale: 100, busy: {}, lastAction: 0, expansion: 0,
+      momentum: 0, morale: 100, busy: {}, lastAction: 0, expansion: 0, showWhy: true,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -4591,7 +4601,7 @@ const Game = (() => {
       energy: 100, energyMax: 100, energyAcc: 0,
       roster: [], activeId: null, inventory: [], standard: {}, buildings: {}, dept: {},
       queue: [], streak: 0, chapter: 1, momentum: 0, morale: 100, busy: {}, lastAction: 0,
-      expansion: 0,
+      expansion: 0, showWhy: true,
       quotaLeft: DATA.QUOTA.ramp[0].per, quotaEnds: 0,
       lastAllowance: DATA.QUOTA.ramp[0].per,
       idleAcc: { t: 0, c: 0, x: 0, r: 0, gear: 0, inc: 0 },
@@ -4784,6 +4794,24 @@ const UI = (() => {
   function sheet(html, opts = {}) {
     paused = !opts.live;               // a sheet stops the clock unless it IS the clock
     const m = $('#modal');
+    const open = m.classList.contains('on');
+    const prev = open && m.querySelector('.sheet');
+
+    /* Redrawing an open sheet in place rather than building a new one.
+
+       Levelling somebody from inside their own card used to rebuild the whole
+       sheet: it replayed the slide-up animation and threw the scroll back to
+       the top, so holding down LV UP looked like the card closing and
+       reopening on every tap. Same content, but the element survives, so the
+       animation does not restart and the player's place is kept. */
+    if (prev && opts.replace) {
+      const y = prev.scrollTop;
+      prev.innerHTML = `${opts.grab === false ? '' : '<div class="grab"></div>'}${html}`;
+      prev.scrollTop = y;
+      m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
+      return prev;
+    }
+
     m.innerHTML = `<div class="sheet">${opts.grab === false ? '' : '<div class="grab"></div>'}${html}</div>`;
     m.classList.add('on');
     m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
@@ -5403,7 +5431,7 @@ const UI = (() => {
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
 
-  function charSheet(uid) {
+  function charSheet(uid, opts = {}) {
     const S = Game.state, c = S.roster.find(x => x.uid === uid); if (!c) return;
     const d = Game.def(c.defId), st = Game.charStats(c), need = Game.charXpNeed(c.level);
     const issued = Game.standardItems().length;
@@ -5473,7 +5501,7 @@ const UI = (() => {
       <div class="sec-head" style="padding:14px 0 4px"><h2>DEPARTMENT</h2></div>
       <div class="row" style="flex-wrap:wrap;gap:8px">${deptHtml}</div>
       <button class="btn ghost cta" data-close="1">CLOSE</button>
-    `);
+    `, { replace: !!opts.replace });
   }
 
   /* One slot of the standard. If something is fitted you can level it here
@@ -6732,8 +6760,17 @@ const Onboard = (() => {
   /* The explanation card. This is the part of the game that is actually about
      IT rather than about numbers going up, so it is worth a screen of its own
      rather than a line in a toast. */
+  /* Whether the explanation appears at all. Some players want to learn the
+     reasoning; some just want to clear the queue. Both are reasonable, so it
+     is a switch rather than a decision made for them. Kept on the save so it
+     follows them between devices. */
+  const wantsWhy = () => Game.state.showWhy !== false;
+
   function showWhy(ok, right, why, done) {
-    UI.sheet(`<span class="big-emoji">${ok ? '✅' : '💡'}</span>
+    if (!wantsWhy()) { UI.closeSheet(); if (done) done(); return; }
+    UI.sheet(`
+      <button class="why-toggle" data-act="why-off" title="Stop showing these">💡 ON</button>
+      <span class="big-emoji">${ok ? '✅' : '💡'}</span>
       <h3>${ok ? 'Correct' : 'The answer was'}</h3>
       <p class="diag-answer" style="margin:2px 0 0">${esc(right ? right.t : '')}</p>
       <div class="whycard">
@@ -7078,6 +7115,11 @@ const Onboard = (() => {
       </div>
       <div class="row" style="margin-top:12px;gap:8px">
         <button class="btn sm" data-act="mute" style="flex:1">${muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
+        <button class="btn sm" data-act="${wantsWhy() ? 'why-off' : 'why-on'}" style="flex:1">${
+          wantsWhy() ? '💡 EXPLANATIONS ON' : '💡 EXPLANATIONS OFF'}</button>
+      </div>
+      <p class="tiny muted" style="text-align:center;margin:6px 0 0">Explanations tell you why a diagnosis was right. Turn them off to resolve straight away.</p>
+      <div class="row" style="margin-top:10px;gap:8px">
         <button class="btn sm ghost" data-act="reset" style="flex:1;color:var(--alarm)">START OVER</button>
       </div>
       ${Net.online ? `<div class="acct">
@@ -7188,6 +7230,22 @@ const Onboard = (() => {
           });
           return;
         }
+        case 'why-off': {
+          Game.state.showWhy = false; Game.save();
+          UI.beep('tap');
+          UI.closeSheet();
+          const fn = whyDone; whyDone = null;
+          if (fn) fn();
+          toast('💡', 'EXPLANATIONS OFF',
+            'Diagnoses will resolve straight away. Turn them back on from the 🔔 menu.');
+          return;
+        }
+        case 'why-on': {
+          Game.state.showWhy = true; Game.save();
+          UI.beep('tap'); UI.closeSheet();
+          toast('💡', 'EXPLANATIONS ON', 'You will see why each answer was right.');
+          return;
+        }
         case 'why-done': {
           UI.closeSheet();
           const fn = whyDone; whyDone = null;
@@ -7274,7 +7332,7 @@ const Onboard = (() => {
       }
       UI.refresh();
       // Never replace the promotion card with the character sheet.
-      if (sheetWasOpen && ok && !promoted) UI.charSheet(d.levelup);
+      if (sheetWasOpen && ok && !promoted) UI.charSheet(d.levelup, { replace: true });
       return;
     }
     if (d.setactive) { Game.state.activeId = d.setactive; Game.save(); UI.closeSheet(); UI.buildStage(); UI.beep('ok'); return UI.refresh(); }
@@ -7385,7 +7443,7 @@ const Onboard = (() => {
           ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
           : `${r.gained} levels for ${f(r.spent)} credits.`);
       UI.refresh();
-      if (sheetWasOpen) UI.charSheet(d.levelmax);
+      if (sheetWasOpen) UI.charSheet(d.levelmax, { replace: true });
       return;
     }
     if (d.upgrade) {

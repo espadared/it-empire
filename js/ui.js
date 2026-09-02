@@ -84,6 +84,24 @@ const UI = (() => {
   function sheet(html, opts = {}) {
     paused = !opts.live;               // a sheet stops the clock unless it IS the clock
     const m = $('#modal');
+    const open = m.classList.contains('on');
+    const prev = open && m.querySelector('.sheet');
+
+    /* Redrawing an open sheet in place rather than building a new one.
+
+       Levelling somebody from inside their own card used to rebuild the whole
+       sheet: it replayed the slide-up animation and threw the scroll back to
+       the top, so holding down LV UP looked like the card closing and
+       reopening on every tap. Same content, but the element survives, so the
+       animation does not restart and the player's place is kept. */
+    if (prev && opts.replace) {
+      const y = prev.scrollTop;
+      prev.innerHTML = `${opts.grab === false ? '' : '<div class="grab"></div>'}${html}`;
+      prev.scrollTop = y;
+      m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
+      return prev;
+    }
+
     m.innerHTML = `<div class="sheet">${opts.grab === false ? '' : '<div class="grab"></div>'}${html}</div>`;
     m.classList.add('on');
     m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
@@ -703,7 +721,7 @@ const UI = (() => {
       <button class="btn ghost cta" data-close="1">CLOSE</button>`);
   }
 
-  function charSheet(uid) {
+  function charSheet(uid, opts = {}) {
     const S = Game.state, c = S.roster.find(x => x.uid === uid); if (!c) return;
     const d = Game.def(c.defId), st = Game.charStats(c), need = Game.charXpNeed(c.level);
     const issued = Game.standardItems().length;
@@ -773,7 +791,7 @@ const UI = (() => {
       <div class="sec-head" style="padding:14px 0 4px"><h2>DEPARTMENT</h2></div>
       <div class="row" style="flex-wrap:wrap;gap:8px">${deptHtml}</div>
       <button class="btn ghost cta" data-close="1">CLOSE</button>
-    `);
+    `, { replace: !!opts.replace });
   }
 
   /* One slot of the standard. If something is fitted you can level it here
