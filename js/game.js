@@ -104,6 +104,7 @@ const Game = (() => {
       lastTick: Date.now(), started: Date.now(),
     };
     if (keep) { S.lifetime.reorgs = keep.reorgs; S.achievements = keep.achievements; S.lifetime.tickets = keep.tickets; }
+    syncHero();          // you start on the first rung, not on the card's default
     rollMissions();
     fillQueue();
     return S;
@@ -118,11 +119,36 @@ const Game = (() => {
   }
 
   /* ---------------- CHARACTER MATH ---------------- */
+  /* Your own technician is promoted alongside the department. The premise of
+     the game is a career, so the rank on your own badge should move — and it
+     is what stops a hired MYTHIC from permanently outclassing the person the
+     player made. */
+  const HERO_RANKS = ['EPIC', 'LEGENDARY', 'LEGENDARY', 'MYTHIC', 'MYTHIC'];
+  const heroRarity = () => HERO_RANKS[Math.min(HERO_RANKS.length, Math.max(1, S.chapter || 1)) - 1];
+
+  function syncHero() {
+    const h = S.roster && S.roster.find(c => c.defId === 'hero');
+    if (!h) return null;
+    const want = heroRarity();
+    if (h.rarity !== want) { h.rarity = want; emit('change'); }
+    return h;
+  }
+
+  /* "Learns from every single ticket" was flavour text on the card and did
+     nothing. It is now worth up to a third again on every stat, earned across
+     a whole run — the one thing no hire can buy. */
+  function heroLearning() {
+    const done = (S.lifetime && S.lifetime.tickets) || 0;
+    return Math.min(0.34, done / 18000);
+  }
+
   function charStats(c) {
     const d = def(c.defId), out = {};
     const growthBonus = 1 + legacyVal('l_growth');
+    const learned = d.id === 'hero' ? 1 + heroLearning() : 1;
     DATA.STATS.forEach(s => {
-      out[s] = Math.round((d.base[s] + d.growth[s] * (c.level - 1) * growthBonus) * DATA.RARITY[c.rarity].mult);
+      out[s] = Math.round((d.base[s] + d.growth[s] * (c.level - 1) * growthBonus)
+        * DATA.RARITY[c.rarity].mult * learned);
     });
     // Standard issue: whatever the department has decided everyone carries.
     // Nobody has a personal loadout — that is the point of a standard.
@@ -701,8 +727,12 @@ const Game = (() => {
     S.chapter = chapterNo() + 1;
     const ch = chapter();
     S.reputation += 500 * ch.n;
+    const was = (S.roster.find(c => c.defId === 'hero') || {}).rarity;
+    syncHero();
+    const now = (S.roster.find(c => c.defId === 'hero') || {}).rarity;
     checkAchievements(); emit('change');
     emit('chapter', ch);
+    if (now && now !== was) emit('heropromoted', { from: was, to: now });
     return ch;
   }
 
@@ -1473,6 +1503,7 @@ const Game = (() => {
       if (!Array.isArray(s.roster) || !s.roster.length) return { needsCharacter: true };
       if (!s.roster.some(c => c.uid === s.activeId)) s.activeId = s.roster[0].uid;
       S = s;
+      syncHero();          // saves made before the rank climbed with the chapter
       S.incident = null;
       uidSeq = Date.now() % 100000;
       delete S.ticket;
@@ -1526,7 +1557,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
+    heroRarity, heroLearning, syncHero, grantReward, tabState, tabOpen, quotaMax, quotaBase, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,

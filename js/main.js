@@ -304,6 +304,23 @@
   // escalating) never draw one.
   Game.on('resolved', () => coopCredit(1));
 
+  /* Your own rank moving is the payoff the whole premise promises, so it gets
+     a moment rather than a silent stat change. */
+  Game.on('heropromoted', ({ from, to }) => {
+    UI.beep('great');
+    setTimeout(() => UI.sheet(`<span class="big-emoji">🎖️</span>
+      <h3>YOU HAVE BEEN PROMOTED</h3>
+      <p class="sub">${esc(Game.state.name)} is now <b style="color:${rarColour(to)}">${esc(to)}</b>,
+        up from ${esc(from)}.</p>
+      <div class="whycard"><b>What this means</b>
+        <p>Every one of your stats scales with your rank. You remain the strongest
+          technician in the building — no hire outgrows the person running the place.</p></div>
+      <button class="btn gold cta" data-close="1">BACK TO WORK</button>`), 1200);
+  });
+
+  const rarColour = r => ({ COMMON:'#8A93AD', UNCOMMON:'#5FD37A', RARE:'#4FA8FF',
+    EPIC:'#B67CFF', LEGENDARY:'#FFB347', MYTHIC:'#FF5A9E' }[r] || '#FFB347');
+
   Game.on('quotaspent', () => {
     UI.beep('alarm');
     UI.sheet(`

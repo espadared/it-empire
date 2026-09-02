@@ -141,6 +141,33 @@ check('the level buttons never promise what they will not spend', () => {
 });
 check('reorganisation', () => { Game.state.level = 40; if (!Game.reorg()) throw new Error('reorg gave nothing'); });
 
+check('your own technician is never outgrown by a hire', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'HERO', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const St = Game.state;
+  St.credits = 1e12; St.reputation = 1e6;
+  // the tickets a player must already have banked to be in each chapter
+  const banked = [0, 400, 2500, 12000, 60000];
+  [1, 2, 3, 4, 5].forEach(ch => {
+    [10, 25, 40, 55, 70].forEach(lv => {
+      Game.newGame(null, { name: 'HERO', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+      const S = Game.state;
+      S.credits = 1e12; S.reputation = 1e6; S.chapter = ch;
+      S.lifetime.tickets = banked[ch - 1];
+      Game.syncHero();
+      const hero = S.roster.find(c => c.defId === 'hero');
+      hero.level = lv;
+      const mine = Game.charPower(hero);
+      DATA.CHARACTERS.filter(d => d.hireable).forEach(d => {
+        const c = Game.hire(d.id); if (!c) return;
+        c.level = lv;
+        assert(Game.charPower(c) <= mine,
+          `chapter ${ch}, level ${lv}: ${d.name} (${Game.charPower(c)}) outgrows you (${mine})`);
+      });
+    });
+  });
+});
+
 check('the posting advice never makes a player worse off', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   // the reorg check above prestiges the save, so start from a clean one — this

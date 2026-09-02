@@ -398,6 +398,9 @@ const UI = (() => {
         </div>
       </div>
       <div class="tiny muted" style="margin-top:6px">${esc(role.perk)}</div>
+      ${c.defId === 'hero' && Game.heroLearning() >= 0.01 ? `<div class="tiny" style="color:var(--crt);margin-top:3px">
+        📈 Learns from every ticket — +${Math.round(Game.heroLearning() * 100)}% to every stat,
+        earned over ${f(Game.state.lifetime.tickets || 0)} tickets</div>` : ''}
       <button class="dchip-row" data-post="${c.uid}">${deptChip(c)}</button>
       <div class="row" style="margin-top:8px">
         <div class="pbar ${maxed ? 'gold' : ''}" style="flex:1"><span style="width:${maxed ? 100 : Math.min(100, c.xp / need * 100)}%"></span></div>

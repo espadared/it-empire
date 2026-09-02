@@ -252,10 +252,13 @@ const DATA = (() => {
      and decides, rather than tapping. Everything else is a button. It was
      throttled to one ticket in ten, which made the thinking part a rarity in a
      game supposedly about diagnosing faults. */
-  const DIAGNOSE_CHANCE = 0.24;      // the steady-pace baseline, ~1 in 4
-  const DIAGNOSE_MIN = 0.16;         // when barely playing
-  const DIAGNOSE_MAX = 0.32;         // when in full flow
-  const DIAGNOSE_PITY = 8;           // never go longer than this without one
+  /* Tuned by measurement, not by arithmetic: the pity timer forces one after a
+     dry spell, so the observed rate always runs above the raw chance. These
+     numbers land on roughly one ticket in eight in play. */
+  const DIAGNOSE_CHANCE = 0.085;     // the steady-pace baseline
+  const DIAGNOSE_MIN = 0.055;        // when barely playing
+  const DIAGNOSE_MAX = 0.125;        // when in full flow
+  const DIAGNOSE_PITY = 22;          // never go longer than this without one
 
   /* How far a technician can be developed. Past this they are as good as the
      department can make them — bring somebody else on instead. */
@@ -559,12 +562,20 @@ const DATA = (() => {
   const CHARACTERS = [
     {
       id:'hero', name:'JASON', role:'You', rarity:'RARE', roleKey:'TECHNICIAN', icon:'🧑‍💻',
-      strength:'Learns from every single ticket',
+      strength:'Learns from every single ticket — and it shows',
       weakness:'Cannot be assigned to idle work — you do the tapping',
       personality:'Started on the helpdesk with a screwdriver and a dream. Still has the screwdriver.',
       quotes:['"I have a good feeling about this cable."','"It is always DNS. Always."','"Let me just check one thing..."'],
-      base:{TECHNICAL:12,SPEED:10,COMMUNICATION:8,INVESTIGATION:10,PATIENCE:9,AUTOMATION:5,MANAGEMENT:5},
-      growth:{TECHNICAL:2.2,SPEED:1.8,COMMUNICATION:1.6,INVESTIGATION:1.9,PATIENCE:1.7,AUTOMATION:1.1,MANAGEMENT:1.2},
+      /* You are meant to be the best technician in the building, and you were
+         not: lowest base of anyone, slowest growth, and stuck at RARE while
+         hires reached MYTHIC. Three disadvantages at once put the character
+         the player designed and named fifth out of nine.
+
+         Base and growth now lead the roster outright, your rank climbs with
+         the department (see heroRarity), and "learns from every ticket" is a
+         real bonus rather than flavour text. */
+      base:{TECHNICAL:27,SPEED:23,COMMUNICATION:21,INVESTIGATION:24,PATIENCE:21,AUTOMATION:15,MANAGEMENT:16},
+      growth:{TECHNICAL:3.4,SPEED:2.9,COMMUNICATION:2.7,INVESTIGATION:3.0,PATIENCE:2.7,AUTOMATION:2.2,MANAGEMENT:2.3},
       perks:{}, art:{ skin:'#F1C398', hair:'#3A2A22', hairStyle:'short', shirt:'#3D6FE0', accent:'#2B4EA8', glasses:true, headset:false, beard:false },
       cost:0, repReq:0, hireable:false
     },
