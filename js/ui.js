@@ -89,7 +89,21 @@ const UI = (() => {
     m.onclick = e => { if (e.target === m && opts.dismiss !== false) closeSheet(); };
     return m.querySelector('.sheet');
   }
-  function closeSheet() { paused = false; $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+  /* Closing a sheet always redraws what is underneath.
+
+     The queue keeps running while a live sheet is open, so by the time one is
+     dismissed the cards on screen can be describing tickets that no longer
+     exist. Tapping one of those did nothing at all — no sound, no message,
+     just a dead button — which is indistinguishable from the game being
+     broken. */
+  function closeSheet() {
+    paused = false;
+    const m = $('#modal');
+    m.classList.remove('on');
+    m.innerHTML = '';
+    m.onclick = null;
+    if (screen === 'hq') { try { renderQueue(); } catch (e) { } }
+  }
   const isPaused = () => paused && $('#modal').classList.contains('on');
 
   /* ================= TOP BAR ================= */

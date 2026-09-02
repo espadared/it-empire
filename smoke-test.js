@@ -157,6 +157,36 @@ check('a partial art record cannot break the leaderboard', () => {
   });
 });
 
+check('a ticket that has left the queue cannot block the one that replaced it', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'TAP', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+  S.quotaLeft = 999;
+
+  // A card on screen can outlive the ticket it describes: the queue keeps
+  // running while a live sheet is open. Asking the engine about a ticket that
+  // has gone must be answerable, not a crash and not a lie.
+  const gone = S.queue[0].uid;
+  S.queue.shift();
+  assert(Game.ticketBy(gone) === undefined || Game.ticketBy(gone) === null,
+    'a ticket that left the queue is still being found');
+  assert(Game.resolveTicket(gone) === null,
+    'resolving a ticket that no longer exists returned something');
+
+  // and the queue refills so there is always something to tap
+  Game.fillQueue();
+  assert(S.queue.length > 0, 'the queue did not refill after a ticket left it');
+  assert(S.queue.every(t => t && t.uid), 'the queue contains an entry with no id');
+
+  // resolving out of allowance is refused rather than half-done
+  S.quotaLeft = 0; S.quotaEnds = Date.now() + 60000;
+  const uid = S.queue[0].uid;
+  const before = S.lifetime.tickets;
+  assert(Game.resolveTicket(uid) === null, 'resolved a ticket with no allowance left');
+  assert(S.lifetime.tickets === before, 'the ticket count moved with no allowance left');
+  assert(Game.ticketBy(uid), 'the ticket was consumed despite being refused');
+});
+
 check('there is always something left to spend credits on', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'ECON', spec: 'fixer', art: DATA.CHARACTERS[0].art });

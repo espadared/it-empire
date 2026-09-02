@@ -43,6 +43,20 @@
 
   function cardOf(tuid) { return document.querySelector(`[data-tk="${tuid}"]`); }
 
+  /* Nothing may stay flagged as in-progress once it has left the queue. If it
+     did, every future tap on that card would be swallowed in silence and the
+     only way out would be a reload. */
+  function sweepWorking() {
+    if (!working.size) return;
+    const live = new Set((Game.state.queue || []).map(t => t.uid));
+    let changed = false;
+    working.forEach(uid => { if (!live.has(uid)) { working.delete(uid); changed = true; } });
+    if (changed && !working.size) {
+      const hero = $('#heroWrap');
+      hero && hero.classList.remove('working');
+    }
+  }
+
   function stopWorking(tuid) {
     working.delete(tuid);
     if (!working.size) {
@@ -80,7 +94,20 @@
 
   function doFix(tuid) {
     if (working.has(tuid)) return;
-    const t = Game.ticketBy(tuid); if (!t) return;
+    const t = Game.ticketBy(tuid);
+    // The card on screen is describing a ticket that has since gone — it ran
+    // out while a sheet was open, or somebody else in the queue resolved
+    // underneath it. Redraw and say so, rather than swallowing the tap.
+    if (!t) {
+      UI.beep('fail');
+      UI.refresh();
+      return toast('🎫', 'THAT ONE HAS GONE', 'The queue moved on. Here is what is waiting now.');
+    }
+    if (!Game.hasQuota()) {
+      UI.beep('fail');
+      UI.refresh();
+      return toast('🎫', 'ALLOWANCE SPENT', 'Your team keeps earning. Come back when it refills.');
+    }
     if (Game.needsDiagnosis(t)) return openDiagnosis(tuid);
     working.add(tuid);
     const hero = $('#heroWrap');
@@ -960,6 +987,7 @@
 
     if (ts - lastUi > 900) {
       lastUi = ts;
+      sweepWorking();
       UI.renderTop();
       if (UI.screen === 'hq') { UI.updateMeters(); UI.updateIdle(); UI.updateMini(); UI.updateChips(); }
       if (Game.incidentReady() && !warned && !document.querySelector('#modal.on') && UI.screen === 'hq') {
