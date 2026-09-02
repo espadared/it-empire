@@ -342,32 +342,57 @@ const UI = (() => {
   try {
     staffView = ['list', 'dept', 'goals'].find(v => v === localStorage.getItem('ie-staff-view')) || 'list';
     staffSort = localStorage.getItem('ie-staff-sort') || 'power';
+    staffDesc = localStorage.getItem('ie-staff-desc') !== '0';
     gearSort = localStorage.getItem('ie-gear-sort') || 'rarity';
   } catch (e) { }
   function setStaffView(v) { staffView = v; try { localStorage.setItem('ie-staff-view', v); } catch (e) { } renderStaff(); }
   function setGearSort(v) { gearSort = v; try { localStorage.setItem('ie-gear-sort', v); } catch (e) { } renderGear(); }
-  function setStaffSort(v) { staffSort = v; try { localStorage.setItem('ie-staff-sort', v); } catch (e) { } renderStaff(); }
+  /* Tapping the sort you are already on turns it round. */
+  function setStaffSort(v) {
+    if (v === staffSort) staffDesc = !staffDesc;
+    else { staffSort = v; staffDesc = true; }
+    try {
+      localStorage.setItem('ie-staff-sort', staffSort);
+      localStorage.setItem('ie-staff-desc', staffDesc ? '1' : '0');
+    } catch (e) { }
+    renderStaff();
+  }
 
   const SORTS = [
     { k: 'power', label: 'Power' },
     { k: 'output', label: 'Output' },
     { k: 'level', label: 'Level' },
+    { k: 'rarity', label: 'Rarity' },
+    { k: 'xp', label: 'XP' },
     { k: 'dept', label: 'Dept' },
     { k: 'name', label: 'Name' },
   ];
+  /* Every sort runs both ways. Tapping the one already chosen turns it round,
+     which is what people expect of a column header and what the roster needed
+     once it grew past a screenful. */
+  let staffDesc = true;
 
   function sortedRoster() {
     const S = Game.state;
     const nameOf = c => c.defId === 'hero' ? S.name : Game.def(c.defId).name;
     const out = c => c.uid === S.activeId ? -1 : Game.staffOutput(c).credits;
     const list = [...S.roster];
-    const cmp = {
+    const rarityRank = c => DATA.RARITY[c.rarity] ? Object.keys(DATA.RARITY).indexOf(c.rarity) : -1;
+    const deptName = c => c.dept ? (Game.deptDef(c.dept) || {}).name || c.dept : 'Unposted';
+    const base = {
       power: (a, b) => Game.charPower(b) - Game.charPower(a),
-      level: (a, b) => b.level - a.level,
+      level: (a, b) => b.level - a.level || Game.charPower(b) - Game.charPower(a),
       output: (a, b) => out(b) - out(a),
+      rarity: (a, b) => rarityRank(b) - rarityRank(a) || Game.charPower(b) - Game.charPower(a),
+      xp: (a, b) => (b.xp || 0) - (a.xp || 0),
       name: (a, b) => nameOf(a).localeCompare(nameOf(b)),
-      dept: (a, b) => (a.dept || 'zz').localeCompare(b.dept || 'zz') || Game.charPower(b) - Game.charPower(a),
+      dept: (a, b) => deptName(a).localeCompare(deptName(b)) || Game.charPower(b) - Game.charPower(a),
     }[staffSort] || (() => 0);
+    // Name and department read naturally A to Z, everything else biggest first,
+    // so "descending" means the same thing to a person in every case.
+    const naturalAsc = staffSort === 'name' || staffSort === 'dept';
+    const flip = staffDesc === naturalAsc ? -1 : 1;
+    const cmp = (a, b) => base(a, b) * flip;
     // whoever is on duty always leads: they are the one you are playing
     return list.sort((a, b) =>
       (b.uid === S.activeId) - (a.uid === S.activeId) || cmp(a, b));
@@ -598,7 +623,8 @@ const UI = (() => {
       ` : `
         <div class="sortbar">
           <span class="sortbar-lbl">SORT</span>
-          ${SORTS.map(o => `<button class="sortchip ${staffSort === o.k ? 'on' : ''}" data-ssort="${o.k}">${o.label}</button>`).join('')}
+          ${SORTS.map(o => `<button class="sortchip ${staffSort === o.k ? 'on' : ''}" data-ssort="${o.k}">${o.label}${
+            staffSort === o.k ? `<i>${staffDesc ? (o.k === 'name' || o.k === 'dept' ? 'Z→A' : '9→1') : (o.k === 'name' || o.k === 'dept' ? 'A→Z' : '1→9')}</i>` : ''}</button>`).join('')}
         </div>
         <div class="list">${sortedRoster().map(staffCard).join('')}</div>
       `}

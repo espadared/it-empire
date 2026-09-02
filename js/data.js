@@ -632,7 +632,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.6,SPEED:1.0,COMMUNICATION:1.0,INVESTIGATION:2.1,PATIENCE:2.2,AUTOMATION:0.5,MANAGEMENT:1.3},
       perks:{ cat_hardware:0.25, automation:-0.10 },
       art:{ skin:'#E8B888', hair:'#B9BFCB', hairStyle:'short', shirt:'#7A6B4F', accent:'#5C5039', glasses:false, headset:false, beard:true },
-      cost:1200, repReq:0, hireable:true
+      cost:9000, repReq:0, hireable:true
     },
     {
       id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', roleKey:'SUPPORT', icon:'💬',
@@ -644,7 +644,7 @@ const DATA = (() => {
       growth:{TECHNICAL:0.9,SPEED:1.4,COMMUNICATION:2.8,INVESTIGATION:1.2,PATIENCE:2.4,AUTOMATION:0.7,MANAGEMENT:1.7},
       perks:{ sat:0.30, power:-0.10 },
       art:{ skin:'#8D5A3B', hair:'#241A18', hairStyle:'bun', shirt:'#E0715F', accent:'#B4503F', glasses:false, headset:true, beard:false },
-      cost:900, repReq:0, hireable:true
+      cost:6500, repReq:0, hireable:true
     },
     {
       id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', roleKey:'AUTOMATION', icon:'🤖',
@@ -656,7 +656,7 @@ const DATA = (() => {
       growth:{TECHNICAL:1.7,SPEED:1.6,COMMUNICATION:0.6,INVESTIGATION:1.7,PATIENCE:0.9,AUTOMATION:3.1,MANAGEMENT:1.1},
       perks:{ idle:0.40, sat:-0.15 },
       art:{ skin:'#F3D2AE', hair:'#5B4EE0', hairStyle:'spiky', shirt:'#2F3A57', accent:'#4FD6C9', glasses:true, headset:true, beard:false },
-      cost:4500, repReq:250, hireable:true
+      cost:52000, repReq:250, hireable:true
     },
     {
       id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', roleKey:'SPECIALIST', icon:'🚒',
@@ -668,7 +668,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.1,SPEED:2.9,COMMUNICATION:1.4,INVESTIGATION:2.4,PATIENCE:0.7,AUTOMATION:0.9,MANAGEMENT:1.6},
       perks:{ incident:0.50, energy:0.35 },
       art:{ skin:'#C98A5E', hair:'#1E1A19', hairStyle:'fade', shirt:'#E04F4F', accent:'#8E2F2F', glasses:false, headset:true, beard:false },
-      cost:6000, repReq:500, hireable:true
+      cost:78000, repReq:500, hireable:true
     },
     {
       id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', roleKey:'TECHNICIAN', icon:'🐣',
@@ -680,7 +680,7 @@ const DATA = (() => {
       growth:{TECHNICAL:1.6,SPEED:1.5,COMMUNICATION:1.6,INVESTIGATION:1.5,PATIENCE:1.6,AUTOMATION:1.4,MANAGEMENT:0.9},
       perks:{ xp:0.60 },
       art:{ skin:'#F6D6B8', hair:'#C87F3A', hairStyle:'cap', shirt:'#5FD37A', accent:'#3E9455', glasses:true, headset:false, beard:false },
-      cost:300, repReq:0, hireable:true
+      cost:2200, repReq:0, hireable:true
     },
     {
       id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', roleKey:'AUTOMATION', icon:'🦉',
@@ -692,7 +692,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.4,SPEED:1.1,COMMUNICATION:0.5,INVESTIGATION:2.2,PATIENCE:1.8,AUTOMATION:2.1,MANAGEMENT:1.0},
       perks:{ idleCredit:0.35, power:-0.08 },
       art:{ skin:'#D9A97E', hair:'#2C2438', hairStyle:'long', shirt:'#3B3357', accent:'#6B5FA8', glasses:true, headset:true, beard:false },
-      cost:3200, repReq:150, hireable:true
+      cost:34000, repReq:150, hireable:true
     },
     {
       id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', roleKey:'SPECIALIST', icon:'🦅',
@@ -704,7 +704,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.8,SPEED:1.8,COMMUNICATION:1.0,INVESTIGATION:3.2,PATIENCE:1.5,AUTOMATION:1.8,MANAGEMENT:1.9},
       perks:{ cat_security:0.60, incidentSuccess:0.25, sat:-0.10 },
       art:{ skin:'#6E4630', hair:'#141414', hairStyle:'fade', shirt:'#1F2A44', accent:'#4FD6C9', glasses:true, headset:false, beard:true },
-      cost:18000, repReq:2000, hireable:true
+      cost:420000, repReq:2000, hireable:true
     },
     {
       id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', roleKey:'MANAGER', icon:'🔮',
@@ -716,7 +716,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.1,SPEED:1.9,COMMUNICATION:1.9,INVESTIGATION:2.1,PATIENCE:1.9,AUTOMATION:2.0,MANAGEMENT:2.2},
       perks:{ staffXp:0.35, incidentSuccess:0.20, rep:0.15 },
       art:{ skin:'#EBC49A', hair:'#E8ECF7', hairStyle:'long', shirt:'#4A2E70', accent:'#C08BFF', glasses:false, headset:false, beard:true },
-      cost:90000, repReq:10000, hireable:true
+      cost:2600000, repReq:10000, hireable:true
     },
   ];
 

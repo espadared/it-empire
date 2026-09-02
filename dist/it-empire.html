@@ -1184,6 +1184,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
 .expand-stats b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
 .expand-stats span{display:block;font-size:9.5px;color:var(--faint);letter-spacing:.03em;margin-top:1px}
 
+/* which way a sort is pointing */
+.sortchip i{font-style:normal;font-family:var(--mono);font-size:9px;opacity:.75;margin-left:5px}
+
 </style>
 <div id="app">
 
@@ -1881,7 +1884,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.6,SPEED:1.0,COMMUNICATION:1.0,INVESTIGATION:2.1,PATIENCE:2.2,AUTOMATION:0.5,MANAGEMENT:1.3},
       perks:{ cat_hardware:0.25, automation:-0.10 },
       art:{ skin:'#E8B888', hair:'#B9BFCB', hairStyle:'short', shirt:'#7A6B4F', accent:'#5C5039', glasses:false, headset:false, beard:true },
-      cost:1200, repReq:0, hireable:true
+      cost:9000, repReq:0, hireable:true
     },
     {
       id:'people', name:'THE PEOPLE PERSON', role:'Customer Support', rarity:'UNCOMMON', roleKey:'SUPPORT', icon:'💬',
@@ -1893,7 +1896,7 @@ const DATA = (() => {
       growth:{TECHNICAL:0.9,SPEED:1.4,COMMUNICATION:2.8,INVESTIGATION:1.2,PATIENCE:2.4,AUTOMATION:0.7,MANAGEMENT:1.7},
       perks:{ sat:0.30, power:-0.10 },
       art:{ skin:'#8D5A3B', hair:'#241A18', hairStyle:'bun', shirt:'#E0715F', accent:'#B4503F', glasses:false, headset:true, beard:false },
-      cost:900, repReq:0, hireable:true
+      cost:6500, repReq:0, hireable:true
     },
     {
       id:'automation', name:'THE AUTOMATION EXPERT', role:'Automation Specialist', rarity:'EPIC', roleKey:'AUTOMATION', icon:'🤖',
@@ -1905,7 +1908,7 @@ const DATA = (() => {
       growth:{TECHNICAL:1.7,SPEED:1.6,COMMUNICATION:0.6,INVESTIGATION:1.7,PATIENCE:0.9,AUTOMATION:3.1,MANAGEMENT:1.1},
       perks:{ idle:0.40, sat:-0.15 },
       art:{ skin:'#F3D2AE', hair:'#5B4EE0', hairStyle:'spiky', shirt:'#2F3A57', accent:'#4FD6C9', glasses:true, headset:true, beard:false },
-      cost:4500, repReq:250, hireable:true
+      cost:52000, repReq:250, hireable:true
     },
     {
       id:'firefighter', name:'THE FIREFIGHTER', role:'Incident Specialist', rarity:'EPIC', roleKey:'SPECIALIST', icon:'🚒',
@@ -1917,7 +1920,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.1,SPEED:2.9,COMMUNICATION:1.4,INVESTIGATION:2.4,PATIENCE:0.7,AUTOMATION:0.9,MANAGEMENT:1.6},
       perks:{ incident:0.50, energy:0.35 },
       art:{ skin:'#C98A5E', hair:'#1E1A19', hairStyle:'fade', shirt:'#E04F4F', accent:'#8E2F2F', glasses:false, headset:true, beard:false },
-      cost:6000, repReq:500, hireable:true
+      cost:78000, repReq:500, hireable:true
     },
     {
       id:'intern', name:'THE INTERN', role:'Trainee', rarity:'COMMON', roleKey:'TECHNICIAN', icon:'🐣',
@@ -1929,7 +1932,7 @@ const DATA = (() => {
       growth:{TECHNICAL:1.6,SPEED:1.5,COMMUNICATION:1.6,INVESTIGATION:1.5,PATIENCE:1.6,AUTOMATION:1.4,MANAGEMENT:0.9},
       perks:{ xp:0.60 },
       art:{ skin:'#F6D6B8', hair:'#C87F3A', hairStyle:'cap', shirt:'#5FD37A', accent:'#3E9455', glasses:true, headset:false, beard:false },
-      cost:300, repReq:0, hireable:true
+      cost:2200, repReq:0, hireable:true
     },
     {
       id:'nightowl', name:'THE NIGHT OWL', role:'Infrastructure Engineer', rarity:'RARE', roleKey:'AUTOMATION', icon:'🦉',
@@ -1941,7 +1944,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.4,SPEED:1.1,COMMUNICATION:0.5,INVESTIGATION:2.2,PATIENCE:1.8,AUTOMATION:2.1,MANAGEMENT:1.0},
       perks:{ idleCredit:0.35, power:-0.08 },
       art:{ skin:'#D9A97E', hair:'#2C2438', hairStyle:'long', shirt:'#3B3357', accent:'#6B5FA8', glasses:true, headset:true, beard:false },
-      cost:3200, repReq:150, hireable:true
+      cost:34000, repReq:150, hireable:true
     },
     {
       id:'hawk', name:'THE SECURITY HAWK', role:'Cybersecurity Lead', rarity:'LEGENDARY', roleKey:'SPECIALIST', icon:'🦅',
@@ -1953,7 +1956,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.8,SPEED:1.8,COMMUNICATION:1.0,INVESTIGATION:3.2,PATIENCE:1.5,AUTOMATION:1.8,MANAGEMENT:1.9},
       perks:{ cat_security:0.60, incidentSuccess:0.25, sat:-0.10 },
       art:{ skin:'#6E4630', hair:'#141414', hairStyle:'fade', shirt:'#1F2A44', accent:'#4FD6C9', glasses:true, headset:false, beard:true },
-      cost:18000, repReq:2000, hireable:true
+      cost:420000, repReq:2000, hireable:true
     },
     {
       id:'oracle', name:'THE ORACLE', role:'Principal Engineer', rarity:'MYTHIC', roleKey:'MANAGER', icon:'🔮',
@@ -1965,7 +1968,7 @@ const DATA = (() => {
       growth:{TECHNICAL:2.1,SPEED:1.9,COMMUNICATION:1.9,INVESTIGATION:2.1,PATIENCE:1.9,AUTOMATION:2.0,MANAGEMENT:2.2},
       perks:{ staffXp:0.35, incidentSuccess:0.20, rep:0.15 },
       art:{ skin:'#EBC49A', hair:'#E8ECF7', hairStyle:'long', shirt:'#4A2E70', accent:'#C08BFF', glasses:false, headset:false, beard:true },
-      cost:90000, repReq:10000, hireable:true
+      cost:2600000, repReq:10000, hireable:true
     },
   ];
 
@@ -3050,7 +3053,14 @@ const Game = (() => {
     return h ? `${h}h ${m}m` : m ? `${m}m ${x}s` : `${x}s`;
   };
 
-  const xpNeed = lvl => Math.floor(70 * Math.pow(lvl, 1.62) + 45 * lvl);
+  /* The game's own titles stop at 70 — Chief Technology Officer, the chair the
+     first screen promises. A player reached 1006, because idle experience grew
+     with the level it was buying, so every level made the next one cheaper in
+     real terms. That loop is cut in idleXpPerTicket, and the curve below is
+     twelve times steeper: reaching CTO is now about 23 million experience
+     rather than 1.9 million. */
+  const MAX_LEVEL = 70;
+  const xpNeed = lvl => Math.floor(140 * Math.pow(lvl, 2.1) + 45 * lvl);
   /* Steeper than it was: the last ranks should be a project, not an evening.
      Crossing into a new career rank is a promotion and costs four times as
      much, which is what makes a rank feel like a rank. */
@@ -3659,7 +3669,7 @@ const Game = (() => {
   function addXp(n) {
     S.xp += n;
     let ups = 0;
-    while (S.xp >= xpNeed(S.level)) {
+    while (S.level < MAX_LEVEL && S.xp >= xpNeed(S.level)) {
       S.xp -= xpNeed(S.level); S.level++; ups++;
       // Deliberately no allowance here: thirty an hour has to mean thirty an
       // hour, or levelling quietly switches the limit off for new players.
@@ -4198,7 +4208,10 @@ const Game = (() => {
     return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
       * bonus('reward') * moraleMult();
   }
-  function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
+  /* Flat. This used to scale with the player's level, which meant the reward
+     for levelling was a faster route to the next level — a loop with nothing
+     at the end of it. Experience now comes from the work, not from the rank. */
+  function idleXpPerTicket() { return 3.2 * bonus('xp'); }
   function idlePerSec() {
     let t = 0, c = 0, x = 0, r = 0;
     staff().forEach(m => {
@@ -4298,9 +4311,13 @@ const Game = (() => {
     return Math.round(p);
   }
   /* What finance will charge, and what they will give back. */
+  /* Kit is meant to be a project, not a purchase. Rarity now multiplies hard
+     rather than nudging, so a legendary is an ambition and a mythic is an
+     endgame. */
   const procurePrice = eid => {
     const e = eqDef(eid); if (!e) return Infinity;
-    return Math.round(DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06));
+    const rar = Math.pow(DATA.RARITY[e.rarity].mult, 3.2);
+    return Math.round(DATA.PROCURE.price[e.rarity] * rar * (1 + S.level * 0.35));
   };
   const ownsItem = eid => S.inventory.some(i => i.eid === eid);
   const canProcure = eid => {
@@ -4326,9 +4343,10 @@ const Game = (() => {
   const GEAR_KNEE = 10;
   function upgradeCost(it) {
     const L = it.level;
-    const flat = 180 * Math.pow(Math.min(L, GEAR_KNEE), 1.5);
-    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.2) : 1;
-    return Math.floor(flat * steep * DATA.RARITY[eqDef(it.eid).rarity].mult);
+    const rar = Math.pow(DATA.RARITY[eqDef(it.eid).rarity].mult, 2.4);
+    const flat = 900 * Math.pow(Math.min(L, GEAR_KNEE), 1.7);
+    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.9) : 1;
+    return Math.floor(flat * steep * rar);
   }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
@@ -4665,7 +4683,7 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
-    chapter, chapterNo, capacity, atCapacity,
+    MAX_LEVEL, xpNeed, idleXpPerTicket, chapter, chapterNo, capacity, atCapacity,
     expansionCost, expansionSite, expansionOwned, expansionIdle, expansionDesks, invest, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,
@@ -5024,32 +5042,57 @@ const UI = (() => {
   try {
     staffView = ['list', 'dept', 'goals'].find(v => v === localStorage.getItem('ie-staff-view')) || 'list';
     staffSort = localStorage.getItem('ie-staff-sort') || 'power';
+    staffDesc = localStorage.getItem('ie-staff-desc') !== '0';
     gearSort = localStorage.getItem('ie-gear-sort') || 'rarity';
   } catch (e) { }
   function setStaffView(v) { staffView = v; try { localStorage.setItem('ie-staff-view', v); } catch (e) { } renderStaff(); }
   function setGearSort(v) { gearSort = v; try { localStorage.setItem('ie-gear-sort', v); } catch (e) { } renderGear(); }
-  function setStaffSort(v) { staffSort = v; try { localStorage.setItem('ie-staff-sort', v); } catch (e) { } renderStaff(); }
+  /* Tapping the sort you are already on turns it round. */
+  function setStaffSort(v) {
+    if (v === staffSort) staffDesc = !staffDesc;
+    else { staffSort = v; staffDesc = true; }
+    try {
+      localStorage.setItem('ie-staff-sort', staffSort);
+      localStorage.setItem('ie-staff-desc', staffDesc ? '1' : '0');
+    } catch (e) { }
+    renderStaff();
+  }
 
   const SORTS = [
     { k: 'power', label: 'Power' },
     { k: 'output', label: 'Output' },
     { k: 'level', label: 'Level' },
+    { k: 'rarity', label: 'Rarity' },
+    { k: 'xp', label: 'XP' },
     { k: 'dept', label: 'Dept' },
     { k: 'name', label: 'Name' },
   ];
+  /* Every sort runs both ways. Tapping the one already chosen turns it round,
+     which is what people expect of a column header and what the roster needed
+     once it grew past a screenful. */
+  let staffDesc = true;
 
   function sortedRoster() {
     const S = Game.state;
     const nameOf = c => c.defId === 'hero' ? S.name : Game.def(c.defId).name;
     const out = c => c.uid === S.activeId ? -1 : Game.staffOutput(c).credits;
     const list = [...S.roster];
-    const cmp = {
+    const rarityRank = c => DATA.RARITY[c.rarity] ? Object.keys(DATA.RARITY).indexOf(c.rarity) : -1;
+    const deptName = c => c.dept ? (Game.deptDef(c.dept) || {}).name || c.dept : 'Unposted';
+    const base = {
       power: (a, b) => Game.charPower(b) - Game.charPower(a),
-      level: (a, b) => b.level - a.level,
+      level: (a, b) => b.level - a.level || Game.charPower(b) - Game.charPower(a),
       output: (a, b) => out(b) - out(a),
+      rarity: (a, b) => rarityRank(b) - rarityRank(a) || Game.charPower(b) - Game.charPower(a),
+      xp: (a, b) => (b.xp || 0) - (a.xp || 0),
       name: (a, b) => nameOf(a).localeCompare(nameOf(b)),
-      dept: (a, b) => (a.dept || 'zz').localeCompare(b.dept || 'zz') || Game.charPower(b) - Game.charPower(a),
+      dept: (a, b) => deptName(a).localeCompare(deptName(b)) || Game.charPower(b) - Game.charPower(a),
     }[staffSort] || (() => 0);
+    // Name and department read naturally A to Z, everything else biggest first,
+    // so "descending" means the same thing to a person in every case.
+    const naturalAsc = staffSort === 'name' || staffSort === 'dept';
+    const flip = staffDesc === naturalAsc ? -1 : 1;
+    const cmp = (a, b) => base(a, b) * flip;
     // whoever is on duty always leads: they are the one you are playing
     return list.sort((a, b) =>
       (b.uid === S.activeId) - (a.uid === S.activeId) || cmp(a, b));
@@ -5280,7 +5323,8 @@ const UI = (() => {
       ` : `
         <div class="sortbar">
           <span class="sortbar-lbl">SORT</span>
-          ${SORTS.map(o => `<button class="sortchip ${staffSort === o.k ? 'on' : ''}" data-ssort="${o.k}">${o.label}</button>`).join('')}
+          ${SORTS.map(o => `<button class="sortchip ${staffSort === o.k ? 'on' : ''}" data-ssort="${o.k}">${o.label}${
+            staffSort === o.k ? `<i>${staffDesc ? (o.k === 'name' || o.k === 'dept' ? 'Z→A' : '9→1') : (o.k === 'name' || o.k === 'dept' ? 'A→Z' : '1→9')}</i>` : ''}</button>`).join('')}
         </div>
         <div class="list">${sortedRoster().map(staffCard).join('')}</div>
       `}

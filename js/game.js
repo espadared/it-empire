@@ -56,7 +56,14 @@ const Game = (() => {
     return h ? `${h}h ${m}m` : m ? `${m}m ${x}s` : `${x}s`;
   };
 
-  const xpNeed = lvl => Math.floor(70 * Math.pow(lvl, 1.62) + 45 * lvl);
+  /* The game's own titles stop at 70 — Chief Technology Officer, the chair the
+     first screen promises. A player reached 1006, because idle experience grew
+     with the level it was buying, so every level made the next one cheaper in
+     real terms. That loop is cut in idleXpPerTicket, and the curve below is
+     twelve times steeper: reaching CTO is now about 23 million experience
+     rather than 1.9 million. */
+  const MAX_LEVEL = 70;
+  const xpNeed = lvl => Math.floor(140 * Math.pow(lvl, 2.1) + 45 * lvl);
   /* Steeper than it was: the last ranks should be a project, not an evening.
      Crossing into a new career rank is a promotion and costs four times as
      much, which is what makes a rank feel like a rank. */
@@ -665,7 +672,7 @@ const Game = (() => {
   function addXp(n) {
     S.xp += n;
     let ups = 0;
-    while (S.xp >= xpNeed(S.level)) {
+    while (S.level < MAX_LEVEL && S.xp >= xpNeed(S.level)) {
       S.xp -= xpNeed(S.level); S.level++; ups++;
       // Deliberately no allowance here: thirty an hour has to mean thirty an
       // hour, or levelling quietly switches the limit off for new players.
@@ -1204,7 +1211,10 @@ const Game = (() => {
     return 5.5 * (1 + S.level * 0.16) * bonus('credit') * bonus('idleCredit')
       * bonus('reward') * moraleMult();
   }
-  function idleXpPerTicket() { return 3.2 * (1 + S.level * 0.05) * bonus('xp'); }
+  /* Flat. This used to scale with the player's level, which meant the reward
+     for levelling was a faster route to the next level — a loop with nothing
+     at the end of it. Experience now comes from the work, not from the rank. */
+  function idleXpPerTicket() { return 3.2 * bonus('xp'); }
   function idlePerSec() {
     let t = 0, c = 0, x = 0, r = 0;
     staff().forEach(m => {
@@ -1304,9 +1314,13 @@ const Game = (() => {
     return Math.round(p);
   }
   /* What finance will charge, and what they will give back. */
+  /* Kit is meant to be a project, not a purchase. Rarity now multiplies hard
+     rather than nudging, so a legendary is an ambition and a mythic is an
+     endgame. */
   const procurePrice = eid => {
     const e = eqDef(eid); if (!e) return Infinity;
-    return Math.round(DATA.PROCURE.price[e.rarity] * (1 + S.level * 0.06));
+    const rar = Math.pow(DATA.RARITY[e.rarity].mult, 3.2);
+    return Math.round(DATA.PROCURE.price[e.rarity] * rar * (1 + S.level * 0.35));
   };
   const ownsItem = eid => S.inventory.some(i => i.eid === eid);
   const canProcure = eid => {
@@ -1332,9 +1346,10 @@ const Game = (() => {
   const GEAR_KNEE = 10;
   function upgradeCost(it) {
     const L = it.level;
-    const flat = 180 * Math.pow(Math.min(L, GEAR_KNEE), 1.5);
-    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.2) : 1;
-    return Math.floor(flat * steep * DATA.RARITY[eqDef(it.eid).rarity].mult);
+    const rar = Math.pow(DATA.RARITY[eqDef(it.eid).rarity].mult, 2.4);
+    const flat = 900 * Math.pow(Math.min(L, GEAR_KNEE), 1.7);
+    const steep = L > GEAR_KNEE ? Math.pow(L / GEAR_KNEE, 2.9) : 1;
+    return Math.floor(flat * steep * rar);
   }
   function upgradeItem(itemUid) {
     const it = S.inventory.find(i => i.uid === itemUid); if (!it) return false;
@@ -1671,7 +1686,7 @@ const Game = (() => {
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
     hire, hireCost, canHire, canLevel, levelCost, levelUpChar, levelUpMax, levelsReady, atMaxLevel,
-    chapter, chapterNo, capacity, atCapacity,
+    MAX_LEVEL, xpNeed, idleXpPerTicket, chapter, chapterNo, capacity, atCapacity,
     expansionCost, expansionSite, expansionOwned, expansionIdle, expansionDesks, invest, maxStaffLevel, rankOf, roleOf,
     teamPowerTotal, deptGrade, chapterProgress, canPromoteChapter, promoteChapter, roleSpread, dupShare,
     bestDept, autoPost, misplaced, unposted, isPromotion, advice, deptCover,

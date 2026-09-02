@@ -88,7 +88,9 @@ check('save + reload round trip', () => {
 });
 check('procure and dispose', () => {
   const G = Game.state;            // re-read: an earlier reload swapped the state object
-  G.credits = 5e6; G.reputation = 5e5;
+  // Gear was deliberately made a long-term project, so a test that wants to
+  // buy any item — up to a mythic — needs a budget that reflects that.
+  G.credits = 5e9; G.reputation = 5e6;
   // Drops are random, so an unlucky run of the 400-ticket loop above can leave
   // every item owned and nothing to buy. Free one up rather than depending on
   // the dice: procurement is what is under test here, not the drop table.
@@ -155,6 +157,37 @@ check('a partial art record cannot break the leaderboard', () => {
     catch (e) { throw new Error('art record #' + i + ' threw: ' + e.message); }
     assert(out && out.length > 200, 'art record #' + i + ' produced nothing');
   });
+});
+
+check('progress has a ceiling and cannot run away', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'CAP', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+
+  // A player reached level 1006 because idle experience scaled with the level
+  // it was buying. Experience must not depend on the player's own level.
+  S.level = 1;  const low = Game.idleXpPerTicket ? Game.idleXpPerTicket() : null;
+  S.level = 500; const high = Game.idleXpPerTicket ? Game.idleXpPerTicket() : null;
+  if (low !== null) assert(Math.abs(high - low) < 0.001,
+    `idle xp still scales with level (${low} at 1, ${high} at 500)`);
+
+  // and the level itself stops at the rank the game actually has a name for
+  S.level = 1; S.xp = 0;
+  const top = Math.max(...DATA.TITLES.map(t => t.level));
+  assert(Game.MAX_LEVEL === top,
+    `the cap (${Game.MAX_LEVEL}) does not match the last title (${top})`);
+  S.xp = 1e15;
+  Game.addXpForTest ? Game.addXpForTest(0) : Game.resolveTicket(S.queue[0].uid);
+  for (let i = 0; i < 50; i++) { S.quotaLeft = 999; if (S.queue[0]) Game.resolveTicket(S.queue[0].uid); }
+  assert(S.level <= Game.MAX_LEVEL,
+    `level ran past the ceiling to ${S.level}`);
+
+  // the curve is genuinely steeper than it was
+  const old = l => Math.floor(70 * Math.pow(l, 1.62) + 45 * l);
+  let wasTotal = 0, nowTotal = 0;
+  for (let l = 1; l < Game.MAX_LEVEL; l++) { wasTotal += old(l); nowTotal += Game.xpNeed(l); }
+  assert(nowTotal > wasTotal * 5,
+    `the curve is only ${(nowTotal / wasTotal).toFixed(1)}x steeper`);
 });
 
 check('a ticket that has left the queue cannot block the one that replaced it', () => {

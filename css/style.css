@@ -1175,3 +1175,6 @@ button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--crt);outli
   padding:8px 6px;text-align:center}
 .expand-stats b{display:block;font-family:var(--mono);font-size:15px;color:var(--text)}
 .expand-stats span{display:block;font-size:9.5px;color:var(--faint);letter-spacing:.03em;margin-top:1px}
+
+/* which way a sort is pointing */
+.sortchip i{font-style:normal;font-family:var(--mono);font-size:9px;opacity:.75;margin-left:5px}
