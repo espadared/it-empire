@@ -164,7 +164,7 @@ const UI = (() => {
   function updateHero() {
     const S = Game.state, c = Game.active(), d = Game.def(c.defId);
     $('#heroName').innerHTML =
-      `<div class="n">${esc(c.defId === 'hero' ? S.name : d.name)}</div>
+      `<div class="n">${esc(Game.staffName(c))}</div>
        <div class="r">${esc(c.defId === 'hero' ? Game.title(S.level) : d.role)} · LV.${c.level}</div>
        <div class="p">⚡ POWER ${f(Game.charPower(c))}</div>`;
     const rate = Game.idleRate();
@@ -392,7 +392,7 @@ const UI = (() => {
 
   function sortedRoster() {
     const S = Game.state;
-    const nameOf = c => c.defId === 'hero' ? S.name : Game.def(c.defId).name;
+    const nameOf = c => Game.staffName(c);
     const out = c => c.uid === S.activeId ? -1 : Game.staffOutput(c).credits;
     const list = [...S.roster];
     const rarityRank = c => DATA.RARITY[c.rarity] ? Object.keys(DATA.RARITY).indexOf(c.rarity) : -1;
@@ -444,7 +444,7 @@ const UI = (() => {
       <div class="row">
         <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
-          <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <h3>${esc(Game.staffName(c))}</h3>
           <div class="rankline" style="color:${rank.colour}">${esc(rank.name)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
           <div class="badges">
             <span class="rolechip" style="color:${role.colour};border-color:${role.colour}44;background:${role.colour}14">${role.icon} ${role.name}</span>
@@ -693,7 +693,7 @@ const UI = (() => {
     sheet(`
       <div class="row" style="align-items:center;gap:10px">
         <div class="avatar">${Art.portrait(d.art, 'ps' + c.uid)}<span class="lv">L${c.level}</span></div>
-        <div class="who"><h3 style="text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+        <div class="who"><h3 style="text-align:left">${esc(Game.staffName(c))}</h3>
           <div class="role">${esc(d.role)}</div></div>
       </div>
       <p class="sub" style="margin-top:12px">Where should they be posted?</p>
@@ -744,7 +744,7 @@ const UI = (() => {
       return `<button class="postopt" data-assign="${deptId}" data-who="${c.uid}">
           <div class="avatar" style="width:42px;height:42px">${Art.portrait(d.art, 'fd' + c.uid)}</div>
           <div style="flex:1;min-width:0">
-            <h4>${esc(c.defId === 'hero' ? S.name : d.name)}</h4>
+            <h4>${esc(Game.staffName(c))}</h4>
             <div class="tiny muted">${esc(d.role)}${leaving ? ' · would leave ' + esc(leaving.name) : ''}</div>
           </div>
           <span class="yieldbadge">${y}<small>would bring</small></span>
@@ -775,7 +775,7 @@ const UI = (() => {
       <div class="row" style="align-items:flex-start">
         <div class="avatar lg">${Art.portrait(d.art, 'sh' + c.uid)}<span class="lv">L${c.level}</span></div>
         <div class="who">
-          <h3 style="font-size:18px;text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <h3 style="font-size:18px;text-align:left">${esc(Game.staffName(c))}</h3>
           <div class="role">${esc(d.role)}</div>
           <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
           <div class="pw" style="margin-top:4px">⚡ POWER ${f(Game.charPower(c))}</div>
@@ -828,7 +828,7 @@ const UI = (() => {
 
   /* One slot of the standard. If something is fitted you can level it here
      rather than hunting for it in the cupboard. */
-  function pickItemSheet(slot) {
+  function pickItemSheet(slot, opts = {}) {
     const S = Game.state;
     const label = DATA.SLOTS.find(s2 => s2.key === slot);
     const cur = Game.standardItem(slot);
@@ -875,7 +875,7 @@ const UI = (() => {
           </div>`;
         }).join('')}</div>`
       : (cur ? '' : `<div class="empty"><span class="big">🎒</span>No ${label.label.toLowerCase()} in the cupboard. Procure one on the GEAR tab.</div>`)}
-      <button class="btn ghost cta" data-close="1">DONE</button>`);
+      <button class="btn ghost cta" data-close="1">DONE</button>`, { replace: !!opts.replace });
   }
 
   /* Three focused views rather than one very long scroll. */

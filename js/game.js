@@ -178,6 +178,22 @@ const Game = (() => {
   }
   const active = () => S.roster.find(c => c.uid === S.activeId) || S.roster[0];
   const staff = () => S.roster.filter(c => c.uid !== S.activeId);
+
+  /* What to call somebody on screen.
+
+     Hiring a second Veteran used to produce two cards reading THE VETERAN,
+     with no way to tell which one the level-up button belonged to. Duplicates
+     are numbered by the order they were hired, so the number on a card never
+     changes as the roster is re-sorted. A person with no double keeps their
+     plain name — numbering everybody would be noise. */
+  function staffName(c) {
+    if (!c) return '';
+    if (c.defId === 'hero') return S.name;
+    const base = def(c.defId).name;
+    const same = S.roster.filter(x => x.defId === c.defId);
+    if (same.length < 2) return base;
+    return `${base} ${same.findIndex(x => x.uid === c.uid) + 1}`;
+  }
   const teamPower = () => S.roster.reduce((a, c) => a + charPower(c), 0);
 
   /* ---------------- BONUS AGGREGATION ---------------- */
@@ -875,7 +891,7 @@ const Game = (() => {
     const bad = misplaced();
     if (bad.length)
       return { icon: '🔀', tone: 'warn', title: `${bad.length} ${bad.length > 1 ? 'are' : 'is'} in the wrong department`,
-        detail: `${bad.map(c => c.defId === 'hero' ? S.name : def(c.defId).name).slice(0, 2).join(' and ')} would earn more somewhere else.`,
+        detail: `${bad.map(staffName).slice(0, 2).join(' and ')} would earn more somewhere else.`,
         action: 'autopost', label: 'MOVE THEM' };
 
     const spread = roleSpread();
@@ -894,7 +910,7 @@ const Game = (() => {
     const ready = S.roster.filter(c => canLevel(c))
       .sort((a, b) => charPower(b) - charPower(a))[0];
     if (ready) {
-      const nm = ready.defId === 'hero' ? S.name : def(ready.defId).name;
+      const nm = staffName(ready);
       const promo = isPromotion(ready.level);
       return { icon: promo ? '🎖️' : '📈', tone: 'good',
         title: promo ? `${nm} is ready for promotion` : `${nm} can level up`,
@@ -939,7 +955,7 @@ const Game = (() => {
     if (S.activeId === uid) S.activeId = S.roster[0].uid;
     grantStaffXp(v.xp);                                   // their experience stays behind
     emit('change');
-    return { ...v, name: c.defId === 'hero' ? S.name : def(c.defId).name };
+    return { ...v, name: staffName(c) };
   }
 
   /* ---------------- DEPARTMENTS ----------------
@@ -1832,7 +1848,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, moraleMatters, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    accrue, emitUnlock, heroRarity, heroLearning, syncHero, grantReward, staffingLevel, fatigueOf, tiredMult, teamFatigue, restTeam,
+    accrue, staffName, emitUnlock, heroRarity, heroLearning, syncHero, grantReward, staffingLevel, fatigueOf, tiredMult, teamFatigue, restTeam,
     tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,

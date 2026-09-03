@@ -473,7 +473,7 @@
   Game.on('promoted', ({ char, rank }) => {
     UI.beep('level');
     const d = Game.def(char.defId);
-    const nm = char.defId === 'hero' ? Game.state.name : d.name;
+    const nm = Game.staffName(char);
     const role = Game.roleOf(char);
     UI.sheet(`
       <div class="promo">
@@ -842,7 +842,7 @@
       else {
         UI.beep('fail');
         if (c && Game.atMaxLevel(c)) {
-          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${Game.maxStaffLevel()} — as far as this chapter allows.`);
+          toast('🎓', 'FULLY QUALIFIED', `${Game.staffName(c)} is at level ${Game.maxStaffLevel()} — as far as this chapter allows.`);
           return;
         }
         const short = c && (c.xp < Game.charXpNeed(c.level)
@@ -920,7 +920,7 @@
         UI.beep('ok');
         const c = Game.state.roster.find(x => x.uid === d.who);
         const dp = c && c.dept && Game.deptDef(c.dept);
-        const name = c && (c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name);
+        const name = c && Game.staffName(c);
         toast(dp ? dp.icon : '👤', dp ? 'POSTED TO ' + dp.name.toUpperCase() : 'UNPOSTED',
           dp ? `${name} · ${Game.deptFit(c, dp).toFixed(1)}× fit · ${dp.bonus}` : `${name} is off the department roster.`);
       } else UI.beep('fail');
@@ -957,7 +957,7 @@
       UI.beep('level');
       const b = t.getBoundingClientRect();
       UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 18);
-      const nm = c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name;
+      const nm = Game.staffName(c);
       toast('📈', `${nm} · LV.${r.from} → ${r.to}`,
         Game.isPromotion(c.level) && Game.canLevel(c)
           ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
@@ -974,8 +974,11 @@
         UI.sparks(b.left + b.width / 2, b.top + 10, '#FFB347', 12);
       }
       UI.refresh();
-      // upgrading from inside a standard slot should leave you looking at it
-      if (d.inslot) return UI.pickItemSheet(d.inslot);
+      // Upgrading from inside a standard slot should leave you looking at it —
+      // and redraw in place, or holding the button replays the slide-up
+      // animation and throws the scroll back to the top on every tap, exactly
+      // as levelling staff used to.
+      if (d.inslot) return UI.pickItemSheet(d.inslot, { replace: true });
       return;
     }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }

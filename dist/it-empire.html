@@ -3247,6 +3247,22 @@ const Game = (() => {
   }
   const active = () => S.roster.find(c => c.uid === S.activeId) || S.roster[0];
   const staff = () => S.roster.filter(c => c.uid !== S.activeId);
+
+  /* What to call somebody on screen.
+
+     Hiring a second Veteran used to produce two cards reading THE VETERAN,
+     with no way to tell which one the level-up button belonged to. Duplicates
+     are numbered by the order they were hired, so the number on a card never
+     changes as the roster is re-sorted. A person with no double keeps their
+     plain name — numbering everybody would be noise. */
+  function staffName(c) {
+    if (!c) return '';
+    if (c.defId === 'hero') return S.name;
+    const base = def(c.defId).name;
+    const same = S.roster.filter(x => x.defId === c.defId);
+    if (same.length < 2) return base;
+    return `${base} ${same.findIndex(x => x.uid === c.uid) + 1}`;
+  }
   const teamPower = () => S.roster.reduce((a, c) => a + charPower(c), 0);
 
   /* ---------------- BONUS AGGREGATION ---------------- */
@@ -3944,7 +3960,7 @@ const Game = (() => {
     const bad = misplaced();
     if (bad.length)
       return { icon: '🔀', tone: 'warn', title: `${bad.length} ${bad.length > 1 ? 'are' : 'is'} in the wrong department`,
-        detail: `${bad.map(c => c.defId === 'hero' ? S.name : def(c.defId).name).slice(0, 2).join(' and ')} would earn more somewhere else.`,
+        detail: `${bad.map(staffName).slice(0, 2).join(' and ')} would earn more somewhere else.`,
         action: 'autopost', label: 'MOVE THEM' };
 
     const spread = roleSpread();
@@ -3963,7 +3979,7 @@ const Game = (() => {
     const ready = S.roster.filter(c => canLevel(c))
       .sort((a, b) => charPower(b) - charPower(a))[0];
     if (ready) {
-      const nm = ready.defId === 'hero' ? S.name : def(ready.defId).name;
+      const nm = staffName(ready);
       const promo = isPromotion(ready.level);
       return { icon: promo ? '🎖️' : '📈', tone: 'good',
         title: promo ? `${nm} is ready for promotion` : `${nm} can level up`,
@@ -4008,7 +4024,7 @@ const Game = (() => {
     if (S.activeId === uid) S.activeId = S.roster[0].uid;
     grantStaffXp(v.xp);                                   // their experience stays behind
     emit('change');
-    return { ...v, name: c.defId === 'hero' ? S.name : def(c.defId).name };
+    return { ...v, name: staffName(c) };
   }
 
   /* ---------------- DEPARTMENTS ----------------
@@ -4901,7 +4917,7 @@ const Game = (() => {
     fillQueue, tickQueue, ticketBy, oddsFor, needsDiagnosis, isBusy, freeStaff,
     playTempo, diagnoseChance,
     momentumMult, moraleMult, moraleMatters, MOMENTUM_MAX, QUEUE_SIZE, breach,
-    accrue, emitUnlock, heroRarity, heroLearning, syncHero, grantReward, staffingLevel, fatigueOf, tiredMult, teamFatigue, restTeam,
+    accrue, staffName, emitUnlock, heroRarity, heroLearning, syncHero, grantReward, staffingLevel, fatigueOf, tiredMult, teamFatigue, restTeam,
     tabState, tabOpen, quotaMax, quotaBase, quotaCap, quotaLeft, quotaResetIn, hasQuota, grantQuota, refreshQuota,
     idleRate, idlePerSec, collectIdle, offlineCapHours, staffRate, staffOutput,
     deptDef, deptFit, deptBoost, assignDept, deptStaff,
@@ -5087,7 +5103,7 @@ const UI = (() => {
   function updateHero() {
     const S = Game.state, c = Game.active(), d = Game.def(c.defId);
     $('#heroName').innerHTML =
-      `<div class="n">${esc(c.defId === 'hero' ? S.name : d.name)}</div>
+      `<div class="n">${esc(Game.staffName(c))}</div>
        <div class="r">${esc(c.defId === 'hero' ? Game.title(S.level) : d.role)} · LV.${c.level}</div>
        <div class="p">⚡ POWER ${f(Game.charPower(c))}</div>`;
     const rate = Game.idleRate();
@@ -5315,7 +5331,7 @@ const UI = (() => {
 
   function sortedRoster() {
     const S = Game.state;
-    const nameOf = c => c.defId === 'hero' ? S.name : Game.def(c.defId).name;
+    const nameOf = c => Game.staffName(c);
     const out = c => c.uid === S.activeId ? -1 : Game.staffOutput(c).credits;
     const list = [...S.roster];
     const rarityRank = c => DATA.RARITY[c.rarity] ? Object.keys(DATA.RARITY).indexOf(c.rarity) : -1;
@@ -5367,7 +5383,7 @@ const UI = (() => {
       <div class="row">
         <div class="avatar lg">${Art.portrait(d.art, c.uid)}<span class="lv${maxed ? ' max' : ''}">L${c.level}</span></div>
         <div class="who">
-          <h3>${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <h3>${esc(Game.staffName(c))}</h3>
           <div class="rankline" style="color:${rank.colour}">${esc(rank.name)}${isActive ? ' · <b style="color:var(--lamp)">ON DUTY</b>' : ''}</div>
           <div class="badges">
             <span class="rolechip" style="color:${role.colour};border-color:${role.colour}44;background:${role.colour}14">${role.icon} ${role.name}</span>
@@ -5616,7 +5632,7 @@ const UI = (() => {
     sheet(`
       <div class="row" style="align-items:center;gap:10px">
         <div class="avatar">${Art.portrait(d.art, 'ps' + c.uid)}<span class="lv">L${c.level}</span></div>
-        <div class="who"><h3 style="text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+        <div class="who"><h3 style="text-align:left">${esc(Game.staffName(c))}</h3>
           <div class="role">${esc(d.role)}</div></div>
       </div>
       <p class="sub" style="margin-top:12px">Where should they be posted?</p>
@@ -5667,7 +5683,7 @@ const UI = (() => {
       return `<button class="postopt" data-assign="${deptId}" data-who="${c.uid}">
           <div class="avatar" style="width:42px;height:42px">${Art.portrait(d.art, 'fd' + c.uid)}</div>
           <div style="flex:1;min-width:0">
-            <h4>${esc(c.defId === 'hero' ? S.name : d.name)}</h4>
+            <h4>${esc(Game.staffName(c))}</h4>
             <div class="tiny muted">${esc(d.role)}${leaving ? ' · would leave ' + esc(leaving.name) : ''}</div>
           </div>
           <span class="yieldbadge">${y}<small>would bring</small></span>
@@ -5698,7 +5714,7 @@ const UI = (() => {
       <div class="row" style="align-items:flex-start">
         <div class="avatar lg">${Art.portrait(d.art, 'sh' + c.uid)}<span class="lv">L${c.level}</span></div>
         <div class="who">
-          <h3 style="font-size:18px;text-align:left">${esc(c.defId === 'hero' ? S.name : d.name)}</h3>
+          <h3 style="font-size:18px;text-align:left">${esc(Game.staffName(c))}</h3>
           <div class="role">${esc(d.role)}</div>
           <span class="rar" style="color:${rarColor(c.rarity)};border:1px solid ${rarColor(c.rarity)}33;background:${rarColor(c.rarity)}18">${c.rarity}</span>
           <div class="pw" style="margin-top:4px">⚡ POWER ${f(Game.charPower(c))}</div>
@@ -5751,7 +5767,7 @@ const UI = (() => {
 
   /* One slot of the standard. If something is fitted you can level it here
      rather than hunting for it in the cupboard. */
-  function pickItemSheet(slot) {
+  function pickItemSheet(slot, opts = {}) {
     const S = Game.state;
     const label = DATA.SLOTS.find(s2 => s2.key === slot);
     const cur = Game.standardItem(slot);
@@ -5798,7 +5814,7 @@ const UI = (() => {
           </div>`;
         }).join('')}</div>`
       : (cur ? '' : `<div class="empty"><span class="big">🎒</span>No ${label.label.toLowerCase()} in the cupboard. Procure one on the GEAR tab.</div>`)}
-      <button class="btn ghost cta" data-close="1">DONE</button>`);
+      <button class="btn ghost cta" data-close="1">DONE</button>`, { replace: !!opts.replace });
   }
 
   /* Three focused views rather than one very long scroll. */
@@ -7238,7 +7254,7 @@ const Onboard = (() => {
   Game.on('promoted', ({ char, rank }) => {
     UI.beep('level');
     const d = Game.def(char.defId);
-    const nm = char.defId === 'hero' ? Game.state.name : d.name;
+    const nm = Game.staffName(char);
     const role = Game.roleOf(char);
     UI.sheet(`
       <div class="promo">
@@ -7607,7 +7623,7 @@ const Onboard = (() => {
       else {
         UI.beep('fail');
         if (c && Game.atMaxLevel(c)) {
-          toast('🎓', 'FULLY QUALIFIED', `${c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name} is at level ${Game.maxStaffLevel()} — as far as this chapter allows.`);
+          toast('🎓', 'FULLY QUALIFIED', `${Game.staffName(c)} is at level ${Game.maxStaffLevel()} — as far as this chapter allows.`);
           return;
         }
         const short = c && (c.xp < Game.charXpNeed(c.level)
@@ -7685,7 +7701,7 @@ const Onboard = (() => {
         UI.beep('ok');
         const c = Game.state.roster.find(x => x.uid === d.who);
         const dp = c && c.dept && Game.deptDef(c.dept);
-        const name = c && (c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name);
+        const name = c && Game.staffName(c);
         toast(dp ? dp.icon : '👤', dp ? 'POSTED TO ' + dp.name.toUpperCase() : 'UNPOSTED',
           dp ? `${name} · ${Game.deptFit(c, dp).toFixed(1)}× fit · ${dp.bonus}` : `${name} is off the department roster.`);
       } else UI.beep('fail');
@@ -7722,7 +7738,7 @@ const Onboard = (() => {
       UI.beep('level');
       const b = t.getBoundingClientRect();
       UI.sparks(b.left + b.width / 2, b.top + 10, '#4FD6C9', 18);
-      const nm = c.defId === 'hero' ? Game.state.name : Game.def(c.defId).name;
+      const nm = Game.staffName(c);
       toast('📈', `${nm} · LV.${r.from} → ${r.to}`,
         Game.isPromotion(c.level) && Game.canLevel(c)
           ? `${r.gained} levels for ${f(r.spent)} credits. They are at a rank wall — promote them when you are ready.`
@@ -7739,8 +7755,11 @@ const Onboard = (() => {
         UI.sparks(b.left + b.width / 2, b.top + 10, '#FFB347', 12);
       }
       UI.refresh();
-      // upgrading from inside a standard slot should leave you looking at it
-      if (d.inslot) return UI.pickItemSheet(d.inslot);
+      // Upgrading from inside a standard slot should leave you looking at it —
+      // and redraw in place, or holding the button replays the slide-up
+      // animation and throws the scroll back to the top on every tap, exactly
+      // as levelling staff used to.
+      if (d.inslot) return UI.pickItemSheet(d.inslot, { replace: true });
       return;
     }
     if (d.gsort) { UI.beep('tap'); return UI.setGearSort(d.gsort); }

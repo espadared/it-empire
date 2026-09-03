@@ -159,6 +159,39 @@ check('a partial art record cannot break the leaderboard', () => {
   });
 });
 
+check('duplicate colleagues can be told apart', () => {
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  Game.newGame(null, { name: 'NAMES', spec: 'fixer', art: DATA.CHARACTERS[0].art });
+  const S = Game.state;
+  S.credits = 1e12; S.reputation = 1e7; S.chapter = 5;
+
+  // one of a kind keeps a plain name — numbering everybody would be noise
+  const solo = Game.hire('oracle');
+  assert(!/\d/.test(Game.staffName(solo)),
+    `a lone hire should not be numbered, got "${Game.staffName(solo)}"`);
+
+  // duplicates are numbered, and every card is distinct
+  const v = [Game.hire('veteran'), Game.hire('veteran'), Game.hire('veteran')];
+  const names = v.map(Game.staffName);
+  assert(new Set(names).size === 3, `duplicates share a name: ${names.join(', ')}`);
+  assert(names.every((n, i) => n.endsWith(' ' + (i + 1))),
+    `numbered out of hire order: ${names.join(', ')}`);
+  assert(!/\d/.test(Game.staffName(solo)),
+    'hiring duplicates of somebody else numbered a lone hire');
+
+  // the number follows the person, so re-sorting the screen cannot move it
+  v[0].level = 5; v[1].level = 40; v[2].level = 20;
+  const before = v.map(Game.staffName);
+  [...S.roster].sort((a, b) => Game.charPower(b) - Game.charPower(a));
+  assert(v.map(Game.staffName).join() === before.join(),
+    'sorting the roster changed who holds which number');
+
+  // and the player is always their own name, never numbered
+  const hero = S.roster.find(c => c.defId === 'hero');
+  assert(Game.staffName(hero) === S.name,
+    `the player should be called ${S.name}, got ${Game.staffName(hero)}`);
+});
+
 check('neglect actually costs something now', () => {
   const assert = (c, m) => { if (!c) throw new Error(m); };
   Game.newGame(null, { name: 'RISK', spec: 'fixer', art: DATA.CHARACTERS[0].art });
